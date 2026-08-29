@@ -1,12 +1,15 @@
 /* agenda.js — Comunitat NexSocial
    ────────────────────────────────────────
-   Renderitza llistat filtrable + detall d'event. */
+   Tres vistes:
+   1. Cards grid (per Reserves i secció home "Properes activitats")
+   2. Llistat horitzontal cronològic (per pàgina Agenda)
+   3. Detall FEB-style amb foto comercial + secció lloc + booking dinàmic */
 
 const { T, L, esc, formatDate, formatPrice,
         tipoLabel, tipoBadgeClass, placesRestants,
         phoneBannerHTML, qs, qsa } = window.NX;
 
-/* ── Fetch events (Supabase → fallback a data.js) ─────────── */
+/* ── Fetch events (Supabase → fallback data.js) ─────────── */
 async function fetchEvents() {
   try {
     const r = await fetch('/api/events', { cache: 'no-store' });
@@ -19,7 +22,6 @@ async function fetchEvents() {
   }
 }
 
-/* ── Ordena: primer estat actiu, després data ─────────────── */
 function sortEvents(events) {
   return [...events].sort((a, b) => {
     const estatOrder = { actiu: 0, proximament: 1, esgotat: 2 };
@@ -30,7 +32,7 @@ function sortEvents(events) {
   });
 }
 
-/* ── Render targeta d'event (exposada globalment per reutilitzar) ── */
+/* ═══ Vista 1: Targeta d'event (per grids · Reserves + home) ═══ */
 function eventCardHTML(ev) {
   const places = placesRestants(ev);
   const isFree = !ev.preu_cents || ev.preu_cents === 0;
@@ -68,13 +70,48 @@ function eventCardHTML(ev) {
 }
 window.eventCardHTML = eventCardHTML;
 
-/* ── Render llistat cronològic (sense filtres) ────────────── */
+/* ═══ Vista 2: Fila horitzontal (per Agenda) ═══ */
+function eventRowHTML(ev) {
+  const isFree = !ev.preu_cents || ev.preu_cents === 0;
+  const d = new Date(ev.data);
+  const dia = d.getDate();
+  const mesLabel = new Intl.DateTimeFormat(window.NX.getLang() === 'ca' ? 'ca-ES' : 'es-ES',
+    { month: 'short' }).format(d).replace('.', '');
+  const diaSetm = new Intl.DateTimeFormat(window.NX.getLang() === 'ca' ? 'ca-ES' : 'es-ES',
+    { weekday: 'long' }).format(d);
+  const places = placesRestants(ev);
+  const esgotat = ev.estat === 'esgotat' || places === 0;
+
+  return `
+<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-row ${esgotat ? 'is-esgotat' : ''}">
+  <div class="event-row-date">
+    <span class="event-row-day">${dia}</span>
+    <span class="event-row-month">${esc(mesLabel)}</span>
+  </div>
+  <div class="event-row-info">
+    <div class="event-row-meta">
+      <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static">${esc(tipoLabel(ev.tipo))}</span>
+      <span class="muted" style="font-size:var(--fs-sm)">${esc(diaSetm)} · ${esc(ev.hora || '')}</span>
+    </div>
+    <h3 class="event-row-title">${esc(L(ev.titol))}</h3>
+    <div class="event-row-loc">📍 ${esc(L(ev.ubicacio))}</div>
+    <div class="event-row-cta">
+      <span class="event-price ${isFree ? 'free' : ''}">${formatPrice(ev.preu_cents)}</span>
+      <span class="event-row-arrow">${esgotat ? T('ev.esgotat') : T('ev.reservar') + ' →'}</span>
+    </div>
+  </div>
+  <div class="event-row-img">
+    <img src="${esc(ev.imatge)}" alt="" loading="lazy">
+  </div>
+</a>`;
+}
+
+/* ═══ Render llistat cronològic (Agenda) ═══ */
 async function renderAgenda() {
   const container = qs('#events-list');
   if (!container) return;
 
   const events = sortEvents(await fetchEvents());
-  // Només futurs o d'avui
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = events.filter(e => (e.data || '') >= today && e.estat !== 'arxivat');
 
@@ -83,13 +120,12 @@ async function renderAgenda() {
     return;
   }
 
-  // Agrupar per mes
   const groups = {};
   const monthNames = {
     ca: ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'],
     es: ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
   };
-  const lang = getLang();
+  const lang = window.NX.getLang();
 
   upcoming.forEach(ev => {
     const d = new Date(ev.data);
@@ -104,14 +140,28 @@ async function renderAgenda() {
     return `
     <div class="agenda-month">
       <h2 class="agenda-month-title">${esc(g.label.charAt(0).toUpperCase() + g.label.slice(1))}</h2>
-      <div class="events-grid">${g.items.map(eventCardHTML).join('')}</div>
+      <div class="events-list-horizontal">${g.items.map(eventRowHTML).join('')}</div>
     </div>`;
   }).join('');
 
   container.innerHTML = html + phoneBannerHTML();
 }
 
-/* ── Render detall ────────────────────────────────────────── */
+/* ═══ Render llistat GRID (per home "Properes activitats") ═══ */
+async function renderGrid() {
+  const container = qs('#events-grid-list');
+  if (!container) return;
+  const events = sortEvents(await fetchEvents());
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = events.filter(e => (e.data || '') >= today && e.estat !== 'arxivat').slice(0, 3);
+  if (upcoming.length === 0) {
+    container.innerHTML = `<div class="alert alert-info">${T('agenda.empty')}</div>`;
+    return;
+  }
+  container.innerHTML = `<div class="events-grid">${upcoming.map(eventCardHTML).join('')}</div>`;
+}
+
+/* ═══ Vista 3: Detall FEB-style ═══ */
 async function renderDetail() {
   const container = qs('#event-detail');
   if (!container) return;
@@ -133,19 +183,23 @@ async function renderDetail() {
   const places = placesRestants(ev);
   const isFree = !ev.preu_cents || ev.preu_cents === 0;
   const esgotat = ev.estat === 'esgotat' || places === 0;
+  const maxPlaces = Math.min(6, places);
+
+  document.title = `${L(ev.titol)} · Comunitat NexSocial`;
 
   container.innerHTML = `
 <div class="detail-hero">
-  <img src="${esc(ev.imatge)}" alt="">
+  <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}">
 </div>
 <div class="container mt-4">
   <a href="/agenda.html" class="detail-back">${T('ev.tornar')}</a>
 
+  <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static;display:inline-block;margin-bottom:var(--sp-2)">${esc(tipoLabel(ev.tipo))}</span>
+  <h1>${esc(L(ev.titol))}</h1>
+
   <div class="detail-layout">
     <div>
-      <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static;display:inline-block;margin-bottom:var(--sp-2)">${esc(tipoLabel(ev.tipo))}</span>
-      <h1>${esc(L(ev.titol))}</h1>
-
+      <!-- Info principal -->
       <div class="detail-info">
         <dl>
           <dt>${T('ev.data')}</dt>
@@ -156,28 +210,69 @@ async function renderDetail() {
           <dd>${ev.durada || 90} min</dd>
           <dt>${T('ev.entitat')}</dt>
           <dd>${esc(L(ev.entitat))}</dd>
-          <dt>${T('ev.lloc')}</dt>
-          <dd>${esc(L(ev.ubicacio))}
-            ${ev.mapa_url ? `<br><a href="${esc(ev.mapa_url)}" target="_blank" rel="noopener">${T('ev.abrir_mapa')} →</a>` : ''}
-          </dd>
           <dt>${T('ev.preu')}</dt>
-          <dd class="event-price ${isFree ? 'free' : ''}">${formatPrice(ev.preu_cents)}</dd>
+          <dd class="event-price ${isFree ? 'free' : ''}" style="font-size:var(--fs-lg)">${formatPrice(ev.preu_cents)}${!isFree ? ' <span class="muted" style="font-size:var(--fs-sm)">/ plaça</span>' : ''}</dd>
         </dl>
       </div>
 
-      <h3>${T('ev.desc')}</h3>
-      <p style="font-size: var(--fs-md)">${esc(L(ev.descripcio))}</p>
+      <!-- Descripció -->
+      <h2 style="font-size:var(--fs-xl); margin-top:var(--sp-4)">${T('ev.desc')}</h2>
+      <p style="font-size:var(--fs-md); line-height:1.7">${esc(L(ev.descripcio))}</p>
+
+      <!-- On es fa (secció visual: foto lloc + adreça + mapa) -->
+      <h2 style="font-size:var(--fs-xl); margin-top:var(--sp-5)">${T('ev.como_llegar')}</h2>
+      <div class="location-block">
+        ${ev.imatge_lloc ? `
+          <div class="location-img">
+            <img src="${esc(ev.imatge_lloc)}" alt="${esc(L(ev.ubicacio))}" loading="lazy">
+          </div>` : ''}
+        <div class="location-info">
+          <div style="font-size:var(--fs-md); font-weight:600; margin-bottom:var(--sp-1)">${esc(L(ev.entitat))}</div>
+          <div style="color:var(--text-muted); margin-bottom:var(--sp-3)">📍 ${esc(L(ev.ubicacio))}</div>
+          ${ev.mapa_url ? `
+            <a href="${esc(ev.mapa_url)}" target="_blank" rel="noopener" class="btn btn-secondary">
+              🗺️ ${T('ev.abrir_mapa')}
+            </a>` : ''}
+        </div>
+      </div>
     </div>
 
+    <!-- Booking card -->
     <aside class="booking-card">
-      <h3>${T('form.title')}</h3>
-      <p class="muted">${T('form.sub')}</p>
+      <h3 style="margin-top:0">${T('form.title')}</h3>
+      <p class="muted" style="margin-bottom:var(--sp-3)">${T('form.sub')}</p>
 
       ${esgotat
         ? `<div class="alert alert-warning">${T('ev.esgotat')}</div>`
         : `
         <form id="reserva-form" novalidate>
           <input type="hidden" name="event_id" value="${esc(ev.id)}">
+          <input type="hidden" id="preu-unitari" value="${ev.preu_cents || 0}">
+
+          <!-- Selector places amb +/- -->
+          <div class="form-group">
+            <label class="form-label" for="places">${T('form.places')}<span class="form-required">*</span></label>
+            <div class="places-selector">
+              <button type="button" class="places-btn" data-op="dec" aria-label="Restar">−</button>
+              <input class="form-input places-input" id="places" name="places" type="number"
+                     min="1" max="${maxPlaces}" value="1" required inputmode="numeric" readonly>
+              <button type="button" class="places-btn" data-op="inc" aria-label="Sumar">+</button>
+            </div>
+            <div class="form-help">${places} ${T('ev.places')}</div>
+          </div>
+
+          <!-- Total dinàmic -->
+          ${isFree ? `
+            <div class="total-box total-free">
+              <span>${T('form.total')}</span>
+              <strong>${T('ev.gratis')}</strong>
+            </div>
+          ` : `
+            <div class="total-box">
+              <span>${T('form.total')}</span>
+              <strong id="total-display">${formatPrice(ev.preu_cents)}</strong>
+            </div>
+          `}
 
           <div class="form-group">
             <label class="form-label" for="nom">${T('form.nom')}<span class="form-required">*</span></label>
@@ -195,16 +290,8 @@ async function renderDetail() {
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="places">${T('form.places')}<span class="form-required">*</span></label>
-            <select class="form-select" id="places" name="places" required>
-              ${Array.from({length: Math.min(6, places)}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}
-            </select>
-            <div class="form-help">${places} ${T('ev.places')}</div>
-          </div>
-
-          <div class="form-group">
             <label class="form-label" for="notes">${T('form.notes')}</label>
-            <textarea class="form-textarea" id="notes" name="notes" rows="3"></textarea>
+            <textarea class="form-textarea" id="notes" name="notes" rows="2"></textarea>
           </div>
 
           <p class="form-help">${T('form.legal')}</p>
@@ -217,20 +304,53 @@ async function renderDetail() {
         </form>
       `}
 
-      <div style="margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid rgba(15,45,30,0.1); text-align: center;">
-        <div class="muted" style="font-size: var(--fs-sm)">${T('phone.text')}</div>
-        <a href="tel:${window.NX.PHONE_TEL}" style="font-size: var(--fs-lg); font-weight: 700; color: var(--forest); text-decoration: none;">
-          📞 ${window.NX.PHONE}
-        </a>
+      <div class="booking-phone">
+        <div class="muted" style="font-size:var(--fs-sm)">${T('phone.text')}</div>
+        <a href="tel:${window.NX.PHONE_TEL}">📞 ${window.NX.PHONE}</a>
       </div>
     </aside>
   </div>
 </div>`;
 
-  // Bind formulari
-  if (!esgotat) window.bindReservaForm(ev);
+  // Bind selector places + total dinàmic
+  if (!esgotat) {
+    bindPlacesSelector(ev);
+    window.bindReservaForm(ev);
+  }
+}
+
+function bindPlacesSelector(ev) {
+  const input = qs('#places');
+  const total = qs('#total-display');
+  const preuUnit = ev.preu_cents || 0;
+  const max = parseInt(input.max, 10);
+
+  function refresh() {
+    let val = parseInt(input.value, 10) || 1;
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    input.value = val;
+    if (total) {
+      const totalCents = preuUnit * val;
+      total.textContent = formatPrice(totalCents);
+    }
+    // Actualitzar disabled state dels botons
+    qsa('.places-btn').forEach(b => {
+      b.disabled = (b.dataset.op === 'dec' && val <= 1) || (b.dataset.op === 'inc' && val >= max);
+    });
+  }
+
+  qsa('.places-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cur = parseInt(input.value, 10) || 1;
+      input.value = btn.dataset.op === 'inc' ? cur + 1 : cur - 1;
+      refresh();
+    });
+  });
+  refresh();
 }
 
 // Auto-init segons pàgina
-if (qs('#events-list')) renderAgenda();
-if (qs('#event-detail')) renderDetail();
+if (qs('#events-list'))     renderAgenda();
+if (qs('#events-grid-list')) renderGrid();
+if (qs('#event-detail'))    renderDetail();

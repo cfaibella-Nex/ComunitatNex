@@ -1,4 +1,9 @@
-/* data.js — Comunitat NexSocial · font estàtica */
+/* data.js — Comunitat NexSocial · font estàtica
+   ────────────────────────────────────────
+   Model d'imatges:
+   - imatge      → foto comercial de l'activitat (cards, agenda, hero del detall)
+   - imatge_lloc → foto de l'edifici on es fa (mostrada al detall > "On es fa")
+*/
 
 const EVENTS_DATA = [
   /* ═══ ACTIVITATS MENSUALS ═══ */
@@ -14,7 +19,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Pont+del+Petroli+Badalona',
     data: '2026-10-11', hora: '10:30', durada: 90,
     cupo: 20, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/passeig.jpg', estat: 'actiu'
+    imatge: '/assets/passeig.jpg',
+    imatge_lloc: '/assets/passeig.jpg',
+    estat: 'actiu'
   },
   {
     id: 'vivioteca-2026-10', tipo: 'mensual',
@@ -28,7 +35,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Casal+Gent+Gran+Centre+Badalona',
     data: '2026-10-15', hora: '17:00', durada: 90,
     cupo: 25, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/vivioteca.jpg', estat: 'actiu'
+    imatge: '/assets/vivioteca.jpg',
+    imatge_lloc: '/assets/casal-centre.jpg',
+    estat: 'actiu'
   },
   {
     id: 'tablao-canyado-2026-10', tipo: 'mensual',
@@ -42,7 +51,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Canyad%C3%B3+Badalona',
     data: '2026-10-24', hora: '18:30', durada: 90,
     cupo: 40, reservades: 0, preu_cents: 1000, tipo_iva: 'iva10',
-    imatge: '/assets/tablao.jpg', estat: 'actiu'
+    imatge: '/assets/tablao.jpg',
+    imatge_lloc: '/assets/tablao.jpg',
+    estat: 'actiu'
   },
   /* ═══ TALLERS ═══ */
   {
@@ -57,7 +68,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Casal+Gent+Gran+Centre+Badalona',
     data: '2026-09-15', hora: '17:00', durada: 90,
     cupo: 15, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/casal-centre.jpg', estat: 'proximament'
+    imatge: '/assets/taller-emocional.jpg',
+    imatge_lloc: '/assets/casal-centre.jpg',
+    estat: 'proximament'
   },
   {
     id: 'taller-mobil-centre', tipo: 'taller',
@@ -71,7 +84,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Casal+Gent+Gran+Centre+Badalona',
     data: '2026-09-17', hora: '17:00', durada: 90,
     cupo: 12, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/casal-centre.jpg', estat: 'proximament'
+    imatge: '/assets/taller-mobil.jpg',
+    imatge_lloc: '/assets/casal-centre.jpg',
+    estat: 'proximament'
   },
   {
     id: 'taller-autodefensa-canpepus', tipo: 'taller',
@@ -85,7 +100,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Casal+Can+Pepus+Badalona',
     data: '2026-09-22', hora: '18:00', durada: 90,
     cupo: 15, reservades: 0, preu_cents: 2500, tipo_iva: 'exempt',
-    imatge: '/assets/canpepus.jpg', estat: 'proximament'
+    imatge: '/assets/taller-autodefensa.jpg',
+    imatge_lloc: '/assets/canpepus.jpg',
+    estat: 'proximament'
   },
   {
     id: 'taller-autodefensa-santroc', tipo: 'taller',
@@ -99,7 +116,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Centre+Civic+Sant+Roc+Badalona',
     data: '2026-09-24', hora: '18:00', durada: 90,
     cupo: 15, reservades: 0, preu_cents: 2500, tipo_iva: 'exempt',
-    imatge: '/assets/sant-roc.jpg', estat: 'proximament'
+    imatge: '/assets/taller-autodefensa.jpg',
+    imatge_lloc: '/assets/sant-roc.jpg',
+    estat: 'proximament'
   },
   {
     id: 'taller-castellano-santroc', tipo: 'taller',
@@ -113,7 +132,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Centre+Civic+Sant+Roc+Badalona',
     data: '2026-09-16', hora: '17:00', durada: 90,
     cupo: 15, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/sant-roc.jpg', estat: 'proximament'
+    imatge: '/assets/taller-idioma.jpg',
+    imatge_lloc: '/assets/sant-roc.jpg',
+    estat: 'proximament'
   },
   {
     id: 'taller-mobil-santroc', tipo: 'taller',
@@ -127,7 +148,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Centre+Civic+Sant+Roc+Badalona',
     data: '2026-09-18', hora: '17:00', durada: 90,
     cupo: 12, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/sant-roc.jpg', estat: 'proximament'
+    imatge: '/assets/taller-mobil.jpg',
+    imatge_lloc: '/assets/sant-roc.jpg',
+    estat: 'proximament'
   },
   /* ═══ ESDEVENIMENTS (buit — quan hi hagi jornades, 50è aniv, etc.) ═══ */
 ];
