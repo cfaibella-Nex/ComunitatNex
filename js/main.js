@@ -209,9 +209,9 @@ const i18n = {
 };
 
 const MAIN_SITE = 'https://nexsocial.org';
-const PHONE = '900 000 000';       // TODO: substituir per telèfon real
-const PHONE_TEL = '900000000';
-const WHATSAPP = '34600000000';    // TODO: substituir per WhatsApp real
+const PHONE = '660 435 871';       
+const PHONE_TEL = '660435871';
+const WHATSAPP = '34660435871';    
 
 /* ── Getter idioma ────────────────────────────────────────── */
 function getLang() {
