@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <rect width="800" height="450" fill="#F5F0E8"/>
+  <rect x="100" y="150" width="600" height="150" rx="20" fill="#2D6B48" opacity="0.12"/>
+  <text x="400" y="235" text-anchor="middle" font-family="Georgia,serif" font-size="52" fill="#2D6B48" font-weight="600">Taller</text>
+  <text x="400" y="285" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#0F2D1E" opacity="0.7">Aprèn coses noves al barri</text>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <rect width="800" height="450" fill="#DFF0DB"/>
+  <circle cx="400" cy="225" r="80" fill="#2D6B48" opacity="0.15"/>
+  <text x="400" y="240" text-anchor="middle" font-family="Georgia,serif" font-size="52" fill="#2D6B48" font-weight="600">Trobada</text>
+  <text x="400" y="290" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#0F2D1E" opacity="0.7">Comunitat NexSocial</text>
+</svg>

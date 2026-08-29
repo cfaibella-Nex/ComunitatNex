@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Passatemps · Comunitat NexSocial</title>
+  <meta name="description" content="Jocs de memòria, sopa de lletres, buscar les diferències i altres passatemps per mantenir la ment activa.">
+  <link rel="icon" href="/assets/logo.svg">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="nav-placeholder"></div>
+  <main id="main">
+    <section class="section">
+      <h1 data-i18n="passatemps.title">Passatemps</h1>
+      <p class="lead" data-i18n="passatemps.sub">Jocs per activar la ment.</p>
+
+      <div class="placeholder-box mt-4">
+        <div style="font-size: 72px; margin-bottom: var(--sp-3);">🧩</div>
+        <h2 style="font-family: var(--font-body); font-size: var(--fs-lg);">
+          <span data-i18n="passatemps.title">Passatemps</span>
+        </h2>
+        <p style="max-width: 500px; margin: 0 auto; font-size: var(--fs-md);" data-i18n="passatemps.soon">
+          Estem preparant aquesta secció.
+        </p>
+        <a href="/agenda.html" class="btn btn-primary btn-lg mt-4">
+          <span data-agenda-cta>Veure l'agenda mentrestant →</span>
+        </a>
+      </div>
+    </section>
+  </main>
+  <div id="footer-placeholder"></div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = window.NX.T(el.dataset.i18n));
+      const t = { ca: "Veure l'agenda mentrestant →", es: 'Ver la agenda mientras tanto →' };
+      document.querySelector('[data-agenda-cta]').textContent = t[window.NX.getLang()];
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comunitat NexSocial · Acompanyament Sociovital a Badalona</title>
+  <meta name="description" content="Agenda, tallers, recursos i trobades per a persones grans de Badalona. Un espai proper per seguir fent vida, teixir vincle i participar al barri.">
+  <link rel="icon" href="/assets/logo.svg">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="preload" as="image" href="/assets/hero.webp" type="image/webp">
+  <meta property="og:title" content="Comunitat NexSocial">
+  <meta property="og:description" content="Activitats, trobades i recursos per seguir fent vida.">
+  <meta property="og:image" content="https://comunitat.nexsocial.org/assets/hero.jpg">
+  <meta property="og:url" content="https://comunitat.nexsocial.org">
+  <meta property="og:type" content="website">
+  <link rel="alternate" hreflang="ca" href="https://comunitat.nexsocial.org/">
+  <link rel="alternate" hreflang="es" href="https://comunitat.nexsocial.org/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "NexSocial SCCL",
+    "url": "https://nexsocial.org",
+    "logo": "https://comunitat.nexsocial.org/assets/logo.svg",
+    "description": "Cooperativa d'acompanyament sociovital per a persones grans a Badalona",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Badalona",
+      "addressRegion": "Catalunya",
+      "addressCountry": "ES"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="nav-placeholder"></div>
+  <main id="main">
+
+    <!-- HERO: foto neta amb el logo integrat, sense text a sobre -->
+    <section class="hero" aria-label="Comunitat NexSocial">
+      <picture>
+        <source
+          type="image/webp"
+          srcset="/assets/hero-mobile.webp 800w, /assets/hero.webp 1400w"
+          sizes="100vw">
+        <source
+          type="image/jpeg"
+          srcset="/assets/hero-mobile.jpg 800w, /assets/hero.jpg 1400w"
+          sizes="100vw">
+        <img
+          class="hero-img"
+          src="/assets/hero.jpg"
+          alt="Cinc persones grans caminant abraçades sota les arcades de Badalona amb llums decoratives"
+          width="1400" height="1980"
+          fetchpriority="high">
+      </picture>
+    </section>
+
+    <!-- CAPTION textual sota la foto -->
+    <div class="hero-caption">
+      <h1 data-i18n="hero.title">Comunitat NexSocial</h1>
+      <p class="lead" data-i18n="hero.sub">Activitats, trobades i recursos per seguir fent vida.</p>
+      <div class="hero-ctas">
+        <a href="/agenda.html" class="btn btn-primary btn-lg">
+          <span data-cta-agenda>Veure l'agenda</span>
+        </a>
+        <a href="/agenda.html?tipus=taller" class="btn btn-secondary btn-lg">
+          <span data-cta-tallers>Els nostres tallers</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 4 blocs d'accés ràpid -->
+    <section aria-label="Accessos ràpids">
+      <div class="quick-blocks">
+        <a href="/agenda.html" class="qblock">
+          <div class="qblock-icon" aria-hidden="true">📅</div>
+          <h2 class="qblock-title" data-i18n="qb.agenda">Agenda</h2>
+          <p class="qblock-desc" data-i18n="qb.agenda.desc">Què fem aquesta setmana i el mes que ve</p>
+        </a>
+        <a href="/agenda.html?tipus=taller" class="qblock">
+          <div class="qblock-icon" aria-hidden="true">🎨</div>
+          <h2 class="qblock-title" data-i18n="qb.tallers">Tallers</h2>
+          <p class="qblock-desc" data-i18n="qb.tallers.desc">Aprèn coses noves als casals del barri</p>
+        </a>
+        <a href="/recursos.html" class="qblock">
+          <div class="qblock-icon" aria-hidden="true">💡</div>
+          <h2 class="qblock-title" data-i18n="qb.recursos">Recursos</h2>
+          <p class="qblock-desc" data-i18n="qb.recursos.desc">Guies i vídeos útils per al dia a dia</p>
+        </a>
+        <a href="/passatemps.html" class="qblock">
+          <div class="qblock-icon" aria-hidden="true">🧩</div>
+          <h2 class="qblock-title" data-i18n="qb.passatemps">Passatemps</h2>
+          <p class="qblock-desc" data-i18n="qb.passatemps.desc">Jocs per despertar la memòria</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Properes activitats -->
+    <section class="section" id="upcoming">
+      <h2 style="text-align: center; margin-bottom: var(--sp-4);">
+        <span data-i18n-upcoming>Properes activitats</span>
+      </h2>
+      <div id="events-list"></div>
+      <div style="text-align: center; margin-top: var(--sp-4);">
+        <a href="/agenda.html" class="btn btn-ghost btn-lg">
+          <span data-i18n-verall>Veure l'agenda completa →</span>
+        </a>
+      </div>
+    </section>
+  </main>
+  <div id="footer-placeholder"></div>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/data.js"></script>
+  <script src="/js/agenda.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const lang = window.NX.getLang();
+      const t = {
+        ca: {
+          up: 'Properes activitats',
+          all: "Veure l'agenda completa →",
+          agenda: "Veure l'agenda",
+          tallers: 'Els nostres tallers'
+        },
+        es: {
+          up: 'Próximas actividades',
+          all: 'Ver la agenda completa →',
+          agenda: 'Ver la agenda',
+          tallers: 'Nuestros talleres'
+        }
+      };
+      document.querySelector('[data-i18n-upcoming]').textContent = t[lang].up;
+      document.querySelector('[data-i18n-verall]').textContent = t[lang].all;
+      document.querySelector('[data-cta-agenda]').textContent = t[lang].agenda;
+      document.querySelector('[data-cta-tallers]').textContent = t[lang].tallers;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = window.NX.T(el.dataset.i18n);
+      });
+    });
+  </script>
+</body>
+</html>

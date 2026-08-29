@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <rect width="800" height="450" fill="#0F2D1E"/>
+  <circle cx="400" cy="225" r="120" fill="#B8860B" opacity="0.25"/>
+  <text x="400" y="215" text-anchor="middle" font-family="Georgia,serif" font-size="48" fill="#F5F0E8" font-weight="600">Tablao</text>
+  <text x="400" y="265" text-anchor="middle" font-family="Georgia,serif" font-size="36" fill="#B8860B" font-style="italic">Flamenc</text>
+  <text x="400" y="320" text-anchor="middle" font-family="sans-serif" font-size="16" fill="#DFF0DB" opacity="0.8">Vetllada mensual a Canyadó</text>
+</svg>
