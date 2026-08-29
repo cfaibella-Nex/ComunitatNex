@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Comunitat NexSocial · Acompanyament Sociovital a Badalona</title>
-  <meta name="description" content="Agenda, tallers, recursos i trobades per a persones grans de Badalona. Un espai proper per seguir fent vida, teixir vincle i participar al barri.">
+  <meta name="description" content="Agenda, tallers, activitats i esdeveniments per a persones grans de Badalona. Sumem recursos per un acompanyament sociovital de proximitat i proactiu.">
   <link rel="icon" href="/assets/logo.png">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="preload" as="image" href="/assets/hero.webp" type="image/webp">
@@ -39,10 +39,8 @@
     <!-- HERO: foto neta -->
     <section class="hero" aria-label="Comunitat NexSocial">
       <picture>
-        <source type="image/webp"
-          srcset="/assets/hero-mobile.webp 800w, /assets/hero.webp 1400w" sizes="100vw">
-        <source type="image/jpeg"
-          srcset="/assets/hero-mobile.jpg 800w, /assets/hero.jpg 1400w" sizes="100vw">
+        <source type="image/webp" srcset="/assets/hero-mobile.webp 800w, /assets/hero.webp 1400w" sizes="100vw">
+        <source type="image/jpeg" srcset="/assets/hero-mobile.jpg 800w, /assets/hero.jpg 1400w" sizes="100vw">
         <img class="hero-img" src="/assets/hero.jpg"
           alt="Cinc persones grans caminant abraçades sota les arcades de Badalona amb llums decoratives"
           width="1400" height="1980" fetchpriority="high">
@@ -53,6 +51,7 @@
     <div class="hero-caption">
       <div class="hero-caption-inner">
         <h1 data-i18n="hero.title">Comunitat NexSocial</h1>
+        <p class="hero-tagline" data-i18n="hero.tagline">Sumem recursos per un Acompanyament Sociovital de proximitat i proactiu.</p>
         <p class="lead" data-i18n="hero.sub">Activitats, trobades i recursos per seguir fent vida.</p>
         <div class="hero-ctas">
           <a href="/agenda.html" class="btn btn-primary btn-lg" data-cta-agenda>Veure l'agenda</a>
@@ -61,24 +60,52 @@
       </div>
     </div>
 
-    <!-- 3 blocs d'accés ràpid -->
-    <section aria-label="Accessos ràpids">
-      <div class="quick-blocks">
-        <a href="/agenda.html" class="qblock">
-          <div class="qblock-icon" aria-hidden="true">📅</div>
-          <h2 class="qblock-title" data-i18n="qb.agenda">Agenda</h2>
-          <p class="qblock-desc" data-i18n="qb.agenda.desc">Mira què fem aquest mes</p>
+    <!-- 3 BLOCS COMERCIALS grans horitzontals -->
+    <section class="commercial-blocks section" aria-label="Categories">
+      <div class="commercial-grid">
+
+        <a href="/reserves.html?cat=taller" class="cblock">
+          <div class="cblock-img">
+            <picture>
+              <source type="image/webp" srcset="/assets/bloc-tallers.webp">
+              <img src="/assets/bloc-tallers.jpg" alt="" loading="lazy">
+            </picture>
+          </div>
+          <div class="cblock-body">
+            <h2 class="cblock-title" data-block-tallers>Tallers</h2>
+            <p class="cblock-desc" data-block-tallers-desc>Aprèn coses noves als casals: mòbil, emocional, castellà i autodefensa.</p>
+            <span class="cblock-cta" data-cta-inscripcions>Inscripcions aquí →</span>
+          </div>
         </a>
-        <a href="/reserves.html" class="qblock qblock-alt">
-          <div class="qblock-icon" aria-hidden="true">✋</div>
-          <h2 class="qblock-title" data-i18n="qb.reserves">Reserves</h2>
-          <p class="qblock-desc" data-i18n="qb.reserves.desc">Apunta't a tallers, activitats i esdeveniments</p>
+
+        <a href="/reserves.html?cat=mensual" class="cblock">
+          <div class="cblock-img">
+            <picture>
+              <source type="image/webp" srcset="/assets/bloc-activitats.webp">
+              <img src="/assets/bloc-activitats.jpg" alt="" loading="lazy">
+            </picture>
+          </div>
+          <div class="cblock-body">
+            <h2 class="cblock-title" data-block-activitats>Activitats</h2>
+            <p class="cblock-desc" data-block-activitats-desc>Passejades, Vivioteca i trobades mensuals per teixir vincle al barri.</p>
+            <span class="cblock-cta" data-cta-inscripcions-2>Inscripcions aquí →</span>
+          </div>
         </a>
-        <a href="/recursos.html" class="qblock">
-          <div class="qblock-icon" aria-hidden="true">💡</div>
-          <h2 class="qblock-title" data-i18n="qb.recursos">Recursos</h2>
-          <p class="qblock-desc" data-i18n="qb.recursos.desc">Guies, vídeos i passatemps</p>
+
+        <a href="/reserves.html?cat=esdeveniment" class="cblock">
+          <div class="cblock-img">
+            <picture>
+              <source type="image/webp" srcset="/assets/bloc-esdeveniments.webp">
+              <img src="/assets/bloc-esdeveniments.jpg" alt="" loading="lazy">
+            </picture>
+          </div>
+          <div class="cblock-body">
+            <h2 class="cblock-title" data-block-esdev>Esdeveniments</h2>
+            <p class="cblock-desc" data-block-esdev-desc>Vetllades culturals, tablaos i jornades especials. Aforament limitat.</p>
+            <span class="cblock-cta" data-cta-inscripcions-3>Inscripcions aquí →</span>
+          </div>
         </a>
+
       </div>
     </section>
 
@@ -104,22 +131,42 @@
           up: 'Properes activitats',
           all: "Veure l'agenda completa →",
           agenda: "Veure l'agenda",
-          reserves: 'Reservar plaça'
+          reserves: 'Reservar plaça',
+          tallers: 'Tallers',
+          tallersD: 'Aprèn coses noves als casals: mòbil, emocional, castellà i autodefensa.',
+          activitats: 'Activitats',
+          activitatsD: 'Passejades, Vivioteca i trobades mensuals per teixir vincle al barri.',
+          esdev: 'Esdeveniments',
+          esdevD: 'Vetllades culturals, tablaos i jornades especials. Aforament limitat.',
+          cta: 'Inscripcions aquí →'
         },
         es: {
           up: 'Próximas actividades',
           all: 'Ver la agenda completa →',
           agenda: 'Ver la agenda',
-          reserves: 'Reservar plaza'
+          reserves: 'Reservar plaza',
+          tallers: 'Talleres',
+          tallersD: 'Aprende cosas nuevas en los casales: móvil, emocional, castellano y autodefensa.',
+          activitats: 'Actividades',
+          activitatsD: 'Paseos, Vivioteca y encuentros mensuales para tejer vínculo en el barrio.',
+          esdev: 'Eventos',
+          esdevD: 'Veladas culturales, tablaos y jornadas especiales. Aforo limitado.',
+          cta: 'Inscripciones aquí →'
         }
       };
-      document.querySelector('[data-i18n-upcoming]').textContent = t[lang].up;
-      document.querySelector('[data-i18n-verall]').textContent = t[lang].all;
-      document.querySelector('[data-cta-agenda]').textContent = t[lang].agenda;
-      document.querySelector('[data-cta-reserves]').textContent = t[lang].reserves;
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        el.textContent = window.NX.T(el.dataset.i18n);
-      });
+      const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
+      set('[data-i18n-upcoming]', t[lang].up);
+      set('[data-i18n-verall]', t[lang].all);
+      set('[data-cta-agenda]', t[lang].agenda);
+      set('[data-cta-reserves]', t[lang].reserves);
+      set('[data-block-tallers]', t[lang].tallers);
+      set('[data-block-tallers-desc]', t[lang].tallersD);
+      set('[data-block-activitats]', t[lang].activitats);
+      set('[data-block-activitats-desc]', t[lang].activitatsD);
+      set('[data-block-esdev]', t[lang].esdev);
+      set('[data-block-esdev-desc]', t[lang].esdevD);
+      document.querySelectorAll('[data-cta-inscripcions],[data-cta-inscripcions-2],[data-cta-inscripcions-3]').forEach(el => el.textContent = t[lang].cta);
+      document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = window.NX.T(el.dataset.i18n));
     });
   </script>
 </body>

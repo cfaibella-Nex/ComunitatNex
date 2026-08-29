@@ -40,7 +40,7 @@ const EVENTS_DATA = [
     estat: 'actiu'
   },
   {
-    id: 'tablao-canyado-2026-10', tipo: 'mensual',
+    id: 'tablao-canyado-2026-10', tipo: 'esdeveniment',
     titol: { ca: 'Tablao Flamenc a Canyadó', es: 'Tablao Flamenco en Canyadó' },
     descripcio: {
       ca: 'Vetllada de flamenc en directe al barri de Canyadó. Guitarra, cant i ball en un espai íntim. Aforament limitat.',
@@ -51,9 +51,9 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Canyad%C3%B3+Badalona',
     data: '2026-10-24', hora: '18:30', durada: 90,
     cupo: 40, reservades: 0, preu_cents: 1000, tipo_iva: 'iva10',
-    imatge: '/assets/tablao.jpg',
-    imatge_lloc: '/assets/tablao.jpg',
-    estat: 'actiu'
+    imatge: '/assets/flamenco.jpg',
+    imatge_lloc: '/assets/flamenco.jpg',
+    estat: 'proximament'
   },
   /* ═══ TALLERS ═══ */
   {

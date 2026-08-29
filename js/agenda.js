@@ -161,7 +161,7 @@ async function renderGrid() {
   container.innerHTML = `<div class="events-grid">${upcoming.map(eventCardHTML).join('')}</div>`;
 }
 
-/* ═══ Vista 3: Detall FEB-style ═══ */
+/* ═══ Vista 3: Detall FEB-style (PAS 1: selecció + Continuar) ═══ */
 async function renderDetail() {
   const container = qs('#event-detail');
   if (!container) return;
@@ -186,6 +186,11 @@ async function renderDetail() {
   const maxPlaces = Math.min(6, places);
 
   document.title = `${L(ev.titol)} · Comunitat NexSocial`;
+
+  // URL de Google Maps embed (sense API key, gratuït)
+  const mapaEmbed = ev.mapa_url
+    ? `https://maps.google.com/maps?q=${encodeURIComponent(L(ev.ubicacio))}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+    : null;
 
   container.innerHTML = `
 <div class="detail-hero">
@@ -219,7 +224,7 @@ async function renderDetail() {
       <h2 style="font-size:var(--fs-xl); margin-top:var(--sp-4)">${T('ev.desc')}</h2>
       <p style="font-size:var(--fs-md); line-height:1.7">${esc(L(ev.descripcio))}</p>
 
-      <!-- On es fa (secció visual: foto lloc + adreça + mapa) -->
+      <!-- On es fa: foto lloc + mapa embedit -->
       <h2 style="font-size:var(--fs-xl); margin-top:var(--sp-5)">${T('ev.como_llegar')}</h2>
       <div class="location-block">
         ${ev.imatge_lloc ? `
@@ -235,73 +240,50 @@ async function renderDetail() {
             </a>` : ''}
         </div>
       </div>
+      ${mapaEmbed ? `
+        <div class="map-embed">
+          <iframe src="${esc(mapaEmbed)}"
+                  width="100%" height="360" frameborder="0"
+                  style="border:0; border-radius: var(--radius-lg); margin-top: var(--sp-3);"
+                  loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                  title="${T('ev.como_llegar')}"></iframe>
+        </div>` : ''}
     </div>
 
-    <!-- Booking card -->
+    <!-- Booking card (PAS 1: selector + Continuar) -->
     <aside class="booking-card">
       <h3 style="margin-top:0">${T('form.title')}</h3>
-      <p class="muted" style="margin-bottom:var(--sp-3)">${T('form.sub')}</p>
+      <p class="muted" style="margin-bottom:var(--sp-3); font-size:var(--fs-sm)">${T('form.step1')}</p>
 
       ${esgotat
         ? `<div class="alert alert-warning">${T('ev.esgotat')}</div>`
         : `
-        <form id="reserva-form" novalidate>
-          <input type="hidden" name="event_id" value="${esc(ev.id)}">
-          <input type="hidden" id="preu-unitari" value="${ev.preu_cents || 0}">
-
-          <!-- Selector places amb +/- -->
-          <div class="form-group">
-            <label class="form-label" for="places">${T('form.places')}<span class="form-required">*</span></label>
-            <div class="places-selector">
-              <button type="button" class="places-btn" data-op="dec" aria-label="Restar">−</button>
-              <input class="form-input places-input" id="places" name="places" type="number"
-                     min="1" max="${maxPlaces}" value="1" required inputmode="numeric" readonly>
-              <button type="button" class="places-btn" data-op="inc" aria-label="Sumar">+</button>
-            </div>
-            <div class="form-help">${places} ${T('ev.places')}</div>
+        <div class="form-group">
+          <label class="form-label" for="places">${T('form.places')}</label>
+          <div class="places-selector">
+            <button type="button" class="places-btn" data-op="dec" aria-label="Restar">−</button>
+            <input class="form-input places-input" id="places" type="number"
+                   min="1" max="${maxPlaces}" value="1" inputmode="numeric" readonly>
+            <button type="button" class="places-btn" data-op="inc" aria-label="Sumar">+</button>
           </div>
+          <div class="form-help">${places} ${T('ev.places')}</div>
+        </div>
 
-          <!-- Total dinàmic -->
-          ${isFree ? `
-            <div class="total-box total-free">
-              <span>${T('form.total')}</span>
-              <strong>${T('ev.gratis')}</strong>
-            </div>
-          ` : `
-            <div class="total-box">
-              <span>${T('form.total')}</span>
-              <strong id="total-display">${formatPrice(ev.preu_cents)}</strong>
-            </div>
-          `}
-
-          <div class="form-group">
-            <label class="form-label" for="nom">${T('form.nom')}<span class="form-required">*</span></label>
-            <input class="form-input" id="nom" name="nom" type="text" required autocomplete="name">
+        ${isFree ? `
+          <div class="total-box">
+            <span>${T('form.total')}</span>
+            <strong>${T('ev.gratis')}</strong>
           </div>
-
-          <div class="form-group">
-            <label class="form-label" for="tel">${T('form.tel')}<span class="form-required">*</span></label>
-            <input class="form-input" id="tel" name="telefon" type="tel" required autocomplete="tel" inputmode="tel">
+        ` : `
+          <div class="total-box">
+            <span>${T('form.total')}</span>
+            <strong id="total-display">${formatPrice(ev.preu_cents)}</strong>
           </div>
+        `}
 
-          <div class="form-group">
-            <label class="form-label" for="email">${T('form.email')}</label>
-            <input class="form-input" id="email" name="email" type="email" autocomplete="email">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="notes">${T('form.notes')}</label>
-            <textarea class="form-textarea" id="notes" name="notes" rows="2"></textarea>
-          </div>
-
-          <p class="form-help">${T('form.legal')}</p>
-
-          <div id="form-msg" aria-live="polite" aria-atomic="true"></div>
-
-          <button type="submit" class="btn btn-primary btn-lg btn-block">
-            ${T('form.enviar')}
-          </button>
-        </form>
+        <button type="button" id="btn-continuar" class="btn btn-primary btn-lg btn-block">
+          ${T('form.continuar')} →
+        </button>
       `}
 
       <div class="booking-phone">
@@ -312,10 +294,20 @@ async function renderDetail() {
   </div>
 </div>`;
 
-  // Bind selector places + total dinàmic
   if (!esgotat) {
     bindPlacesSelector(ev);
-    window.bindReservaForm(ev);
+    const btn = qs('#btn-continuar');
+    btn?.addEventListener('click', () => {
+      const places = parseInt(qs('#places').value, 10) || 1;
+      // Guardem selecció al sessionStorage per al pas 2
+      sessionStorage.setItem('nx-checkout', JSON.stringify({
+        event_id: ev.id,
+        places,
+        preu_cents: ev.preu_cents || 0,
+        total_cents: (ev.preu_cents || 0) * places
+      }));
+      location.href = `/checkout.html?id=${encodeURIComponent(ev.id)}`;
+    });
   }
 }
 

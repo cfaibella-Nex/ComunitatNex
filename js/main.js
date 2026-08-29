@@ -12,6 +12,7 @@ const i18n = {
     'nav.web':         'NexSocial',
 
     'hero.title':      'Comunitat NexSocial',
+    'hero.tagline':    'Sumem recursos per un Acompanyament Sociovital de proximitat i proactiu.',
     'hero.sub':        'Activitats, trobades i recursos per seguir fent vida.',
 
     'qb.agenda':       'Agenda',
@@ -55,10 +56,14 @@ const i18n = {
 
     'form.title':      'Reservar plaça',
     'form.sub':        "Només et cal el nom i el telèfon. Res de comptes ni contrasenyes.",
+    'form.step1':      "Tria el nombre de places i continua.",
+    'form.continuar':  'Continuar',
     'form.nom':        'Nom i cognoms',
     'form.tel':        'Telèfon',
     'form.email':      "Correu (opcional)",
+    'form.email_ck':   "Correu electrònic",
     'form.places':     'Nombre de places',
+    'form.places_single': 'plaça',
     'form.notes':      'Vols dir-nos alguna cosa? (opcional)',
     'form.legal':      'En reservar acceptes que et contactem per confirmar la plaça. Consulta la <a href="/legal.html" style="color:var(--forest)">política de privacitat</a>.',
     'form.enviar':     'Confirmar la reserva',
@@ -76,13 +81,23 @@ const i18n = {
     'conf.ref':        'Número de reserva:',
     'conf.back':       "Tornar a l'agenda",
 
+    'checkout.title':    'Les teves dades',
+    'checkout.eyebrow':  'COMPLETA LA RESERVA',
+    'checkout.back':     '← Tornar al detall',
+    'checkout.resum':    'Resum de la reserva',
+    'checkout.pay_card': 'Pagar amb targeta',
+    'checkout.reserve_wa': 'Reservar per WhatsApp',
+    'checkout.stripe_soon': "El pagament amb targeta estarà disponible molt aviat. Mentrestant, completa la reserva per WhatsApp i te la confirmarem al moment.",
+    'checkout.legal_note': "En continuar acceptes les condicions. La reserva es confirma per WhatsApp.",
+    'checkout.expired':  "La selecció ha caducat. Torna a triar les places.",
+
     'recursos.title':  'Recursos i consells',
     'recursos.sub':    "Guies senzilles, vídeos i idees per al dia a dia. Si necessites ajuda, truca'ns.",
     'recursos.pas':    'Passatemps',
     'recursos.pas.sub':'Jocs per activar la ment. Aviat en tindrem molts més!',
     'recursos.pas.soon':'Estem preparant aquesta secció. Aviat trobaràs jocs de memòria, buscar les diferències, sopa de lletres i altres passatemps pensats per divertir-se i mantenir la ment desperta.',
 
-    'footer.desc':     'Espai digital de vida comunitària de NexSocial SCCL. Acompanyament sociovital a Badalona.',
+    'footer.desc':     'Sumem recursos per un Acompanyament Sociovital de proximitat i proactiu. Un projecte de NexSocial SCCL a Badalona.',
     'footer.enllaços': 'Enllaços',
     'footer.contacte': 'Contacte',
     'footer.privacy':  'Privacitat',
@@ -98,6 +113,7 @@ const i18n = {
     'nav.web':         'NexSocial',
 
     'hero.title':      'Comunitat NexSocial',
+    'hero.tagline':    'Sumamos recursos para un Acompañamiento Sociovital de proximidad y proactivo.',
     'hero.sub':        'Actividades, encuentros y recursos para seguir haciendo vida.',
 
     'qb.agenda':       'Agenda',
@@ -141,10 +157,14 @@ const i18n = {
 
     'form.title':      'Reservar plaza',
     'form.sub':        'Solo necesitas el nombre y el teléfono. Nada de cuentas ni contraseñas.',
+    'form.step1':      'Elige el número de plazas y continúa.',
+    'form.continuar':  'Continuar',
     'form.nom':        'Nombre y apellidos',
     'form.tel':        'Teléfono',
     'form.email':      'Correo (opcional)',
+    'form.email_ck':   'Correo electrónico',
     'form.places':     'Número de plazas',
+    'form.places_single': 'plaza',
     'form.notes':      '¿Quieres decirnos algo? (opcional)',
     'form.legal':      'Al reservar aceptas que te contactemos para confirmar la plaza. Consulta la <a href="/legal.html" style="color:var(--forest)">política de privacidad</a>.',
     'form.enviar':     'Confirmar la reserva',
@@ -162,13 +182,23 @@ const i18n = {
     'conf.ref':        'Número de reserva:',
     'conf.back':       'Volver a la agenda',
 
+    'checkout.title':    'Tus datos',
+    'checkout.eyebrow':  'COMPLETA LA RESERVA',
+    'checkout.back':     '← Volver al detalle',
+    'checkout.resum':    'Resumen de la reserva',
+    'checkout.pay_card': 'Pagar con tarjeta',
+    'checkout.reserve_wa': 'Reservar por WhatsApp',
+    'checkout.stripe_soon': 'El pago con tarjeta estará disponible muy pronto. Mientras tanto, completa la reserva por WhatsApp y te la confirmamos al momento.',
+    'checkout.legal_note': 'Al continuar aceptas las condiciones. La reserva se confirma por WhatsApp.',
+    'checkout.expired':  'La selección ha caducado. Vuelve a elegir las plazas.',
+
     'recursos.title':  'Recursos y consejos',
     'recursos.sub':    'Guías sencillas, vídeos e ideas para el día a día. Si necesitas ayuda, llámanos.',
     'recursos.pas':    'Pasatiempos',
     'recursos.pas.sub':'Juegos para activar la mente. ¡Pronto tendremos muchos más!',
     'recursos.pas.soon':'Estamos preparando esta sección. Pronto encontrarás juegos de memoria, buscar las diferencias, sopa de letras y otros pasatiempos pensados para divertirse y mantener la mente despierta.',
 
-    'footer.desc':     'Espacio digital de vida comunitaria de NexSocial SCCL. Acompañamiento sociovital en Badalona.',
+    'footer.desc':     'Sumamos recursos para un Acompañamiento Sociovital de proximidad y proactivo. Un proyecto de NexSocial SCCL en Badalona.',
     'footer.enllaços': 'Enlaces',
     'footer.contacte': 'Contacto',
     'footer.privacy':  'Privacidad',
@@ -240,8 +270,8 @@ function buildFooter() {
     <div>
       <h4>${T('footer.enllaços')}</h4>
       <a href="/agenda.html">${T('nav.agenda')}</a>
+      <a href="/reserves.html">${T('nav.reserves')}</a>
       <a href="/recursos.html">${T('nav.recursos')}</a>
-      <a href="/passatemps.html">${T('nav.passatemps')}</a>
       <a href="${MAIN_SITE}">${T('nav.web')}</a>
     </div>
     <div>
