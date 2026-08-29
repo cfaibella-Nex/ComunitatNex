@@ -7,32 +7,36 @@ const i18n = {
   ca: {
     'nav.inici':       'Inici',
     'nav.agenda':      'Agenda',
+    'nav.reserves':    'Reserves',
     'nav.recursos':    'Recursos',
-    'nav.passatemps':  'Passatemps',
     'nav.web':         'NexSocial',
 
     'hero.title':      'Comunitat NexSocial',
     'hero.sub':        'Activitats, trobades i recursos per seguir fent vida.',
 
     'qb.agenda':       'Agenda',
-    'qb.agenda.desc':  "Què fem aquesta setmana i el mes que ve",
-    'qb.tallers':      'Tallers',
-    'qb.tallers.desc': 'Aprèn coses noves als casals del barri',
+    'qb.agenda.desc':  'Mira què fem aquest mes',
+    'qb.reserves':     'Reserves',
+    'qb.reserves.desc':"Apunta't a tallers, activitats i esdeveniments",
     'qb.recursos':     'Recursos',
-    'qb.recursos.desc': 'Guies i vídeos útils per al dia a dia',
-    'qb.passatemps':   'Passatemps',
-    'qb.passatemps.desc': 'Jocs per despertar la memòria',
+    'qb.recursos.desc':'Guies, vídeos i passatemps per al dia a dia',
 
     'agenda.title':    'Agenda',
-    'agenda.sub':      'Totes les activitats, tallers i esdeveniments de Comunitat NexSocial.',
-    'filter.all':      'Totes',
-    'filter.mensual':  'Activitats mensuals',
-    'filter.taller':   'Tallers',
-    'filter.esdev':    'Esdeveniments',
-    'filter.empty':    "No hi ha activitats amb aquest filtre ara mateix.",
+    'agenda.sub':      'Tot el que farem, ordenat per data. Clica una activitat per veure-la i apuntar-te.',
+    'agenda.empty':    "De moment no hi ha res programat. Torna aviat!",
+    'agenda.mes':      'Aquest mes',
+
+    'reserves.title':  'Reserves',
+    'reserves.sub':    "Tria una categoria i apunta't a la que t'interessi.",
+    'reserves.tab.esdev':    'Esdeveniments',
+    'reserves.tab.tallers':  'Tallers',
+    'reserves.tab.mensual':  'Activitats mensuals',
+    'reserves.empty.esdev':  'No hi ha esdeveniments programats ara mateix.',
+    'reserves.empty.tallers':'No hi ha tallers oberts a inscripció ara mateix.',
+    'reserves.empty.mensual':"No hi ha activitats mensuals programades ara mateix.",
 
     'ev.reservar':     'Reservar plaça',
-    'ev.inscriure':    "M'hi apunto",
+    'ev.veure':        'Veure detalls',
     'ev.gratis':       'Gratuït',
     'ev.places':       'places disponibles',
     'ev.ultimes':      'Últimes places!',
@@ -46,7 +50,7 @@ const i18n = {
     'ev.desc':         'Descripció',
     'ev.como_llegar':  'Com arribar-hi',
     'ev.abrir_mapa':   'Obrir a Google Maps',
-    'ev.tornar':       '← Tornar a l\'agenda',
+    'ev.tornar':       '← Tornar',
     'ev.no_trobat':    "No hem trobat aquesta activitat.",
 
     'form.title':      'Reservar plaça',
@@ -73,10 +77,9 @@ const i18n = {
 
     'recursos.title':  'Recursos i consells',
     'recursos.sub':    "Guies senzilles, vídeos i idees per al dia a dia. Si necessites ajuda, truca'ns.",
-
-    'passatemps.title': 'Passatemps',
-    'passatemps.sub':   'Jocs per activar la ment. Aviat en tindrem molts més!',
-    'passatemps.soon':  'Estem preparant aquesta secció. Aviat trobaràs jocs de memòria, buscar les diferències, sopa de lletres i altres passatemps pensats per divertir-se i mantenir la ment desperta.',
+    'recursos.pas':    'Passatemps',
+    'recursos.pas.sub':'Jocs per activar la ment. Aviat en tindrem molts més!',
+    'recursos.pas.soon':'Estem preparant aquesta secció. Aviat trobaràs jocs de memòria, buscar les diferències, sopa de lletres i altres passatemps pensats per divertir-se i mantenir la ment desperta.',
 
     'footer.desc':     'Espai digital de vida comunitària de NexSocial SCCL. Acompanyament sociovital a Badalona.',
     'footer.enllaços': 'Enllaços',
@@ -88,32 +91,36 @@ const i18n = {
   es: {
     'nav.inici':       'Inicio',
     'nav.agenda':      'Agenda',
+    'nav.reserves':    'Reservas',
     'nav.recursos':    'Recursos',
-    'nav.passatemps':  'Pasatiempos',
     'nav.web':         'NexSocial',
 
     'hero.title':      'Comunitat NexSocial',
     'hero.sub':        'Actividades, encuentros y recursos para seguir haciendo vida.',
 
     'qb.agenda':       'Agenda',
-    'qb.agenda.desc':  'Qué hacemos esta semana y el mes que viene',
-    'qb.tallers':      'Talleres',
-    'qb.tallers.desc': 'Aprende cosas nuevas en los casales del barrio',
+    'qb.agenda.desc':  'Mira lo que hacemos este mes',
+    'qb.reserves':     'Reservas',
+    'qb.reserves.desc':'Apúntate a talleres, actividades y eventos',
     'qb.recursos':     'Recursos',
-    'qb.recursos.desc': 'Guías y vídeos útiles para el día a día',
-    'qb.passatemps':   'Pasatiempos',
-    'qb.passatemps.desc': 'Juegos para despertar la memoria',
+    'qb.recursos.desc':'Guías, vídeos y pasatiempos para el día a día',
 
     'agenda.title':    'Agenda',
-    'agenda.sub':      'Todas las actividades, talleres y eventos de Comunitat NexSocial.',
-    'filter.all':      'Todas',
-    'filter.mensual':  'Actividades mensuales',
-    'filter.taller':   'Talleres',
-    'filter.esdev':    'Eventos',
-    'filter.empty':    'No hay actividades con este filtro ahora mismo.',
+    'agenda.sub':      'Todo lo que haremos, ordenado por fecha. Haz clic en una actividad para verla y apuntarte.',
+    'agenda.empty':    'Por ahora no hay nada programado. ¡Vuelve pronto!',
+    'agenda.mes':      'Este mes',
+
+    'reserves.title':  'Reservas',
+    'reserves.sub':    'Elige una categoría y apúntate a la que te interese.',
+    'reserves.tab.esdev':    'Eventos',
+    'reserves.tab.tallers':  'Talleres',
+    'reserves.tab.mensual':  'Actividades mensuales',
+    'reserves.empty.esdev':  'No hay eventos programados ahora mismo.',
+    'reserves.empty.tallers':'No hay talleres abiertos a inscripción ahora mismo.',
+    'reserves.empty.mensual':'No hay actividades mensuales programadas ahora mismo.',
 
     'ev.reservar':     'Reservar plaza',
-    'ev.inscriure':    'Me apunto',
+    'ev.veure':        'Ver detalles',
     'ev.gratis':       'Gratuito',
     'ev.places':       'plazas disponibles',
     'ev.ultimes':      '¡Últimas plazas!',
@@ -127,7 +134,7 @@ const i18n = {
     'ev.desc':         'Descripción',
     'ev.como_llegar':  'Cómo llegar',
     'ev.abrir_mapa':   'Abrir en Google Maps',
-    'ev.tornar':       '← Volver a la agenda',
+    'ev.tornar':       '← Volver',
     'ev.no_trobat':    'No hemos encontrado esta actividad.',
 
     'form.title':      'Reservar plaza',
@@ -154,10 +161,9 @@ const i18n = {
 
     'recursos.title':  'Recursos y consejos',
     'recursos.sub':    'Guías sencillas, vídeos e ideas para el día a día. Si necesitas ayuda, llámanos.',
-
-    'passatemps.title': 'Pasatiempos',
-    'passatemps.sub':   'Juegos para activar la mente. ¡Pronto tendremos muchos más!',
-    'passatemps.soon':  'Estamos preparando esta sección. Pronto encontrarás juegos de memoria, buscar las diferencias, sopa de letras y otros pasatiempos pensados para divertirse y mantener la mente despierta.',
+    'recursos.pas':    'Pasatiempos',
+    'recursos.pas.sub':'Juegos para activar la mente. ¡Pronto tendremos muchos más!',
+    'recursos.pas.soon':'Estamos preparando esta sección. Pronto encontrarás juegos de memoria, buscar las diferencias, sopa de letras y otros pasatiempos pensados para divertirse y mantener la mente despierta.',
 
     'footer.desc':     'Espacio digital de vida comunitaria de NexSocial SCCL. Acompañamiento sociovital en Badalona.',
     'footer.enllaços': 'Enlaces',
@@ -201,29 +207,14 @@ function buildNav() {
 <nav class="nav" aria-label="Menú principal">
   <div class="nav-inner">
     <a href="/" class="nav-logo" aria-label="Comunitat NexSocial · Inici">
-      <svg viewBox="0 0 100 100" width="44" height="44" fill="currentColor" style="color: var(--forest); flex-shrink: 0">
-        <circle cx="50" cy="12" r="2.5"/><circle cx="65" cy="15" r="2"/><circle cx="78" cy="24" r="2.2"/>
-        <circle cx="86" cy="37" r="2"/><circle cx="88" cy="52" r="2.5"/><circle cx="84" cy="66" r="2"/>
-        <circle cx="75" cy="78" r="2.3"/><circle cx="62" cy="85" r="2"/><circle cx="48" cy="87" r="2.5"/>
-        <circle cx="34" cy="85" r="2"/><circle cx="22" cy="78" r="2.2"/><circle cx="14" cy="66" r="2"/>
-        <circle cx="11" cy="52" r="2.5"/><circle cx="13" cy="37" r="2"/><circle cx="21" cy="24" r="2.2"/>
-        <circle cx="34" cy="15" r="2"/>
-        <circle cx="50" cy="28" r="1.8" opacity="0.6"/><circle cx="66" cy="34" r="1.8" opacity="0.6"/>
-        <circle cx="72" cy="50" r="1.8" opacity="0.6"/><circle cx="66" cy="66" r="1.8" opacity="0.6"/>
-        <circle cx="50" cy="72" r="1.8" opacity="0.6"/><circle cx="34" cy="66" r="1.8" opacity="0.6"/>
-        <circle cx="28" cy="50" r="1.8" opacity="0.6"/><circle cx="34" cy="34" r="1.8" opacity="0.6"/>
-        <circle cx="50" cy="50" r="4"/>
-      </svg>
-      <span>
-        Comunitat <em>NexSocial</em>
-        <span class="nav-logo-sub">Acompanyament Sociovital</span>
-      </span>
+      <img src="/assets/logo.png" alt="NexSocial" class="nav-logo-img">
+      <span class="nav-logo-tag">Comunitat</span>
     </a>
     <div class="nav-links">
       <a class="nav-link ${isActive('/') || isActive('/index.html')}" href="/">${T('nav.inici')}</a>
       <a class="nav-link ${isActive('/agenda.html')}" href="/agenda.html">${T('nav.agenda')}</a>
+      <a class="nav-link ${isActive('/reserves.html')}" href="/reserves.html">${T('nav.reserves')}</a>
       <a class="nav-link ${isActive('/recursos.html')}" href="/recursos.html">${T('nav.recursos')}</a>
-      <a class="nav-link ${isActive('/passatemps.html')}" href="/passatemps.html">${T('nav.passatemps')}</a>
     </div>
     <div class="lang-sw" role="group" aria-label="Idioma">
       <button class="lang-btn ${lang==='ca'?'active':''}" data-lang="ca" aria-label="Català">CA</button>
@@ -296,16 +287,17 @@ function formatPrice(cents) {
 
 function tipoLabel(tipo) {
   const map = {
-    mensual: T('filter.mensual'),
-    taller:  T('filter.taller'),
-    esdeveniment: T('filter.esdev')
+    mensual: getLang() === 'ca' ? 'Activitat mensual' : 'Actividad mensual',
+    taller:  getLang() === 'ca' ? 'Taller' : 'Taller',
+    esdeveniment: getLang() === 'ca' ? 'Esdeveniment' : 'Evento'
   };
   return map[tipo] || tipo;
 }
 
 function tipoBadgeClass(tipo) {
   return tipo === 'taller' ? 'badge-taller' :
-         tipo === 'esdeveniment' ? 'badge-esdev' : '';
+         tipo === 'esdeveniment' ? 'badge-esdev' :
+         tipo === 'mensual' ? 'badge-mensual' : '';
 }
 
 function placesRestants(ev) {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Comunitat NexSocial · Acompanyament Sociovital a Badalona</title>
   <meta name="description" content="Agenda, tallers, recursos i trobades per a persones grans de Badalona. Un espai proper per seguir fent vida, teixir vincle i participar al barri.">
-  <link rel="icon" href="/assets/logo.svg">
+  <link rel="icon" href="/assets/logo.png">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="preload" as="image" href="/assets/hero.webp" type="image/webp">
   <meta property="og:title" content="Comunitat NexSocial">
@@ -21,7 +21,7 @@
     "@type": "Organization",
     "name": "NexSocial SCCL",
     "url": "https://nexsocial.org",
-    "logo": "https://comunitat.nexsocial.org/assets/logo.svg",
+    "logo": "https://comunitat.nexsocial.org/assets/logo.png",
     "description": "Cooperativa d'acompanyament sociovital per a persones grans a Badalona",
     "address": {
       "@type": "PostalAddress",
@@ -36,76 +36,56 @@
   <div id="nav-placeholder"></div>
   <main id="main">
 
-    <!-- HERO: foto neta amb el logo integrat, sense text a sobre -->
+    <!-- HERO: foto neta -->
     <section class="hero" aria-label="Comunitat NexSocial">
       <picture>
-        <source
-          type="image/webp"
-          srcset="/assets/hero-mobile.webp 800w, /assets/hero.webp 1400w"
-          sizes="100vw">
-        <source
-          type="image/jpeg"
-          srcset="/assets/hero-mobile.jpg 800w, /assets/hero.jpg 1400w"
-          sizes="100vw">
-        <img
-          class="hero-img"
-          src="/assets/hero.jpg"
+        <source type="image/webp"
+          srcset="/assets/hero-mobile.webp 800w, /assets/hero.webp 1400w" sizes="100vw">
+        <source type="image/jpeg"
+          srcset="/assets/hero-mobile.jpg 800w, /assets/hero.jpg 1400w" sizes="100vw">
+        <img class="hero-img" src="/assets/hero.jpg"
           alt="Cinc persones grans caminant abraçades sota les arcades de Badalona amb llums decoratives"
-          width="1400" height="1980"
-          fetchpriority="high">
+          width="1400" height="1980" fetchpriority="high">
       </picture>
     </section>
 
-    <!-- CAPTION textual sota la foto -->
+    <!-- CAPTION sota la foto -->
     <div class="hero-caption">
       <h1 data-i18n="hero.title">Comunitat NexSocial</h1>
       <p class="lead" data-i18n="hero.sub">Activitats, trobades i recursos per seguir fent vida.</p>
       <div class="hero-ctas">
-        <a href="/agenda.html" class="btn btn-primary btn-lg">
-          <span data-cta-agenda>Veure l'agenda</span>
-        </a>
-        <a href="/agenda.html?tipus=taller" class="btn btn-secondary btn-lg">
-          <span data-cta-tallers>Els nostres tallers</span>
-        </a>
+        <a href="/agenda.html" class="btn btn-primary btn-lg" data-cta-agenda>Veure l'agenda</a>
+        <a href="/reserves.html" class="btn btn-secondary btn-lg" data-cta-reserves>Reservar plaça</a>
       </div>
     </div>
 
-    <!-- 4 blocs d'accés ràpid -->
+    <!-- 3 blocs d'accés ràpid -->
     <section aria-label="Accessos ràpids">
       <div class="quick-blocks">
         <a href="/agenda.html" class="qblock">
           <div class="qblock-icon" aria-hidden="true">📅</div>
           <h2 class="qblock-title" data-i18n="qb.agenda">Agenda</h2>
-          <p class="qblock-desc" data-i18n="qb.agenda.desc">Què fem aquesta setmana i el mes que ve</p>
+          <p class="qblock-desc" data-i18n="qb.agenda.desc">Mira què fem aquest mes</p>
         </a>
-        <a href="/agenda.html?tipus=taller" class="qblock">
-          <div class="qblock-icon" aria-hidden="true">🎨</div>
-          <h2 class="qblock-title" data-i18n="qb.tallers">Tallers</h2>
-          <p class="qblock-desc" data-i18n="qb.tallers.desc">Aprèn coses noves als casals del barri</p>
+        <a href="/reserves.html" class="qblock qblock-sky">
+          <div class="qblock-icon" aria-hidden="true">✋</div>
+          <h2 class="qblock-title" data-i18n="qb.reserves">Reserves</h2>
+          <p class="qblock-desc" data-i18n="qb.reserves.desc">Apunta't a tallers, activitats i esdeveniments</p>
         </a>
         <a href="/recursos.html" class="qblock">
           <div class="qblock-icon" aria-hidden="true">💡</div>
           <h2 class="qblock-title" data-i18n="qb.recursos">Recursos</h2>
-          <p class="qblock-desc" data-i18n="qb.recursos.desc">Guies i vídeos útils per al dia a dia</p>
-        </a>
-        <a href="/passatemps.html" class="qblock">
-          <div class="qblock-icon" aria-hidden="true">🧩</div>
-          <h2 class="qblock-title" data-i18n="qb.passatemps">Passatemps</h2>
-          <p class="qblock-desc" data-i18n="qb.passatemps.desc">Jocs per despertar la memòria</p>
+          <p class="qblock-desc" data-i18n="qb.recursos.desc">Guies, vídeos i passatemps</p>
         </a>
       </div>
     </section>
 
     <!-- Properes activitats -->
     <section class="section" id="upcoming">
-      <h2 style="text-align: center; margin-bottom: var(--sp-4);">
-        <span data-i18n-upcoming>Properes activitats</span>
-      </h2>
+      <h2 style="text-align: center; margin-bottom: var(--sp-4);" data-i18n-upcoming>Properes activitats</h2>
       <div id="events-list"></div>
       <div style="text-align: center; margin-top: var(--sp-4);">
-        <a href="/agenda.html" class="btn btn-ghost btn-lg">
-          <span data-i18n-verall>Veure l'agenda completa →</span>
-        </a>
+        <a href="/agenda.html" class="btn btn-ghost btn-lg" data-i18n-verall>Veure l'agenda completa →</a>
       </div>
     </section>
   </main>
@@ -122,19 +102,19 @@
           up: 'Properes activitats',
           all: "Veure l'agenda completa →",
           agenda: "Veure l'agenda",
-          tallers: 'Els nostres tallers'
+          reserves: 'Reservar plaça'
         },
         es: {
           up: 'Próximas actividades',
           all: 'Ver la agenda completa →',
           agenda: 'Ver la agenda',
-          tallers: 'Nuestros talleres'
+          reserves: 'Reservar plaza'
         }
       };
       document.querySelector('[data-i18n-upcoming]').textContent = t[lang].up;
       document.querySelector('[data-i18n-verall]').textContent = t[lang].all;
       document.querySelector('[data-cta-agenda]').textContent = t[lang].agenda;
-      document.querySelector('[data-cta-tallers]').textContent = t[lang].tallers;
+      document.querySelector('[data-cta-reserves]').textContent = t[lang].reserves;
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = window.NX.T(el.dataset.i18n);
       });

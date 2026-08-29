@@ -30,7 +30,7 @@ function sortEvents(events) {
   });
 }
 
-/* ── Render targeta d'event ───────────────────────────────── */
+/* ── Render targeta d'event (exposada globalment per reutilitzar) ── */
 function eventCardHTML(ev) {
   const places = placesRestants(ev);
   const isFree = !ev.preu_cents || ev.preu_cents === 0;
@@ -66,47 +66,49 @@ function eventCardHTML(ev) {
   <div style="padding: 0 var(--sp-3) var(--sp-2); font-size: var(--fs-sm)">${status}</div>
 </article>`;
 }
+window.eventCardHTML = eventCardHTML;
 
-/* ── Render llistat sencer ────────────────────────────────── */
+/* ── Render llistat cronològic (sense filtres) ────────────── */
 async function renderAgenda() {
   const container = qs('#events-list');
   if (!container) return;
 
   const events = sortEvents(await fetchEvents());
-  const params = new URLSearchParams(location.search);
-  const filtre = params.get('tipus') || 'all';
+  // Només futurs o d'avui
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = events.filter(e => (e.data || '') >= today && e.estat !== 'arxivat');
 
-  const filtered = filtre === 'all' ? events : events.filter(e => e.tipo === filtre);
+  if (upcoming.length === 0) {
+    container.innerHTML = `<div class="alert alert-info">${T('agenda.empty')}</div>`;
+    return;
+  }
 
-  const filtersHTML = `
-<div class="filters" role="tablist" aria-label="Filtre d'activitats">
-  ${['all','mensual','taller','esdeveniment'].map(t => `
-    <button class="filter-btn ${filtre===t?'active':''}"
-            data-filter="${t}"
-            role="tab"
-            aria-selected="${filtre===t}">
-      ${t === 'all' ? T('filter.all') : tipoLabel(t)}
-    </button>
-  `).join('')}
-</div>`;
+  // Agrupar per mes
+  const groups = {};
+  const monthNames = {
+    ca: ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'],
+    es: ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+  };
+  const lang = getLang();
 
-  const gridHTML = filtered.length === 0
-    ? `<div class="alert alert-info">${T('filter.empty')}</div>`
-    : `<div class="events-grid">${filtered.map(eventCardHTML).join('')}</div>`;
-
-  container.innerHTML = filtersHTML + gridHTML + phoneBannerHTML();
-
-  // Bind filtres
-  qsa('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const t = btn.dataset.filter;
-      const url = new URL(location.href);
-      if (t === 'all') url.searchParams.delete('tipus');
-      else url.searchParams.set('tipus', t);
-      history.pushState(null, '', url);
-      renderAgenda();
-    });
+  upcoming.forEach(ev => {
+    const d = new Date(ev.data);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = `${monthNames[lang][d.getMonth()]} ${d.getFullYear()}`;
+    if (!groups[key]) groups[key] = { label, items: [] };
+    groups[key].items.push(ev);
   });
+
+  const html = Object.keys(groups).sort().map(k => {
+    const g = groups[k];
+    return `
+    <div class="agenda-month">
+      <h2 class="agenda-month-title">${esc(g.label.charAt(0).toUpperCase() + g.label.slice(1))}</h2>
+      <div class="events-grid">${g.items.map(eventCardHTML).join('')}</div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = html + phoneBannerHTML();
 }
 
 /* ── Render detall ────────────────────────────────────────── */

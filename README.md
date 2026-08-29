@@ -44,7 +44,7 @@ recursos i passatemps orientats a persones grans (senior-first, WCAG AA).
 ### 5. Foto hero
 Substituir `assets/hero-placeholder.svg` per la foto real (`hero.jpg`) i
 actualitzar la referència a `index.html`. Idealment 1920×1080, <300kB,
-comprimida amb tinypng.com. 
+comprimida amb tinypng.com.
 
 ## Estructura
 
