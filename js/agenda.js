@@ -209,7 +209,7 @@ async function renderDetail() {
 
           <p class="form-help">${T('form.legal')}</p>
 
-          <div id="form-msg"></div>
+          <div id="form-msg" aria-live="polite" aria-atomic="true"></div>
 
           <button type="submit" class="btn btn-primary btn-lg btn-block">
             ${T('form.enviar')}

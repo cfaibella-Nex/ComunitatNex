@@ -60,7 +60,7 @@ const i18n = {
     'form.email':      "Correu (opcional)",
     'form.places':     'Nombre de places',
     'form.notes':      'Vols dir-nos alguna cosa? (opcional)',
-    'form.legal':      'En reservar acceptes que et contactem per confirmar la plaça. No compartim les teves dades amb ningú.',
+    'form.legal':      'En reservar acceptes que et contactem per confirmar la plaça. Consulta la <a href="/legal.html" style="color:var(--forest)">política de privacitat</a>.',
     'form.enviar':     'Confirmar la reserva',
     'form.enviant':    'Enviant…',
     'form.error':      "Hi ha algun camp sense omplir. Revisa'l, si us plau.",
@@ -86,6 +86,7 @@ const i18n = {
     'footer.contacte': 'Contacte',
     'footer.privacy':  'Privacitat',
     'footer.legal':    'Avís legal',
+    'footer.accessibilitat': 'Accessibilitat',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
   },
   es: {
@@ -144,7 +145,7 @@ const i18n = {
     'form.email':      'Correo (opcional)',
     'form.places':     'Número de plazas',
     'form.notes':      '¿Quieres decirnos algo? (opcional)',
-    'form.legal':      'Al reservar aceptas que te contactemos para confirmar la plaza. No compartimos tus datos con nadie.',
+    'form.legal':      'Al reservar aceptas que te contactemos para confirmar la plaza. Consulta la <a href="/legal.html" style="color:var(--forest)">política de privacidad</a>.',
     'form.enviar':     'Confirmar la reserva',
     'form.enviant':    'Enviando…',
     'form.error':      'Hay algún campo sin rellenar. Revísalo, por favor.',
@@ -170,6 +171,7 @@ const i18n = {
     'footer.contacte': 'Contacto',
     'footer.privacy':  'Privacidad',
     'footer.legal':    'Aviso legal',
+    'footer.accessibilitat': 'Accesibilidad',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
   }
 };
@@ -208,13 +210,13 @@ function buildNav() {
   <div class="nav-inner">
     <a href="/" class="nav-logo" aria-label="Comunitat NexSocial · Inici">
       <img src="/assets/logo.png" alt="NexSocial" class="nav-logo-img">
-      <span class="nav-logo-tag">Comunitat</span>
+      <span class="nav-logo-tag">Comunitat NexSocial</span>
     </a>
     <div class="nav-links">
-      <a class="nav-link ${isActive('/') || isActive('/index.html')}" href="/">${T('nav.inici')}</a>
-      <a class="nav-link ${isActive('/agenda.html')}" href="/agenda.html">${T('nav.agenda')}</a>
-      <a class="nav-link ${isActive('/reserves.html')}" href="/reserves.html">${T('nav.reserves')}</a>
-      <a class="nav-link ${isActive('/recursos.html')}" href="/recursos.html">${T('nav.recursos')}</a>
+      <a class="nav-link ${isActive('/') || isActive('/index.html')}" href="/"${(isActive('/') || isActive('/index.html')) ? ' aria-current="page"' : ''}>${T('nav.inici')}</a>
+      <a class="nav-link ${isActive('/agenda.html')}" href="/agenda.html"${isActive('/agenda.html') ? ' aria-current="page"' : ''}>${T('nav.agenda')}</a>
+      <a class="nav-link ${isActive('/reserves.html')}" href="/reserves.html"${isActive('/reserves.html') ? ' aria-current="page"' : ''}>${T('nav.reserves')}</a>
+      <a class="nav-link ${isActive('/recursos.html')}" href="/recursos.html"${isActive('/recursos.html') ? ' aria-current="page"' : ''}>${T('nav.recursos')}</a>
     </div>
     <div class="lang-sw" role="group" aria-label="Idioma">
       <button class="lang-btn ${lang==='ca'?'active':''}" data-lang="ca" aria-label="Català">CA</button>
@@ -243,8 +245,9 @@ function buildFooter() {
     <div>
       <h4>${T('footer.contacte')}</h4>
       <a href="tel:${PHONE_TEL}">📞 ${PHONE}</a>
-      <a href="mailto:hola@nexsocial.org">✉️ hola@nexsocial.org</a>
+      <a href="mailto:infonex@nexsocial.org">✉️ infonex@nexsocial.org</a>
       <a href="/legal.html">${T('footer.privacy')}</a>
+      <a href="/accessibilitat.html">${T('footer.accessibilitat')}</a>
     </div>
   </div>
   <div class="footer-copy">

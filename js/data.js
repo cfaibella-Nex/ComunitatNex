@@ -28,7 +28,7 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Casal+Gent+Gran+Centre+Badalona',
     data: '2026-10-15', hora: '17:00', durada: 90,
     cupo: 25, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/casal-centre.jpg', estat: 'actiu'
+    imatge: '/assets/vivioteca.jpg', estat: 'actiu'
   },
   {
     id: 'tablao-canyado-2026-10', tipo: 'mensual',
@@ -42,7 +42,7 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Canyad%C3%B3+Badalona',
     data: '2026-10-24', hora: '18:30', durada: 90,
     cupo: 40, reservades: 0, preu_cents: 1000, tipo_iva: 'iva10',
-    imatge: '/assets/passeig.jpg', estat: 'actiu'
+    imatge: '/assets/tablao.jpg', estat: 'actiu'
   },
   /* ═══ TALLERS ═══ */
   {
@@ -85,7 +85,7 @@ const EVENTS_DATA = [
     mapa_url: 'https://maps.google.com/?q=Casal+Can+Pepus+Badalona',
     data: '2026-09-22', hora: '18:00', durada: 90,
     cupo: 15, reservades: 0, preu_cents: 2500, tipo_iva: 'exempt',
-    imatge: '/assets/hero.jpg', estat: 'proximament'
+    imatge: '/assets/canpepus.jpg', estat: 'proximament'
   },
   {
     id: 'taller-autodefensa-santroc', tipo: 'taller',

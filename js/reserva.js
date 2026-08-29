@@ -31,12 +31,15 @@ window.bindReservaForm = function bindReservaForm(ev) {
     if (!validaEmail(data.email)) errors.push('email');
     if (!data.places || parseInt(data.places) < 1) errors.push('places');
 
-    // Marca camps erronis
-    form.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(el => el.classList.remove('error'));
+    // Marca camps erronis + aria-invalid
+    form.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(el => {
+      el.classList.remove('error');
+      el.removeAttribute('aria-invalid');
+    });
     errors.forEach(k => {
       const map = { nom: '#nom', tel: '#tel', email: '#email', places: '#places' };
       const el = qs(map[k]);
-      if (el) el.classList.add('error');
+      if (el) { el.classList.add('error'); el.setAttribute('aria-invalid', 'true'); }
     });
 
     if (errors.length) {
