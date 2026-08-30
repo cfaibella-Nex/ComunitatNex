@@ -34,10 +34,9 @@ function sortEvents(events) {
   });
 }
 
-/* ═══ Vista 1: Targeta d'event (per grids · Reserves + home) ═══ */
+/* ═══ Vista 1: Targeta d'event (per grid Reserves) ═══ */
 function eventCardHTML(ev) {
   const places = placesRestants(ev);
-  const isFree = !ev.preu_cents || ev.preu_cents === 0;
   const status = ev.estat === 'esgotat' || places === 0
     ? `<span class="event-badge" style="position:static;background:var(--danger)">${T('ev.esgotat')}</span>`
     : places <= 3 && places > 0
@@ -62,8 +61,7 @@ function eventCardHTML(ev) {
     <p class="event-desc">${esc(L(ev.descripcio)).slice(0, 140)}${L(ev.descripcio).length > 140 ? '…' : ''}</p>
   </div>
   <div class="event-card-footer">
-    <span class="event-price ${isFree ? 'free' : ''}">${formatPrice(ev.preu_cents)}</span>
-    <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="btn btn-primary">
+    <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="btn btn-primary btn-block">
       ${T('ev.reservar')} →
     </a>
   </div>
@@ -72,9 +70,20 @@ function eventCardHTML(ev) {
 }
 window.eventCardHTML = eventCardHTML;
 
+/* ═══ Vista 1b: POSTER gran (portada · foto amb títol overlay) ═══ */
+function eventPosterHTML(ev) {
+  return `
+<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster">
+  <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}" loading="lazy">
+  <div class="event-poster-overlay">
+    <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static;display:inline-block;margin-bottom:8px">${esc(tipoLabel(ev.tipo))}</span>
+    <h3 class="event-poster-title">${esc(L(ev.titol))}</h3>
+  </div>
+</a>`;
+}
+
 /* ═══ Vista 2: Fila horitzontal (per Agenda) ═══ */
 function eventRowHTML(ev) {
-  const isFree = !ev.preu_cents || ev.preu_cents === 0;
   const d = new Date(ev.data);
   const dia = d.getDate();
   const mesLabel = new Intl.DateTimeFormat(window.NX.getLang() === 'ca' ? 'ca-ES' : 'es-ES',
@@ -98,7 +107,6 @@ function eventRowHTML(ev) {
     <h3 class="event-row-title">${esc(L(ev.titol))}</h3>
     <div class="event-row-loc">📍 ${esc(L(ev.ubicacio))}</div>
     <div class="event-row-cta">
-      <span class="event-price ${isFree ? 'free' : ''}">${formatPrice(ev.preu_cents)}</span>
       <span class="event-row-arrow">${esgotat ? T('ev.esgotat') : T('ev.reservar') + ' →'}</span>
     </div>
   </div>
@@ -149,7 +157,7 @@ async function renderAgenda() {
   container.innerHTML = html + phoneBannerHTML();
 }
 
-/* ═══ Render llistat GRID (per home "Properes activitats") ═══ */
+/* ═══ Render POSTERS (per home "Properes activitats") ═══ */
 async function renderGrid() {
   const container = qs('#events-grid-list');
   if (!container) return;
@@ -160,7 +168,7 @@ async function renderGrid() {
     container.innerHTML = `<div class="alert alert-info">${T('agenda.empty')}</div>`;
     return;
   }
-  container.innerHTML = `<div class="events-grid">${upcoming.map(eventCardHTML).join('')}</div>`;
+  container.innerHTML = `<div class="poster-grid">${upcoming.map(eventPosterHTML).join('')}</div>`;
 }
 
 /* ═══ Vista 3: Detall FEB-style (PAS 1: selecció + Continuar) ═══ */

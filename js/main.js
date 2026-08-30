@@ -74,7 +74,7 @@ const i18n = {
     'form.error_srv':  "No hem pogut enviar la reserva. Torna a provar-ho o truca'ns.",
 
     'phone.text':      "Prefereixes reservar per telèfon? Truca'ns:",
-    'phone.hours':     'De dilluns a divendres, 9 a 14h',
+    'phone.hours':     'De dilluns a divendres, 10 a 18h',
 
     'conf.title':      'Reserva confirmada!',
     'conf.desc':       "Ja t'hem apuntat. Rebràs una trucada nostra per confirmar la plaça.",
@@ -175,7 +175,7 @@ const i18n = {
     'form.error_srv':  'No hemos podido enviar la reserva. Vuelve a intentarlo o llámanos.',
 
     'phone.text':      '¿Prefieres reservar por teléfono? Llámanos:',
-    'phone.hours':     'De lunes a viernes, 9 a 14h',
+    'phone.hours':     'De lunes a viernes, 10 a 18h',
 
     'conf.title':      '¡Reserva confirmada!',
     'conf.desc':       'Ya te hemos apuntado. Recibirás una llamada nuestra para confirmar la plaza.',

@@ -98,9 +98,8 @@ async function renderReserves() {
 // Solució: definim aquí una versió pròpia si no existeix.
 if (typeof window.eventCardHTML !== 'function') {
   window.eventCardHTML = function(ev) {
-    const { T, L, esc, formatDate, formatPrice, tipoLabel, tipoBadgeClass, placesRestants } = window.NX;
+    const { T, L, esc, formatDate, tipoLabel, tipoBadgeClass, placesRestants } = window.NX;
     const places = placesRestants(ev);
-    const isFree = !ev.preu_cents || ev.preu_cents === 0;
     const status = ev.estat === 'esgotat' || places === 0
       ? `<span class="event-badge" style="position:static;background:var(--danger)">${T('ev.esgotat')}</span>`
       : places <= 3 && places > 0
@@ -125,8 +124,7 @@ if (typeof window.eventCardHTML !== 'function') {
     <p class="event-desc">${esc(L(ev.descripcio)).slice(0, 140)}${L(ev.descripcio).length > 140 ? '…' : ''}</p>
   </div>
   <div class="event-card-footer">
-    <span class="event-price ${isFree ? 'free' : ''}">${formatPrice(ev.preu_cents)}</span>
-    <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="btn btn-primary">
+    <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="btn btn-primary btn-block">
       ${T('ev.reservar')} →
     </a>
   </div>
