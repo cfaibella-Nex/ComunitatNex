@@ -4,6 +4,8 @@
    Llegeix la selecció (event_id + places + total) del sessionStorage
    que ha desat el pas 1 (renderDetail a agenda.js). */
 
+(function() {
+
 const { T, L, esc, formatDate, formatPrice,
         tipoLabel, tipoBadgeClass, phoneBannerHTML, qs, qsa } = window.NX;
 
@@ -192,3 +194,5 @@ async function renderCheckout() {
 }
 
 renderCheckout();
+
+})();

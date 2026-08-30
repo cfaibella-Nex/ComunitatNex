@@ -4,6 +4,8 @@
    cada tab mostra el catàleg de la seva categoria.
    Reutilitza eventCardHTML() d'agenda.js. */
 
+(function() {
+
 const RESERVES_TABS = [
   { id: 'esdeveniment', label: 'reserves.tab.esdev',    empty: 'reserves.empty.esdev',    cls: 'tab-esdev' },
   { id: 'taller',       label: 'reserves.tab.tallers',  empty: 'reserves.empty.tallers',  cls: 'tab-taller' },
@@ -134,3 +136,5 @@ if (typeof window.eventCardHTML !== 'function') {
 }
 
 renderReserves();
+
+})();

@@ -2,6 +2,8 @@
    ────────────────────────────────────────
    Validació i enviament del formulari de reserva. */
 
+(function() {
+
 const { T, qs } = window.NX;
 
 function validaTelefon(t) {
@@ -115,3 +117,5 @@ Teléfono: ${data.telefon}
 Plazas: ${data.places}${data.notes ? '\nNotas: ' + data.notes : ''}`;
   window.open(`https://wa.me/${window.NX.WHATSAPP}?text=${encodeURIComponent(txt)}`, '_blank');
 }
+
+})();

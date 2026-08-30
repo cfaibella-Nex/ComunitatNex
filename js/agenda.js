@@ -5,6 +5,8 @@
    2. Llistat horitzontal cronològic (per pàgina Agenda)
    3. Detall FEB-style amb foto comercial + secció lloc + booking dinàmic */
 
+(function() {
+
 const { T, L, esc, formatDate, formatPrice,
         tipoLabel, tipoBadgeClass, placesRestants,
         phoneBannerHTML, qs, qsa } = window.NX;
@@ -346,3 +348,5 @@ function bindPlacesSelector(ev) {
 if (qs('#events-list'))     renderAgenda();
 if (qs('#events-grid-list')) renderGrid();
 if (qs('#event-detail'))    renderDetail();
+
+})();
