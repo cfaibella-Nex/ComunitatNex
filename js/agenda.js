@@ -37,6 +37,8 @@ function sortEvents(events) {
 /* ═══ Vista 1: Targeta d'event (per grid Reserves) ═══ */
 function eventCardHTML(ev) {
   const places = placesRestants(ev);
+  const label = ev.data_label ? L(ev.data_label) : formatDate(ev.data);
+  const isProximament = ev.data_label && /pr[oò]xi/i.test(L(ev.data_label));
   const status = ev.estat === 'esgotat' || places === 0
     ? `<span class="event-badge" style="position:static;background:var(--danger)">${T('ev.esgotat')}</span>`
     : places <= 3 && places > 0
@@ -52,8 +54,8 @@ function eventCardHTML(ev) {
   <div class="event-card-body">
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
     <div class="event-meta">
-      <span class="event-meta-item">📅 ${esc(formatDate(ev.data))}</span>
-      <span class="event-meta-item">🕐 ${esc(ev.hora || '')}</span>
+      <span class="event-meta-item">📅 ${esc(label)}</span>
+      ${!isProximament && ev.hora ? `<span class="event-meta-item">🕐 ${esc(ev.hora)}</span>` : ''}
     </div>
     <div class="event-meta">
       <span class="event-meta-item">📍 ${esc(L(ev.ubicacio))}</span>
@@ -84,25 +86,37 @@ function eventPosterHTML(ev) {
 
 /* ═══ Vista 2: Fila horitzontal (per Agenda) ═══ */
 function eventRowHTML(ev) {
+  const lang = window.NX.getLang();
   const d = new Date(ev.data);
+  const mesLabel = new Intl.DateTimeFormat(lang === 'ca' ? 'ca-ES' : 'es-ES',
+    { month: 'short' }).format(d).replace('.', '').toUpperCase();
   const dia = d.getDate();
-  const mesLabel = new Intl.DateTimeFormat(window.NX.getLang() === 'ca' ? 'ca-ES' : 'es-ES',
-    { month: 'short' }).format(d).replace('.', '');
-  const diaSetm = new Intl.DateTimeFormat(window.NX.getLang() === 'ca' ? 'ca-ES' : 'es-ES',
+  const label = ev.data_label ? L(ev.data_label) : '';
+  const isProximament = label && /pr[oò]xi/i.test(label);
+  const diaSetm = new Intl.DateTimeFormat(lang === 'ca' ? 'ca-ES' : 'es-ES',
     { weekday: 'long' }).format(d);
   const places = placesRestants(ev);
   const esgotat = ev.estat === 'esgotat' || places === 0;
 
+  // Bloc de data: si hi ha data_label, mostrem mes gran o "PRÒX"
+  const dateBlock = label
+    ? (isProximament
+        ? `<span class="event-row-day event-row-day-sm">PRÒX</span>`
+        : `<span class="event-row-day">${mesLabel}</span>`)
+    : `<span class="event-row-day">${dia}</span><span class="event-row-month">${esc(mesLabel)}</span>`;
+
+  // Línia meta: si hi ha label, el fem servir; sinó dia setmana + hora
+  const metaText = label
+    ? esc(label) + (isProximament ? '' : ` · ${esc(ev.hora || '')}`)
+    : `${esc(diaSetm)} · ${esc(ev.hora || '')}`;
+
   return `
 <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-row ${esgotat ? 'is-esgotat' : ''}">
-  <div class="event-row-date">
-    <span class="event-row-day">${dia}</span>
-    <span class="event-row-month">${esc(mesLabel)}</span>
-  </div>
+  <div class="event-row-date">${dateBlock}</div>
   <div class="event-row-info">
     <div class="event-row-meta">
       <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static">${esc(tipoLabel(ev.tipo))}</span>
-      <span class="muted" style="font-size:var(--fs-sm)">${esc(diaSetm)} · ${esc(ev.hora || '')}</span>
+      <span class="muted" style="font-size:var(--fs-sm)">${metaText}</span>
     </div>
     <h3 class="event-row-title">${esc(L(ev.titol))}</h3>
     <div class="event-row-loc">📍 ${esc(L(ev.ubicacio))}</div>
@@ -218,11 +232,13 @@ async function renderDetail() {
       <div class="detail-info">
         <dl>
           <dt>${T('ev.data')}</dt>
-          <dd>${esc(formatDate(ev.data, { weekday: 'long' }))}</dd>
-          <dt>${T('ev.hora')}</dt>
-          <dd>${esc(ev.hora || '—')}</dd>
-          <dt>${T('ev.durada')}</dt>
-          <dd>${ev.durada || 90} min</dd>
+          <dd>${esc(ev.data_label ? L(ev.data_label) : formatDate(ev.data, { weekday: 'long' }))}</dd>
+          ${!(ev.data_label && /pr[oò]xi/i.test(L(ev.data_label))) ? `
+            <dt>${T('ev.hora')}</dt>
+            <dd>${esc(ev.hora || '—')}</dd>
+            <dt>${T('ev.durada')}</dt>
+            <dd>${ev.durada || 90} min</dd>
+          ` : ''}
           <dt>${T('ev.entitat')}</dt>
           <dd>${esc(L(ev.entitat))}</dd>
           <dt>${T('ev.preu')}</dt>

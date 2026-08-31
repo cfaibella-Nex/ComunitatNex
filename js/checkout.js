@@ -103,7 +103,7 @@ async function renderCheckout() {
       <div class="summary-body">
         <h3 style="margin: 0 0 var(--sp-2)">${T('checkout.resum')}</h3>
         <div class="summary-title">${esc(L(ev.titol))}</div>
-        <div class="summary-line muted">${esc(formatDate(ev.data, { weekday: 'long' }))} · ${esc(ev.hora || '')}</div>
+        <div class="summary-line muted">${esc(ev.data_label ? L(ev.data_label) : formatDate(ev.data, { weekday: 'long' }))}${ev.data_label && /pr[oò]xi/i.test(L(ev.data_label)) ? '' : ' · ' + esc(ev.hora || '')}</div>
         <div class="summary-line muted">${esc(L(ev.entitat))}</div>
 
         <div class="summary-row">
