@@ -223,7 +223,8 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 @media (max-width: 720px) {
   .nav-inner { flex-wrap: wrap; }
   .nav-logo-text { font-size: var(--fs-sm); }
-  .nav-links { order: 3; width: 100%; justify-content: center; }
+  .nav-links { order: 3; width: 100%; justify-content: center; flex-wrap: wrap; gap: 2px; }
+  .nav-link { padding: 10px 12px; font-size: var(--fs-sm); }
 }
 
 /* ── HERO ──────────────────────────────────────────────────────

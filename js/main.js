@@ -401,6 +401,7 @@ function buildNav() {
       <a class="nav-link ${isActive('/agenda.html')}" href="/agenda.html"${isActive('/agenda.html') ? ' aria-current="page"' : ''}>${T('nav.agenda')}</a>
       <a class="nav-link ${isActive('/reserves.html')}" href="/reserves.html"${isActive('/reserves.html') ? ' aria-current="page"' : ''}>${T('nav.reserves')}</a>
       <a class="nav-link ${isActive('/recursos.html')}" href="/recursos.html"${isActive('/recursos.html') ? ' aria-current="page"' : ''}>${T('nav.recursos')}</a>
+      <a class="nav-link ${isActive('/passatemps.html')}" href="/passatemps.html"${isActive('/passatemps.html') ? ' aria-current="page"' : ''}>${T('nav.passatemps')}</a>
     </div>
     <div class="lang-sw" role="group" aria-label="Idioma">
       <button class="lang-btn ${lang==='ca'?'active':''}" data-lang="ca" aria-label="Català">CA</button>
