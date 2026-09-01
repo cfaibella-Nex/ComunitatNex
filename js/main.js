@@ -97,6 +97,65 @@ const i18n = {
     'recursos.pas.sub':'Jocs per activar la ment. Aviat en tindrem molts més!',
     'recursos.pas.soon':'Estem preparant aquesta secció. Aviat trobaràs jocs de memòria, buscar les diferències, sopa de lletres i altres passatemps pensats per divertir-se i mantenir la ment desperta.',
 
+    'pas.intro':       'Marca les respostes amb el ratolí o el dit. Quan vulguis comprovar-ho, obre «Veure la solució». No hi ha temps límit ni puntuació: fes-ho al teu ritme.',
+    'pas.print':       '💡 També pots imprimir aquesta pàgina i fer els passatemps amb bolígraf, com una fitxa de paper.',
+    'pas.sol':         'Veure la solució',
+    'pas.more':        'Anirem afegint més passatemps cada mes. Si tens una idea o un refrany que t\'agradaria veure aquí, digues-nos-ho per WhatsApp!',
+    'pas.level.suau':  'Suau',
+    'pas.level.mitja': 'Una mica més',
+    'pas.level.repte': 'Repte',
+    'pas.cat.paraules':'Paraules i llenguatge',
+    'pas.cat.atencio': 'Atenció i observació',
+    'pas.cat.numeros': 'Números i lògica',
+    'pas.cat.records': 'Records i cultura',
+    'pas.cat.vida':    'Vida quotidiana',
+
+    'pas.p1.q':   'Quina paraula no pertany al grup?',
+    'pas.p1.a':   'Poma', 'pas.p1.b': 'Pera', 'pas.p1.c': 'Plàtan', 'pas.p1.d': 'Cadira',
+    'pas.p1.sol': 'La resposta és «Cadira»: les altres tres són fruites.',
+
+    'pas.p2.q':   'Quina paraula no pertany al grup?',
+    'pas.p2.a':   'Badalona', 'pas.p2.b': 'Barcelona', 'pas.p2.c': 'Girona', 'pas.p2.d': 'Guitarra',
+    'pas.p2.sol': 'La resposta és «Guitarra»: les altres tres són ciutats catalanes.',
+
+    'pas.p3.q':   'Com acaba aquest refrany? «Qui matina...»',
+    'pas.p3.a':   'fa forat', 'pas.p3.b': 'fa el cafè', 'pas.p3.c': 'Déu l\'ajuda',
+    'pas.p3.sol': 'La resposta és «Déu l\'ajuda»: qui es lleva d\'hora té més bona sort.',
+
+    'pas.p4.q':   'Com acaba aquest refrany? «A poc a poc...»',
+    'pas.p4.a':   'i bona lletra', 'pas.p4.b': 'i sempre tard', 'pas.p4.c': 'i mai arribes',
+    'pas.p4.sol': 'La resposta és «i bona lletra»: fer les coses amb calma surten millor.',
+
+    'pas.p5.q':   'Marca totes les paraules relacionades amb el mar',
+    'pas.p5.a':   'Onada', 'pas.p5.b': 'Vaixell', 'pas.p5.c': 'Cadira', 'pas.p5.d': 'Platja', 'pas.p5.e': 'Forn', 'pas.p5.f': 'Peix',
+    'pas.p5.sol': 'Onada, Vaixell, Platja i Peix són del mar. Cadira i Forn no hi tenen relació.',
+
+    'pas.p6.q':   'Marca les paraules que comencen per la lletra M',
+    'pas.p6.a':   'Mar', 'pas.p6.b': 'Taula', 'pas.p6.c': 'Muntanya', 'pas.p6.d': 'Cotxe', 'pas.p6.e': 'Meló', 'pas.p6.f': 'Porta',
+    'pas.p6.sol': 'Mar, Muntanya i Meló comencen per M.',
+
+    'pas.p7.q':   'Completa la sèrie: 2, 4, 6, 8, ...?',
+    'pas.p7.sol': 'La resposta és 10: els números van de 2 en 2.',
+
+    'pas.p8.q':   'Compres pa (1,20 €) i llet (0,95 €). Quant pagues en total?',
+    'pas.p8.sol': 'La resposta és 2,15 €.',
+
+    'pas.p9.q':   'Quina d\'aquestes cançons és de Joan Manuel Serrat?',
+    'pas.p9.a':   'Paraules d\'amor', 'pas.p9.b': 'Made in Spain', 'pas.p9.c': 'La Barcelona',
+    'pas.p9.sol': 'La resposta és «Paraules d\'amor».',
+
+    'pas.p10.q':   'Quin d\'aquests balls és tradicional català?',
+    'pas.p10.a':   'Sardana', 'pas.p10.b': 'Tango', 'pas.p10.c': 'Vals',
+    'pas.p10.sol': 'La resposta és «Sardana».',
+
+    'pas.p11.q':   'Marca el que necessites per fer una truita de patates',
+    'pas.p11.a':   'Ous', 'pas.p11.b': 'Patates', 'pas.p11.c': 'Oli', 'pas.p11.d': 'Sabó', 'pas.p11.e': 'Sal', 'pas.p11.f': 'Cotxe',
+    'pas.p11.sol': 'Ous, Patates, Oli i Sal. El Sabó i el Cotxe no hi tenen res a veure.',
+
+    'pas.p12.q':   'Quin d\'aquests passos fas primer quan et lleves al matí?',
+    'pas.p12.a':   'Rentar-se la cara', 'pas.p12.b': 'Sortir de casa', 'pas.p12.c': 'Dinar',
+    'pas.p12.sol': 'La resposta és «Rentar-se la cara».',
+
     'footer.desc':     'Sumem recursos per un Acompanyament Sociovital de proximitat i proactiu. Un projecte de NexSocial SCCL a Badalona.',
     'footer.enllaços': 'Enllaços',
     'footer.contacte': 'Contacte',
@@ -197,6 +256,65 @@ const i18n = {
     'recursos.pas':    'Pasatiempos',
     'recursos.pas.sub':'Juegos para activar la mente. ¡Pronto tendremos muchos más!',
     'recursos.pas.soon':'Estamos preparando esta sección. Pronto encontrarás juegos de memoria, buscar las diferencias, sopa de letras y otros pasatiempos pensados para divertirse y mantener la mente despierta.',
+
+    'pas.intro':       'Marca las respuestas con el ratón o el dedo. Cuando quieras comprobarlo, abre «Ver la solución». No hay tiempo límite ni puntuación: hazlo a tu ritmo.',
+    'pas.print':       '💡 También puedes imprimir esta página y hacer los pasatiempos con bolígrafo, como una ficha de papel.',
+    'pas.sol':         'Ver la solución',
+    'pas.more':        'Iremos añadiendo más pasatiempos cada mes. Si tienes una idea o un refrán que te gustaría ver aquí, ¡dínoslo por WhatsApp!',
+    'pas.level.suau':  'Suave',
+    'pas.level.mitja': 'Un poco más',
+    'pas.level.repte': 'Reto',
+    'pas.cat.paraules':'Palabras y lenguaje',
+    'pas.cat.atencio': 'Atención y observación',
+    'pas.cat.numeros': 'Números y lógica',
+    'pas.cat.records': 'Recuerdos y cultura',
+    'pas.cat.vida':    'Vida cotidiana',
+
+    'pas.p1.q':   '¿Qué palabra no pertenece al grupo?',
+    'pas.p1.a':   'Manzana', 'pas.p1.b': 'Pera', 'pas.p1.c': 'Plátano', 'pas.p1.d': 'Silla',
+    'pas.p1.sol': 'La respuesta es «Silla»: las otras tres son frutas.',
+
+    'pas.p2.q':   '¿Qué palabra no pertenece al grupo?',
+    'pas.p2.a':   'Badalona', 'pas.p2.b': 'Barcelona', 'pas.p2.c': 'Girona', 'pas.p2.d': 'Guitarra',
+    'pas.p2.sol': 'La respuesta es «Guitarra»: las otras tres son ciudades catalanas.',
+
+    'pas.p3.q':   '¿Cómo termina este refrán? «Al que madruga...»',
+    'pas.p3.a':   'le pesa el sueño', 'pas.p3.b': 'le gusta el café', 'pas.p3.c': 'Dios le ayuda',
+    'pas.p3.sol': 'La respuesta es «Dios le ayuda»: quien se levanta pronto tiene más suerte.',
+
+    'pas.p4.q':   '¿Cómo termina este refrán? «Vísteme despacio...»',
+    'pas.p4.a':   'que tengo prisa', 'pas.p4.b': 'que llego tarde', 'pas.p4.c': 'que no llego',
+    'pas.p4.sol': 'La respuesta es «que tengo prisa»: hacer las cosas con calma sale mejor.',
+
+    'pas.p5.q':   'Marca todas las palabras relacionadas con el mar',
+    'pas.p5.a':   'Ola', 'pas.p5.b': 'Barco', 'pas.p5.c': 'Silla', 'pas.p5.d': 'Playa', 'pas.p5.e': 'Horno', 'pas.p5.f': 'Pez',
+    'pas.p5.sol': 'Ola, Barco, Playa y Pez son del mar. Silla y Horno no tienen relación.',
+
+    'pas.p6.q':   'Marca las palabras que empiezan por la letra M',
+    'pas.p6.a':   'Mar', 'pas.p6.b': 'Mesa', 'pas.p6.c': 'Montaña', 'pas.p6.d': 'Coche', 'pas.p6.e': 'Melón', 'pas.p6.f': 'Puerta',
+    'pas.p6.sol': 'Mar, Montaña y Melón empiezan por M.',
+
+    'pas.p7.q':   'Completa la serie: 2, 4, 6, 8, ...?',
+    'pas.p7.sol': 'La respuesta es 10: los números van de 2 en 2.',
+
+    'pas.p8.q':   'Compras pan (1,20 €) y leche (0,95 €). ¿Cuánto pagas en total?',
+    'pas.p8.sol': 'La respuesta es 2,15 €.',
+
+    'pas.p9.q':   '¿Cuál de estas canciones es de Joan Manuel Serrat?',
+    'pas.p9.a':   'Paraules d\'amor', 'pas.p9.b': 'Made in Spain', 'pas.p9.c': 'La Barcelona',
+    'pas.p9.sol': 'La respuesta es «Paraules d\'amor».',
+
+    'pas.p10.q':   '¿Cuál de estos bailes es tradicional catalán?',
+    'pas.p10.a':   'Sardana', 'pas.p10.b': 'Tango', 'pas.p10.c': 'Vals',
+    'pas.p10.sol': 'La respuesta es «Sardana».',
+
+    'pas.p11.q':   'Marca lo que necesitas para hacer una tortilla de patatas',
+    'pas.p11.a':   'Huevos', 'pas.p11.b': 'Patatas', 'pas.p11.c': 'Aceite', 'pas.p11.d': 'Jabón', 'pas.p11.e': 'Sal', 'pas.p11.f': 'Coche',
+    'pas.p11.sol': 'Huevos, Patatas, Aceite y Sal. El Jabón y el Coche no tienen nada que ver.',
+
+    'pas.p12.q':   '¿Qué paso haces primero al levantarte por la mañana?',
+    'pas.p12.a':   'Lavarse la cara', 'pas.p12.b': 'Salir de casa', 'pas.p12.c': 'Comer',
+    'pas.p12.sol': 'La respuesta es «Lavarse la cara».',
 
     'footer.desc':     'Sumamos recursos para un Acompañamiento Sociovital de proximidad y proactivo. Un proyecto de NexSocial SCCL en Badalona.',
     'footer.enllaços': 'Enlaces',

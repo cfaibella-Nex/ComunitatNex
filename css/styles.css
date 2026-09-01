@@ -854,13 +854,153 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   letter-spacing: 0.05em;
 }
 
-/* ── Passatemps placeholder ────────────────────────────────── */
-.placeholder-box {
-  background: var(--white);
-  border: 3px dashed rgba(15,45,30,0.2);
+/* ── Passatemps: fitxes interactives HTML+CSS pur ──────── */
+.pastimes-section { border-top: 3px solid var(--forest-hero); padding-top: var(--sp-5); }
+
+.pastimes-intro {
+  background: var(--forest-hero);
   border-radius: var(--radius-lg);
-  padding: var(--sp-6);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-5);
+  max-width: 720px;
+}
+.pastimes-intro p { margin: 0 0 var(--sp-1); color: var(--ink); }
+.pastimes-intro p:last-child { margin-bottom: 0; }
+.pastimes-print-tip { color: var(--forest) !important; font-weight: 600; }
+
+.pastimes-cat-title {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  color: var(--forest);
+  margin-top: var(--sp-6);
+  margin-bottom: var(--sp-3);
+  border-bottom: 2px solid var(--forest-hero);
+  padding-bottom: var(--sp-1);
+}
+
+.pastimes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--sp-3);
+}
+
+.pastime-card {
+  background: var(--white);
+  border: 1px solid rgba(45,107,72,0.1);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4);
+  margin: 0;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+.pastime-level {
+  display: inline-block;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--sp-2);
+}
+.level-suau  { background: var(--forest-hero); color: var(--forest); }
+.level-mitja { background: #FCEFCB; color: #8A6D1F; }
+.level-repte { background: #F6DCDC; color: #A03030; }
+
+.pastime-question {
+  display: block;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0;
+  margin-bottom: var(--sp-3);
+  line-height: 1.35;
+}
+
+.pastime-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.pastime-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  min-height: var(--touch);
+  border: 2px solid rgba(45,107,72,0.3);
+  border-radius: var(--radius-pill);
+  background: var(--cream);
+  font-weight: 600;
+  font-size: var(--fs-base);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pastime-option input {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+.pastime-option:has(input:checked) {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--white);
+}
+.pastime-option:has(input:checked)::before {
+  content: '✓';
+  font-weight: 700;
+}
+.pastime-option:has(input:focus-visible) {
+  outline: 3px solid var(--green-mid);
+  outline-offset: 2px;
+}
+.pastime-option:hover { border-color: var(--forest); }
+
+.pastime-solution {
+  border-top: 1px dashed rgba(45,107,72,0.25);
+  padding-top: var(--sp-2);
+}
+.pastime-solution summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--forest);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.pastime-solution p {
+  margin: var(--sp-2) 0 0;
+  color: var(--text);
+  font-size: var(--fs-base);
+}
+
+.pastimes-more {
   text-align: center;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin: var(--sp-6) auto 0;
+}
+
+/* Versió imprimible: fitxa neta, sense colors ni interactivitat de pantalla */
+@media print {
+  .nav, .footer, #nav-placeholder, #footer-placeholder,
+  .skip-link, .pastimes-print-tip,
+  #main > .section:not(.pastimes-section) { display: none !important; }
+  .pastimes-section { border-top: none; padding-top: 0; }
+  .pastime-card { break-inside: avoid; box-shadow: none; border: 1.5px solid #000; }
+  .pastime-option {
+    background: #fff !important;
+    border: 1.5px solid #000 !important;
+    color: #000 !important;
+  }
+  .pastime-option::before { content: '' !important; }
+  .pastime-solution { display: none !important; }
+  .pastime-level { border: 1px solid #000; background: #fff !important; color: #000 !important; }
 }
 
 /* ── Footer (crema verd segons branding · text fosc) ───── */
