@@ -366,6 +366,77 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   .event-poster { aspect-ratio: 16/9; }
 }
 
+/* ── Col·laboracions (xarxa d'entitats) ─────────────────── */
+.collab-section {
+  text-align: center;
+  padding-top: var(--sp-6);
+  padding-bottom: var(--sp-6);
+}
+.collab-title {
+  font-size: var(--fs-xl);
+  margin-bottom: var(--sp-1);
+}
+.collab-sub {
+  color: var(--text-muted);
+  margin: 0 auto var(--sp-5);
+  max-width: 480px;
+}
+.collab-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: var(--sp-3);
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+.collab-logo {
+  flex: 1 1 200px;
+  max-width: 240px;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  border: 1px solid rgba(45,107,72,0.12);
+  border-radius: var(--radius);
+  padding: var(--sp-3);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.collab-logo:hover {
+  border-color: var(--green-mid);
+  box-shadow: var(--shadow-sm);
+}
+.collab-logo span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.collab-logo img {
+  max-width: 100%;
+  max-height: 64px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: grayscale(15%);
+  opacity: 0.9;
+}
+.collab-logo:hover img { filter: grayscale(0%); opacity: 1; }
+
+/* Variant per logos amb fons fosc propi (ex: Flamenco & Events) */
+.collab-logo-dark {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.collab-logo-dark img { filter: none; opacity: 1; }
+@media (max-width: 720px) {
+  .collab-grid { gap: var(--sp-2); }
+  .collab-logo { flex: 1 1 130px; min-height: 90px; padding: var(--sp-2); }
+  .collab-logo span { font-size: var(--fs-xs); }
+}
 /* ── Blocs comercials portada (3 grans horitzontals) ─── */
 .commercial-blocks {
   padding-top: var(--sp-5);

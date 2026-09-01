@@ -100,6 +100,8 @@ if (typeof window.eventCardHTML !== 'function') {
   window.eventCardHTML = function(ev) {
     const { T, L, esc, formatDate, tipoLabel, tipoBadgeClass, placesRestants } = window.NX;
     const places = placesRestants(ev);
+    const label = ev.data_label ? L(ev.data_label) : formatDate(ev.data);
+    const isProximament = ev.data_label && /pr[oò]xi/i.test(L(ev.data_label));
     const status = ev.estat === 'esgotat' || places === 0
       ? `<span class="event-badge" style="position:static;background:var(--danger)">${T('ev.esgotat')}</span>`
       : places <= 3 && places > 0
@@ -115,8 +117,8 @@ if (typeof window.eventCardHTML !== 'function') {
   <div class="event-card-body">
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
     <div class="event-meta">
-      <span class="event-meta-item">📅 ${esc(formatDate(ev.data))}</span>
-      <span class="event-meta-item">🕐 ${esc(ev.hora || '')}</span>
+      <span class="event-meta-item">📅 ${esc(label)}</span>
+      ${!isProximament && ev.hora ? `<span class="event-meta-item">🕐 ${esc(ev.hora)}</span>` : ''}
     </div>
     <div class="event-meta">
       <span class="event-meta-item">📍 ${esc(L(ev.ubicacio))}</span>
