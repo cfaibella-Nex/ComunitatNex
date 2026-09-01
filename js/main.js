@@ -9,6 +9,7 @@ const i18n = {
     'nav.agenda':      'Agenda',
     'nav.reserves':    'Reserves',
     'nav.recursos':    'Recursos',
+    'nav.passatemps':  'Passatemps',
     'nav.web':         'NexSocial',
 
     'hero.title':      'Comunitat NexSocial',
@@ -109,6 +110,22 @@ const i18n = {
     'pas.cat.numeros': 'Números i lògica',
     'pas.cat.records': 'Records i cultura',
     'pas.cat.vida':    'Vida quotidiana',
+    'pas.h1':          'Passatemps',
+    'pas.h1sub':       'Jocs per passar una bona estona i mantenir la ment desperta. Sense presses ni puntuacions.',
+    'pas.how1':        'Toca les respostes amb el dit o el ratolí.',
+    'pas.how2':        'Quan vulguis, obre «Veure la solució».',
+    'pas.how3':        'També pots imprimir-ho i fer-ho amb bolígraf.',
+    'pas.printbtn':    '🖨️ Imprimir aquests passatemps',
+    'pas.cat.difs':    'Busca les diferències',
+    'pas.cat.sopa':    'Sopa de lletres',
+    'pas.dif.q':       'Aquestes dues fotos de la platja de Badalona tenen 5 diferències. Les trobes totes?',
+    'pas.dif.a':       'Foto 1',
+    'pas.dif.b':       'Foto 2 (amb 5 canvis)',
+    'pas.dif.sol':     'Les 5 diferències són: 1) el para-sol de la dreta canvia la combinació de colors, 2) apareix un cubell vermell al costat de la dona asseguda a la tovallola, 3) falta un dels banyistes que hi havia a l\'aigua, a l\'esquerra, 4) apareix una gavina sobre la sorra, prop de les roques, i 5) hi ha una tovallola blava penjada de la barana del pantalà, prop de l\'estructura blava.',
+    'pas.sopa.q':      'Troba aquestes 5 paraules amagades: MAR · SOL · PA · CASA · FLOR',
+    'pas.sopa.sol':    'MAR és a la primera fila. SOL a la segona fila (dreta). CASA a la tercera fila. PA a la columna esquerra i també a la segona columna. FLOR a l\'última fila.',
+    'recursos.pas.promo':'Jocs per activar la ment, fets a mida. Troba l\'intrús, refranys, sopa de lletres i molt més.',
+    'recursos.pas.cta': 'Anar als passatemps →',
 
     'pas.p1.q':   'Quina paraula no pertany al grup?',
     'pas.p1.a':   'Poma', 'pas.p1.b': 'Pera', 'pas.p1.c': 'Plàtan', 'pas.p1.d': 'Cadira',
@@ -169,6 +186,7 @@ const i18n = {
     'nav.agenda':      'Agenda',
     'nav.reserves':    'Reservas',
     'nav.recursos':    'Recursos',
+    'nav.passatemps':  'Pasatiempos',
     'nav.web':         'NexSocial',
 
     'hero.title':      'Comunitat NexSocial',
@@ -269,6 +287,22 @@ const i18n = {
     'pas.cat.numeros': 'Números y lógica',
     'pas.cat.records': 'Recuerdos y cultura',
     'pas.cat.vida':    'Vida cotidiana',
+    'pas.h1':          'Pasatiempos',
+    'pas.h1sub':       'Juegos para pasar un buen rato y mantener la mente despierta. Sin prisas ni puntuaciones.',
+    'pas.how1':        'Toca las respuestas con el dedo o el ratón.',
+    'pas.how2':        'Cuando quieras, abre «Ver la solución».',
+    'pas.how3':        'También puedes imprimirlo y hacerlo con bolígrafo.',
+    'pas.printbtn':    '🖨️ Imprimir estos pasatiempos',
+    'pas.cat.difs':    'Busca las diferencias',
+    'pas.cat.sopa':    'Sopa de letras',
+    'pas.dif.q':       'Estas dos fotos de la playa de Badalona tienen 5 diferencias. ¿Las encuentras todas?',
+    'pas.dif.a':       'Foto 1',
+    'pas.dif.b':       'Foto 2 (con 5 cambios)',
+    'pas.dif.sol':     'Las 5 diferencias son: 1) la sombrilla de la derecha cambia la combinación de colores, 2) aparece un cubo rojo junto a la mujer sentada en la toalla, 3) falta uno de los bañistas que había en el agua, a la izquierda, 4) aparece una gaviota sobre la arena, cerca de las rocas, y 5) hay una toalla azul colgada de la barandilla del pantalán, cerca de la estructura azul.',
+    'pas.sopa.q':      'Encuentra estas 5 palabras escondidas: MAR · SOL · PA · CASA · FLOR',
+    'pas.sopa.sol':    'MAR está en la primera fila. SOL en la segunda fila (derecha). CASA en la tercera fila. PA en la columna izquierda y también en la segunda columna. FLOR en la última fila.',
+    'recursos.pas.promo':'Juegos para activar la mente, hechos a medida. Encuentra el intruso, refranes, sopa de letras y mucho más.',
+    'recursos.pas.cta': 'Ir a los pasatiempos →',
 
     'pas.p1.q':   '¿Qué palabra no pertenece al grupo?',
     'pas.p1.a':   'Manzana', 'pas.p1.b': 'Pera', 'pas.p1.c': 'Plátano', 'pas.p1.d': 'Silla',
@@ -390,6 +424,7 @@ function buildFooter() {
       <a href="/agenda.html">${T('nav.agenda')}</a>
       <a href="/reserves.html">${T('nav.reserves')}</a>
       <a href="/recursos.html">${T('nav.recursos')}</a>
+      <a href="/passatemps.html">${T('nav.passatemps')}</a>
       <a href="${MAIN_SITE}">${T('nav.web')}</a>
     </div>
     <div>

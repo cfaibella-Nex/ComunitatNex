@@ -4,39 +4,312 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Passatemps · Comunitat NexSocial</title>
-  <meta name="description" content="Jocs de memòria, sopa de lletres, buscar les diferències i altres passatemps per mantenir la ment activa.">
-  <link rel="icon" href="/assets/logo.svg">
-  <link rel="stylesheet" href="/css/styles.css">
+  <meta name="description" content="Jocs i passatemps pensats per a persones grans: troba l'intrús, refranys, sopa de lletres, busca les diferències. Sense presses, per divertir-se i mantenir la ment desperta.">
+  <link rel="icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/css/styles.css?v=21">
 </head>
 <body>
   <div id="nav-placeholder"></div>
   <main id="main">
-    <section class="section">
-      <h1 data-i18n="passatemps.title">Passatemps</h1>
-      <p class="lead" data-i18n="passatemps.sub">Jocs per activar la ment.</p>
 
-      <div class="placeholder-box mt-4">
-        <div style="font-size: 72px; margin-bottom: var(--sp-3);">🧩</div>
-        <h2 style="font-family: var(--font-body); font-size: var(--fs-lg);">
-          <span data-i18n="passatemps.title">Passatemps</span>
-        </h2>
-        <p style="max-width: 500px; margin: 0 auto; font-size: var(--fs-md);" data-i18n="passatemps.soon">
-          Estem preparant aquesta secció.
-        </p>
-        <a href="/agenda.html" class="btn btn-primary btn-lg mt-4">
-          <span data-agenda-cta>Veure l'agenda mentrestant →</span>
-        </a>
+    <!-- Capçalera de secció -->
+    <div class="pastimes-header">
+      <div class="pastimes-header-inner">
+        <h1 data-i18n="pas.h1">Passatemps</h1>
+        <p class="pastimes-header-sub" data-i18n="pas.h1sub">Jocs per passar una bona estona i mantenir la ment desperta. Sense presses ni puntuacions.</p>
       </div>
+    </div>
+
+    <section class="section">
+      <!-- Com funciona -->
+      <div class="pastimes-howto">
+        <div class="pastimes-howto-item">
+          <span class="pastimes-howto-num">1</span>
+          <p data-i18n="pas.how1">Toca les respostes amb el dit o el ratolí.</p>
+        </div>
+        <div class="pastimes-howto-item">
+          <span class="pastimes-howto-num">2</span>
+          <p data-i18n="pas.how2">Quan vulguis, obre «Veure la solució».</p>
+        </div>
+        <div class="pastimes-howto-item">
+          <span class="pastimes-howto-num">3</span>
+          <p data-i18n="pas.how3">També pots imprimir-ho i fer-ho amb bolígraf.</p>
+        </div>
+      </div>
+
+      <!-- ═══ Paraules i llenguatge ═══ -->
+      <h2 class="pastimes-cat-title" data-i18n="pas.cat.paraules">Paraules i llenguatge</h2>
+      <div class="pastimes-grid">
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">1</span>
+            <span class="pastime-level level-suau" data-i18n="pas.level.suau">Suau</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p1.q">Quina paraula no pertany al grup?</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p1"><span data-i18n="pas.p1.a">Poma</span></label>
+            <label class="pastime-option"><input type="radio" name="p1"><span data-i18n="pas.p1.b">Pera</span></label>
+            <label class="pastime-option"><input type="radio" name="p1"><span data-i18n="pas.p1.c">Plàtan</span></label>
+            <label class="pastime-option"><input type="radio" name="p1"><span data-i18n="pas.p1.d">Cadira</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p1.sol">La resposta és «Cadira»: les altres tres són fruites.</p></details>
+        </fieldset>
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">2</span>
+            <span class="pastime-level level-suau" data-i18n="pas.level.suau">Suau</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p2.q">Quina paraula no pertany al grup?</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p2"><span data-i18n="pas.p2.a">Badalona</span></label>
+            <label class="pastime-option"><input type="radio" name="p2"><span data-i18n="pas.p2.b">Barcelona</span></label>
+            <label class="pastime-option"><input type="radio" name="p2"><span data-i18n="pas.p2.c">Girona</span></label>
+            <label class="pastime-option"><input type="radio" name="p2"><span data-i18n="pas.p2.d">Guitarra</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p2.sol">La resposta és «Guitarra»: les altres tres són ciutats catalanes.</p></details>
+        </fieldset>
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">3</span>
+            <span class="pastime-level level-mitja" data-i18n="pas.level.mitja">Una mica més</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p3.q">Com acaba aquest refrany? «Qui matina...»</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p3"><span data-i18n="pas.p3.a">fa forat</span></label>
+            <label class="pastime-option"><input type="radio" name="p3"><span data-i18n="pas.p3.b">fa el cafè</span></label>
+            <label class="pastime-option"><input type="radio" name="p3"><span data-i18n="pas.p3.c">Déu l'ajuda</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p3.sol">La resposta és «Déu l'ajuda»: qui es lleva d'hora té més bona sort.</p></details>
+        </fieldset>
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">4</span>
+            <span class="pastime-level level-mitja" data-i18n="pas.level.mitja">Una mica més</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p4.q">Com acaba aquest refrany? «A poc a poc...»</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p4"><span data-i18n="pas.p4.a">i bona lletra</span></label>
+            <label class="pastime-option"><input type="radio" name="p4"><span data-i18n="pas.p4.b">i sempre tard</span></label>
+            <label class="pastime-option"><input type="radio" name="p4"><span data-i18n="pas.p4.c">i mai arribes</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p4.sol">La resposta és «i bona lletra»: fer les coses amb calma surten millor.</p></details>
+        </fieldset>
+
+      </div>
+
+      <!-- ═══ Atenció i observació ═══ -->
+      <h2 class="pastimes-cat-title" data-i18n="pas.cat.atencio">Atenció i observació</h2>
+      <div class="pastimes-grid">
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">5</span>
+            <span class="pastime-level level-mitja" data-i18n="pas.level.mitja">Una mica més</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p5.q">Marca totes les paraules relacionades amb el mar</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p5.a">Onada</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p5.b">Vaixell</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p5.c">Cadira</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p5.d">Platja</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p5.e">Forn</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p5.f">Peix</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p5.sol">Onada, Vaixell, Platja i Peix són del mar. Cadira i Forn no hi tenen relació.</p></details>
+        </fieldset>
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">6</span>
+            <span class="pastime-level level-suau" data-i18n="pas.level.suau">Suau</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p6.q">Marca les paraules que comencen per la lletra M</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p6.a">Mar</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p6.b">Taula</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p6.c">Muntanya</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p6.d">Cotxe</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p6.e">Meló</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p6.f">Porta</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p6.sol">Mar, Muntanya i Meló comencen per M.</p></details>
+        </fieldset>
+
+      </div>
+
+      <!-- ═══ Busca les diferències (JOC ESPECIAL) ═══ -->
+      <h2 class="pastimes-cat-title" data-i18n="pas.cat.difs">Busca les diferències</h2>
+      <fieldset class="pastime-card pastime-card-wide">
+        <div class="pastime-head">
+          <span class="pastime-num">7</span>
+          <span class="pastime-level level-repte" data-i18n="pas.level.repte">Repte</span>
+        </div>
+        <legend class="pastime-question" data-i18n="pas.dif.q">Aquestes dues fotos de la platja de Badalona tenen 5 diferències. Les trobes totes?</legend>
+        <div class="dif-images">
+          <figure class="dif-fig">
+            <img src="/assets/dif-a.jpg" alt="Foto original de la platja de Badalona amb el Pont del Petroli" loading="lazy">
+            <figcaption data-i18n="pas.dif.a">Foto 1</figcaption>
+          </figure>
+          <figure class="dif-fig">
+            <img src="/assets/dif-b.jpg" alt="Segona foto de la platja amb cinc canvis per trobar" loading="lazy">
+            <figcaption data-i18n="pas.dif.b">Foto 2 (amb 5 canvis)</figcaption>
+          </figure>
+        </div>
+        <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary>
+          <p data-i18n="pas.dif.sol">Les 5 diferències són: 1) el para-sol de la dreta canvia la combinació de colors, 2) apareix un cubell vermell al costat de la dona asseguda a la tovallola, 3) falta un dels banyistes que hi havia a l'aigua, a l'esquerra, 4) apareix una gavina sobre la sorra, prop de les roques, i 5) hi ha una tovallola blava penjada de la barana del pantalà, prop de l'estructura blava.</p>
+        </details>
+      </fieldset>
+
+      <!-- ═══ Sopa de lletres (JOC ESPECIAL) ═══ -->
+      <h2 class="pastimes-cat-title" data-i18n="pas.cat.sopa">Sopa de lletres</h2>
+      <fieldset class="pastime-card pastime-card-wide">
+        <div class="pastime-head">
+          <span class="pastime-num">8</span>
+          <span class="pastime-level level-mitja" data-i18n="pas.level.mitja">Una mica més</span>
+        </div>
+        <legend class="pastime-question" data-i18n="pas.sopa.q">Troba aquestes 5 paraules amagades: MAR · SOL · PA · CASA · FLOR</legend>
+        <div class="sopa-wrap">
+          <table class="sopa-grid" aria-label="Sopa de lletres">
+            <tbody>
+              <tr><td>M</td><td>A</td><td>R</td><td>X</td><td>T</td><td>F</td></tr>
+              <tr><td>Z</td><td>P</td><td>B</td><td>S</td><td>O</td><td>L</td></tr>
+              <tr><td>C</td><td>A</td><td>S</td><td>A</td><td>K</td><td>O</td></tr>
+              <tr><td>D</td><td>R</td><td>V</td><td>N</td><td>H</td><td>R</td></tr>
+              <tr><td>P</td><td>A</td><td>W</td><td>J</td><td>Q</td><td>G</td></tr>
+              <tr><td>E</td><td>Y</td><td>F</td><td>L</td><td>O</td><td>R</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary>
+          <p data-i18n="pas.sopa.sol">MAR és a la primera fila. SOL a la segona fila (dreta). CASA a la tercera fila. PA a la columna esquerra (files 4-5) i també a la segona columna. FLOR a l'última fila.</p>
+        </details>
+      </fieldset>
+
+      <!-- ═══ Números i lògica ═══ -->
+      <h2 class="pastimes-cat-title" data-i18n="pas.cat.numeros">Números i lògica</h2>
+      <div class="pastimes-grid">
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">9</span>
+            <span class="pastime-level level-suau" data-i18n="pas.level.suau">Suau</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p7.q">Completa la sèrie: 2, 4, 6, 8, ...?</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p7"><span>9</span></label>
+            <label class="pastime-option"><input type="radio" name="p7"><span>10</span></label>
+            <label class="pastime-option"><input type="radio" name="p7"><span>12</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p7.sol">La resposta és 10: els números van de 2 en 2.</p></details>
+        </fieldset>
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">10</span>
+            <span class="pastime-level level-repte" data-i18n="pas.level.repte">Repte</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p8.q">Compres pa (1,20 €) i llet (0,95 €). Quant pagues en total?</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p8"><span>2,00 €</span></label>
+            <label class="pastime-option"><input type="radio" name="p8"><span>2,15 €</span></label>
+            <label class="pastime-option"><input type="radio" name="p8"><span>2,25 €</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p8.sol">La resposta és 2,15 €.</p></details>
+        </fieldset>
+
+      </div>
+
+      <!-- ═══ Records i cultura ═══ -->
+      <h2 class="pastimes-cat-title" data-i18n="pas.cat.records">Records i cultura</h2>
+      <div class="pastimes-grid">
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">11</span>
+            <span class="pastime-level level-mitja" data-i18n="pas.level.mitja">Una mica més</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p9.q">Quina d'aquestes cançons és de Joan Manuel Serrat?</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p9"><span data-i18n="pas.p9.a">Paraules d'amor</span></label>
+            <label class="pastime-option"><input type="radio" name="p9"><span data-i18n="pas.p9.b">Made in Spain</span></label>
+            <label class="pastime-option"><input type="radio" name="p9"><span data-i18n="pas.p9.c">La Barcelona</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p9.sol">La resposta és «Paraules d'amor».</p></details>
+        </fieldset>
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">12</span>
+            <span class="pastime-level level-suau" data-i18n="pas.level.suau">Suau</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p10.q">Quin d'aquests balls és tradicional català?</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p10"><span data-i18n="pas.p10.a">Sardana</span></label>
+            <label class="pastime-option"><input type="radio" name="p10"><span data-i18n="pas.p10.b">Tango</span></label>
+            <label class="pastime-option"><input type="radio" name="p10"><span data-i18n="pas.p10.c">Vals</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p10.sol">La resposta és «Sardana».</p></details>
+        </fieldset>
+
+      </div>
+
+      <!-- ═══ Vida quotidiana ═══ -->
+      <h2 class="pastimes-cat-title" data-i18n="pas.cat.vida">Vida quotidiana</h2>
+      <div class="pastimes-grid">
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">13</span>
+            <span class="pastime-level level-mitja" data-i18n="pas.level.mitja">Una mica més</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p11.q">Marca el que necessites per fer una truita de patates</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p11.a">Ous</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p11.b">Patates</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p11.c">Oli</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p11.d">Sabó</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p11.e">Sal</span></label>
+            <label class="pastime-option"><input type="checkbox"><span data-i18n="pas.p11.f">Cotxe</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p11.sol">Ous, Patates, Oli i Sal. El Sabó i el Cotxe no hi tenen res a veure.</p></details>
+        </fieldset>
+
+        <fieldset class="pastime-card">
+          <div class="pastime-head">
+            <span class="pastime-num">14</span>
+            <span class="pastime-level level-suau" data-i18n="pas.level.suau">Suau</span>
+          </div>
+          <legend class="pastime-question" data-i18n="pas.p12.q">Quin d'aquests passos fas primer quan et lleves al matí?</legend>
+          <div class="pastime-options">
+            <label class="pastime-option"><input type="radio" name="p12"><span data-i18n="pas.p12.a">Rentar-se la cara</span></label>
+            <label class="pastime-option"><input type="radio" name="p12"><span data-i18n="pas.p12.b">Sortir de casa</span></label>
+            <label class="pastime-option"><input type="radio" name="p12"><span data-i18n="pas.p12.c">Dinar</span></label>
+          </div>
+          <details class="pastime-solution"><summary data-i18n="pas.sol">Veure la solució</summary><p data-i18n="pas.p12.sol">La resposta és «Rentar-se la cara».</p></details>
+        </fieldset>
+
+      </div>
+
+      <div class="pastimes-cta-print">
+        <button type="button" onclick="window.print()" class="btn btn-secondary btn-lg" data-i18n="pas.printbtn">🖨️ Imprimir aquests passatemps</button>
+      </div>
+
+      <p class="pastimes-more" data-i18n="pas.more">Anirem afegint més passatemps cada mes. Si tens una idea o un refrany que t'agradaria veure aquí, digues-nos-ho per WhatsApp!</p>
     </section>
   </main>
   <div id="footer-placeholder"></div>
 
-  <script src="/js/main.js"></script>
+  <script src="/js/main.js?v=21"></script>
+  <script src="/js/data.js?v=21"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = window.NX.T(el.dataset.i18n));
-      const t = { ca: "Veure l'agenda mentrestant →", es: 'Ver la agenda mientras tanto →' };
-      document.querySelector('[data-agenda-cta]').textContent = t[window.NX.getLang()];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = window.NX.T(el.dataset.i18n);
+      });
     });
   </script>
 </body>
