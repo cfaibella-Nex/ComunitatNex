@@ -24,8 +24,6 @@
   ],
   "redirects": [
     { "source": "/activitats", "destination": "/agenda.html", "permanent": true },
-    { "source": "/tallers", "destination": "/reserves.html?cat=taller", "permanent": true },
-    { "source": "/passatemps.html", "destination": "/recursos.html#passatemps", "permanent": true },
-    { "source": "/passatemps", "destination": "/recursos.html#passatemps", "permanent": true }
+    { "source": "/tallers", "destination": "/reserves.html?cat=taller", "permanent": true }
   ]
 }
