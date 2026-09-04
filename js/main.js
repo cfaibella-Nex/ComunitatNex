@@ -420,7 +420,9 @@ function buildFooter() {
 <footer class="footer">
   <div class="footer-inner">
     <div>
-      <div class="footer-brand">Comunitat NexSocial</div>
+      <a class="footer-brand-logo" href="/" aria-label="Comunitat NexSocial · Inici">
+        <img src="/assets/logo-comunitat.png" width="648" height="200" alt="Comunitat NexSocial">
+      </a>
       <p>${T('footer.desc')}</p>
     </div>
     <div>
