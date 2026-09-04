@@ -180,6 +180,8 @@ const i18n = {
     'footer.legal':    'Avís legal',
     'footer.accessibilitat': 'Accessibilitat',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
+    'footer.inscrits': 'Inscrits en',
+    'footer.iniciativa': 'Una iniciativa de',
   },
   es: {
     'nav.inici':       'Inicio',
@@ -357,6 +359,8 @@ const i18n = {
     'footer.legal':    'Aviso legal',
     'footer.accessibilitat': 'Accesibilidad',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
+    'footer.inscrits': 'Inscritos en',
+    'footer.iniciativa': 'Una iniciativa de',
   }
 };
 
@@ -393,8 +397,7 @@ function buildNav() {
 <nav class="nav" aria-label="Menú principal">
   <div class="nav-inner">
     <a href="/" class="nav-logo" aria-label="Comunitat NexSocial · Inici">
-      <img src="/assets/logo.png" alt="NexSocial" class="nav-logo-img">
-      <span class="nav-logo-tag">Comunitat NexSocial</span>
+      <img src="/assets/logo-comunitat.png" alt="Comunitat NexSocial" class="nav-logo-img" width="648" height="200">
     </a>
     <div class="nav-links">
       <a class="nav-link ${isActive('/') || isActive('/index.html')}" href="/"${(isActive('/') || isActive('/index.html')) ? ' aria-current="page"' : ''}>${T('nav.inici')}</a>
@@ -434,6 +437,20 @@ function buildFooter() {
       <a href="mailto:infonex@nexsocial.org">✉️ infonex@nexsocial.org</a>
       <a href="/legal.html">${T('footer.privacy')}</a>
       <a href="/accessibilitat.html">${T('footer.accessibilitat')}</a>
+    </div>
+    <div class="footer-brands">
+      <div class="footer-brands-label">${T('footer.inscrits')}</div>
+      <a class="footer-brand-link" href="https://salutpublica.gencat.cat/ca/agencia/plans-estrategics/pinsap/accions-eines-projectes-relacionats/actius-salut/cercador-actius-salut/" target="_blank" rel="noopener"
+         title="Cercador d'Actius i salut de l'Agència de Salut Pública de Catalunya">
+        <img class="is-plate" src="/assets/logos/aqui-si-actius-salut.png" width="416" height="185" loading="lazy"
+             alt="Aquí sí! Actius i salut — PINSAP, Generalitat de Catalunya">
+      </a>
+      <div class="footer-brands-label">${T('footer.iniciativa')}</div>
+      <a class="footer-brand-link" href="${MAIN_SITE}" target="_blank" rel="noopener"
+         title="NexSocial SCCL — Cooperativa d'Acompanyament Sociovital">
+        <img src="/assets/logo.png" width="636" height="195" loading="lazy"
+             alt="NexSocial — Cooperativa d'Acompanyament Sociovital">
+      </a>
     </div>
   </div>
   <div class="footer-copy">
