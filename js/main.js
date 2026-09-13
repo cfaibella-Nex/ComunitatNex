@@ -73,6 +73,9 @@ const i18n = {
     'form.error':      "Hi ha algun camp sense omplir. Revisa'l, si us plau.",
     'form.error_tel':  "El telèfon ha de ser vàlid (9 xifres).",
     'form.error_srv':  "No hem pogut enviar la reserva. Torna a provar-ho o truca'ns.",
+    'form.waitlist':   "No quedaven places lliures. T'hem apuntat a la llista d'espera i et trucarem si se n'allibera alguna.",
+    'form.duplicat':   "Ja consta una reserva amb aquest telefon per a aquesta activitat. Truca'ns si la vols modificar.",
+    'form.massa':      "Hem rebut massa sol.licituds seguides. Truca'ns i t'apuntem nosaltres.",
 
     'phone.text':      "Prefereixes reservar per telèfon? Truca'ns:",
     'phone.hours':     'De dilluns a divendres, 10 a 18h',
@@ -89,7 +92,7 @@ const i18n = {
     'checkout.pay_card': 'Pagar amb targeta',
     'checkout.reserve_wa': 'Reservar per WhatsApp',
     'checkout.stripe_soon': "El pagament amb targeta estarà disponible molt aviat. Mentrestant, completa la reserva per WhatsApp i te la confirmarem al moment.",
-    'checkout.legal_note': "En continuar acceptes les condicions. La reserva es confirma per WhatsApp.",
+    'checkout.legal_note': "En continuar acceptes les condicions. Et trucarem per confirmar la placa.",
     'checkout.expired':  "La selecció ha caducat. Torna a triar les places.",
 
     'recursos.title':  'Recursos i consells',
@@ -252,6 +255,9 @@ const i18n = {
     'form.error':      'Hay algún campo sin rellenar. Revísalo, por favor.',
     'form.error_tel':  'El teléfono debe ser válido (9 cifras).',
     'form.error_srv':  'No hemos podido enviar la reserva. Vuelve a intentarlo o llámanos.',
+    'form.waitlist':   'No quedaban plazas libres. Te hemos apuntado a la lista de espera y te llamaremos si se libera alguna.',
+    'form.duplicat':   'Ya consta una reserva con este teléfono para esta actividad. Llámanos si quieres modificarla.',
+    'form.massa':      'Hemos recibido demasiadas solicitudes seguidas. Llámanos y te apuntamos nosotros.',
 
     'phone.text':      '¿Prefieres reservar por teléfono? Llámanos:',
     'phone.hours':     'De lunes a viernes, 10 a 18h',
@@ -268,7 +274,7 @@ const i18n = {
     'checkout.pay_card': 'Pagar con tarjeta',
     'checkout.reserve_wa': 'Reservar por WhatsApp',
     'checkout.stripe_soon': 'El pago con tarjeta estará disponible muy pronto. Mientras tanto, completa la reserva por WhatsApp y te la confirmamos al momento.',
-    'checkout.legal_note': 'Al continuar aceptas las condiciones. La reserva se confirma por WhatsApp.',
+    'checkout.legal_note': 'Al continuar aceptas las condiciones. Te llamaremos para confirmar la plaza.',
     'checkout.expired':  'La selección ha caducado. Vuelve a elegir las plazas.',
 
     'recursos.title':  'Recursos y consejos',

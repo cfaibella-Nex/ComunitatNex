@@ -1,6 +1,9 @@
-// api/reserva.js — POST crear reserva
+// api/reserva.js — POST crear reserva (v2: atòmica via RPC)
 import { json, readBody, methodNotAllowed } from './_lib/http.js';
 import { hasSupabase, supabase } from './_lib/supabase.js';
+
+// Versió del text legal mostrat al formulari. Canviar-la quan canviï el text.
+const CONSENT_VERSIO = 'form-legal-v1';
 
 function generarRef() {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sense 0/O/1/I/L
@@ -9,9 +12,12 @@ function generarRef() {
   return s;
 }
 
+function netejaTelefon(t) {
+  return String(t || '').replace(/[\s\-()]/g, '');
+}
+
 function validaTelefon(t) {
-  const clean = String(t || '').replace(/[\s\-\(\)]/g, '');
-  return /^(\+?\d{9,15})$/.test(clean);
+  return /^(\+?\d{9,15})$/.test(netejaTelefon(t));
 }
 
 export default async function handler(req, res) {
@@ -28,63 +34,65 @@ export default async function handler(req, res) {
   try { body = await readBody(req); }
   catch { return json(res, 400, { error: 'Body no vàlid' }); }
 
-  // Validació
-  const { event_id, nom, telefon, email, places, notes, preu_cents, lang } = body;
+  // Honeypot: camp ocult que cap persona omple. Si ve ple, és un bot.
+  if (body.web) return json(res, 400, { error: 'Sol·licitud no vàlida' });
+
+  const { event_id, nom, telefon, email, places, notes, lang } = body;
   if (!event_id) return json(res, 400, { error: 'Falta event_id' });
   if (!nom || String(nom).trim().length < 2) return json(res, 400, { error: 'Nom no vàlid' });
   if (!validaTelefon(telefon)) return json(res, 400, { error: 'Telèfon no vàlid' });
+
   const numPlaces = parseInt(places, 10);
-  if (!numPlaces || numPlaces < 1 || numPlaces > 10) return json(res, 400, { error: 'Nombre de places no vàlid' });
+  if (!numPlaces || numPlaces < 1 || numPlaces > 10) {
+    return json(res, 400, { error: 'Nombre de places no vàlid' });
+  }
+
+  const params = {
+    p_event_id: event_id,
+    p_nom: String(nom).trim(),
+    p_telefon: netejaTelefon(telefon),
+    p_email: email ? String(email).trim() : null,
+    p_places: numPlaces,
+    p_notes: notes ? String(notes).trim().slice(0, 500) : null,
+    p_lang: lang === 'es' ? 'es' : 'ca',
+    p_consent_versio: CONSENT_VERSIO,
+    p_permet_espera: true
+  };
 
   try {
     const sb = supabase();
+    let out = null;
 
-    // Comprovar disponibilitat
-    const { data: ev, error: evErr } = await sb
-      .from('events')
-      .select('id, cupo, estat, preu_cents')
-      .eq('id', event_id)
-      .single();
-
-    if (evErr || !ev) return json(res, 404, { error: 'Activitat no trobada' });
-    if (ev.estat === 'esgotat' || ev.estat === 'arxivat')
-      return json(res, 409, { error: 'Activitat no disponible' });
-
-    const { data: ocupData } = await sb.rpc('places_ocupades', { p_event_id: event_id, p_hold_min: 60 });
-    const ocupades = ocupData || 0;
-    const disponibles = Math.max(0, (ev.cupo || 0) - ocupades);
-
-    if (numPlaces > disponibles) {
-      return json(res, 409, {
-        error: 'No queden prou places',
-        disponibles
-      });
+    // Reintents només per col·lisió de referència (probabilitat mínima)
+    for (let intent = 0; intent < 5; intent++) {
+      const { data, error } = await sb.rpc('crear_reserva', { ...params, p_ref: generarRef() });
+      if (error) throw error;
+      out = data;
+      if (!(out && out.error === 'ref_collision')) break;
     }
 
-    // Inserir reserva
-    const ref = generarRef();
-    const totalCents = (ev.preu_cents || 0) * numPlaces;
+    if (!out) return json(res, 500, { error: 'Error creant la reserva' });
 
-    const { error: insErr } = await sb.from('reserves').insert({
-      id: ref,
-      event_id,
-      nom: String(nom).trim(),
-      telefon: String(telefon).trim(),
-      email: email ? String(email).trim() : null,
-      places: numPlaces,
-      notes: notes ? String(notes).trim() : null,
-      preu_cents: ev.preu_cents || 0,
-      total_cents: totalCents,
-      status: 'pending',      // fase 1: sempre pending; admin confirma manualment
-      lang: lang || 'ca'
-    });
-
-    if (insErr) throw insErr;
+    if (out.ok !== true) {
+      const map = {
+        event_not_found:   [404, 'Activitat no trobada'],
+        event_unavailable: [409, 'Activitat no disponible'],
+        duplicate:         [409, 'Ja tens una reserva per a aquesta activitat amb aquest telèfon'],
+        rate_limit:        [429, 'Massa sol·licituds. Truca\'ns i t\'apuntem nosaltres.'],
+        sold_out:          [409, 'No queden prou places'],
+        ref_collision:     [500, 'Error generant la referència']
+      };
+      const [status, msg] = map[out.error] || [500, 'Error creant la reserva'];
+      return json(res, status, { error: msg, codi: out.error, disponibles: out.disponibles });
+    }
 
     return json(res, 201, {
-      reserva_id: ref,
-      status: 'pending',
-      message: 'Reserva creada. Rebràs una trucada per confirmar la plaça.'
+      reserva_id: out.reserva_id,
+      status: out.status, // 'pending' | 'waitlist'
+      disponibles: out.disponibles,
+      message: out.status === 'waitlist'
+        ? 'No quedaven places lliures. Has quedat a la llista d\'espera i et trucarem si se n\'allibera alguna.'
+        : 'Reserva creada. Rebràs una trucada per confirmar la plaça.'
     });
 
   } catch (err) {

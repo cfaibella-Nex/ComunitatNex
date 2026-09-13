@@ -90,6 +90,12 @@ async function renderCheckout() {
         <textarea class="form-textarea" id="notes" name="notes" rows="3"></textarea>
       </div>
 
+      <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
+        <label>No omplis aquest camp
+          <input type="text" id="hp-web" name="web" tabindex="-1" autocomplete="off">
+        </label>
+      </div>
+
       <p class="form-help">${T('form.legal')}</p>
       <div id="form-msg" aria-live="polite" aria-atomic="true"></div>
     </form>
@@ -125,8 +131,8 @@ async function renderCheckout() {
           </button>
         ` : ''}
 
-        <button type="button" id="btn-whatsapp" class="btn btn-primary btn-lg btn-block" style="margin-top: var(--sp-2)">
-          💬 ${T('checkout.reserve_wa')}
+        <button type="button" id="btn-reservar" class="btn btn-primary btn-lg btn-block" style="margin-top: var(--sp-2)">
+          ${T('form.enviar')}
         </button>
 
         <div class="muted" style="font-size: var(--fs-xs); margin-top: var(--sp-2); text-align: center">
@@ -137,8 +143,8 @@ async function renderCheckout() {
   </div>
 </section>`;
 
-  // Bind botó "Reservar per WhatsApp"
-  qs('#btn-whatsapp').addEventListener('click', async (e) => {
+  // Bind botó "Confirmar la reserva"
+  qs('#btn-reservar').addEventListener('click', async (e) => {
     e.preventDefault();
     const nom = qs('#nom').value.trim();
     const email = qs('#email').value.trim();
@@ -165,8 +171,12 @@ async function renderCheckout() {
       return;
     }
 
-    // Intentem POST a /api/reserva (si Supabase configurat)
-    let apiOk = false;
+    // La web es la font de veritat: nomes caiem a WhatsApp si l'API falla.
+    const btn = qs('#btn-reservar');
+    btn.disabled = true;
+    const btnOrig = btn.textContent;
+    btn.textContent = T('form.enviant');
+
     try {
       const r = await fetch('/api/reserva', {
         method: 'POST',
@@ -174,13 +184,47 @@ async function renderCheckout() {
         body: JSON.stringify({
           event_id: ev.id, nom, telefon: tel, email: email || null,
           places: stored.places, notes: notes || null,
-          preu_cents: ev.preu_cents || 0, lang: window.NX.getLang()
+          web: qs('#hp-web')?.value || '',
+          lang: window.NX.getLang()
         })
       });
-      apiOk = r.ok;
-    } catch { apiOk = false; }
 
-    // En qualsevol cas, obrim WhatsApp amb el missatge
+      // Sistema no disponible -> fallback WhatsApp
+      if (r.status === 503 || r.status === 404) { obrirWhatsApp(); return; }
+
+      const out = await r.json().catch(() => ({}));
+
+      if (r.ok) {
+        sessionStorage.removeItem('nx-checkout');
+        if (out.status === 'waitlist') {
+          msg.innerHTML = `<div class="alert alert-warning">${T('form.waitlist')}</div>
+            <div class="muted" style="font-size:var(--fs-sm);margin-top:var(--sp-2)">Ref. ${esc(out.reserva_id || '')}</div>`;
+          btn.remove();
+          return;
+        }
+        location.href = `/confirmacio.html?ref=${encodeURIComponent(out.reserva_id || 'OK')}`;
+        return;
+      }
+
+      // Errors controlats: mostrem el motiu, no obrim WhatsApp
+      if (out.codi === 'duplicate') {
+        msg.innerHTML = `<div class="alert alert-warning">${T('form.duplicat')}</div>`;
+      } else if (r.status === 429) {
+        msg.innerHTML = `<div class="alert alert-warning">${T('form.massa')}</div>`;
+      } else {
+        msg.innerHTML = `<div class="alert alert-danger">${esc(out.error || T('form.error_srv'))}</div>`;
+      }
+      btn.disabled = false;
+      btn.textContent = btnOrig;
+      return;
+
+    } catch (err) {
+      console.error(err);
+      obrirWhatsApp();
+      return;
+    }
+
+    function obrirWhatsApp() {
     const lang = window.NX.getLang();
     const dataStr = formatDate(ev.data);
     const totalStr = isFree ? T('ev.gratis') : formatPrice(totalCents);
@@ -188,8 +232,12 @@ async function renderCheckout() {
       ? `Hola! Vull confirmar una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataStr} · ${ev.hora}\n📍 ${L(ev.entitat)}\n\nDades:\nNom: ${nom}\nTelèfon: ${tel}${email ? '\nCorreu: ' + email : ''}\nPlaces: ${stored.places}\nTotal: ${totalStr}${notes ? '\nNotes: ' + notes : ''}`
       : `¡Hola! Quiero confirmar una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataStr} · ${ev.hora}\n📍 ${L(ev.entitat)}\n\nDatos:\nNombre: ${nom}\nTeléfono: ${tel}${email ? '\nCorreo: ' + email : ''}\nPlazas: ${stored.places}\nTotal: ${totalStr}${notes ? '\nNotas: ' + notes : ''}`;
 
-    sessionStorage.removeItem('nx-checkout');
-    window.open(`https://wa.me/${window.NX.WHATSAPP}?text=${encodeURIComponent(txt)}`, '_blank');
+      msg.innerHTML = `<div class="alert alert-warning">${T('form.error_srv')}</div>`;
+      btn.disabled = false;
+      btn.textContent = btnOrig;
+      sessionStorage.removeItem('nx-checkout');
+      window.open(`https://wa.me/${window.NX.WHATSAPP}?text=${encodeURIComponent(txt)}`, '_blank');
+    }
   });
 }
 

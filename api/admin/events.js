@@ -1,10 +1,11 @@
-// api/admin/events.js — CRUD events per admin
+// api/admin/events.js — CRUD events per admin (v2: auditat)
 import { json, readBody, methodNotAllowed } from '../_lib/http.js';
 import { supabase, hasSupabase } from '../_lib/supabase.js';
 import { requireAdmin } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!requireAdmin(req, res)) return;
+  const actor = requireAdmin(req, res);
+  if (!actor) return;
   if (!hasSupabase()) return json(res, 503, { error: 'Supabase no configurat' });
 
   const sb = supabase();
@@ -16,27 +17,29 @@ export default async function handler(req, res) {
         if (error) throw error;
         return json(res, 200, { events: data || [] });
       }
-      case 'POST': {
-        const body = await readBody(req);
-        const { data, error } = await sb.from('events').insert(body).select().single();
-        if (error) throw error;
-        return json(res, 201, { event: data });
-      }
+
+      // POST i PATCH comparteixen la mateixa RPC (upsert auditat)
+      case 'POST':
       case 'PATCH': {
         const body = await readBody(req);
-        const { id, ...rest } = body;
-        if (!id) return json(res, 400, { error: 'Falta id' });
-        const { data, error } = await sb.from('events').update(rest).eq('id', id).select().single();
+        if (!body?.id) return json(res, 400, { error: 'Falta id' });
+        const { data, error } = await sb.rpc('admin_upsert_event', {
+          p_event: body,
+          p_actor: actor
+        });
         if (error) throw error;
-        return json(res, 200, { event: data });
+        return json(res, req.method === 'POST' ? 201 : 200, { event: data?.event });
       }
+
       case 'DELETE': {
         const { id } = await readBody(req);
         if (!id) return json(res, 400, { error: 'Falta id' });
-        const { error } = await sb.from('events').update({ estat: 'arxivat' }).eq('id', id);
+        const { data, error } = await sb.rpc('admin_arxivar_event', { p_id: id, p_actor: actor });
         if (error) throw error;
+        if (!data?.ok) return json(res, 404, { error: 'Event no trobat' });
         return json(res, 200, { ok: true });
       }
+
       default:
         return methodNotAllowed(res, ['GET','POST','PATCH','DELETE']);
     }

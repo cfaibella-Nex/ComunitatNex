@@ -9,7 +9,18 @@ let state = {
   tab: 'events',
   events: [],
   reserves: [],
+  auditoria: [],
   eventFilter: null,
+};
+
+const ESTATS = ['pending','confirmed','waitlist','cancelled','attended','no-show'];
+const ESTAT_LABEL = {
+  pending:   'Pendent',
+  confirmed: 'Confirmada',
+  waitlist:  "Llista d'espera",
+  cancelled: 'Cancel·lada',
+  attended:  'Va assistir',
+  'no-show': 'No va venir'
 };
 
 async function apiGet(path) {
@@ -42,6 +53,11 @@ async function loadEvents() {
   return true;
 }
 
+async function loadAuditoria() {
+  const d = await apiGet('/api/admin/audit?limit=300');
+  state.auditoria = d?.auditoria || [];
+}
+
 async function loadReserves(eventId) {
   const q = eventId ? `?event_id=${encodeURIComponent(eventId)}` : '';
   const d = await apiGet('/api/admin/orders' + q);
@@ -57,6 +73,14 @@ async function render() {
     if (!(await loadEvents())) return;
     await loadReserves(state.eventFilter);
     renderReserves();
+  } else if (state.tab === 'auditoria') {
+    try {
+      await loadAuditoria();
+      renderAuditoria();
+    } catch (e) {
+      app.innerHTML = tabsHTML() + `<div class="alert alert-danger">Error carregant l'auditoria: ${esc(e.message)}</div>
+        <p>Comprova que hagis executat <code>api/schema-v2.sql</code> a Supabase.</p>`;
+    }
   }
 }
 
@@ -65,6 +89,7 @@ function tabsHTML() {
 <div class="filters" style="margin-bottom: var(--sp-4);">
   <button class="filter-btn ${state.tab==='events'?'active':''}" onclick="setTab('events')">Events</button>
   <button class="filter-btn ${state.tab==='reserves'?'active':''}" onclick="setTab('reserves')">Reserves</button>
+  <button class="filter-btn ${state.tab==='auditoria'?'active':''}" onclick="setTab('auditoria')">Auditoria</button>
 </div>`;
 }
 
@@ -284,16 +309,24 @@ function renderReserves() {
       <td>${formatPrice(r.total_cents)}</td>
       <td>
         <select onchange="changeStatus('${esc(r.id)}', this.value)">
-          ${['pending','confirmed','cancelled','attended','no-show'].map(s =>
-            `<option value="${s}" ${r.status===s?'selected':''}>${s}</option>`).join('')}
+          ${ESTATS.map(s =>
+            `<option value="${s}" ${r.status===s?'selected':''}>${ESTAT_LABEL[s]}</option>`).join('')}
         </select>
       </td>
       <td>${esc(formatDate(r.created_at, { day: '2-digit', month: '2-digit', year: '2-digit' }))}</td>
     </tr>`).join('');
 
+  const vives = state.reserves.filter(r => ['pending','confirmed','attended'].includes(r.status));
+  const placesVives = vives.reduce((s, r) => s + (r.places || 0), 0);
+  const enEspera = state.reserves.filter(r => r.status === 'waitlist').length;
+
   app.innerHTML = `
 ${tabsHTML()}
-<h1>Reserves</h1>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--sp-3); gap: var(--sp-2); flex-wrap: wrap;">
+  <h1 style="margin:0">Reserves</h1>
+  <button class="btn btn-secondary" onclick="exportCSV()">⬇ Descarregar CSV</button>
+</div>
+<p class="muted">${vives.length} reserves actives · ${placesVives} places ocupades · ${enEspera} en llista d'espera</p>
 ${filterHTML}
 <table class="admin-table">
   <thead>
@@ -313,6 +346,70 @@ window.changeStatus = async function(id, status) {
     await apiSend('/api/admin/orders', 'PATCH', { id, status });
   } catch (e) { alert('Error: ' + e.message); }
 };
+
+/* ── EXPORT CSV ────────────────────────────────────────────── */
+window.exportCSV = function() {
+  const evMap = new Map(state.events.map(e => [e.id, e.titol?.ca || e.id]));
+  const cap = ['Ref','Activitat','Data acte','Nom','Telefon','Email','Places','Total EUR','Estat','Creada','Confirmada'];
+  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const files = state.reserves.map(r => {
+    const ev = state.events.find(e => e.id === r.event_id);
+    return [
+      r.id, evMap.get(r.event_id) || r.event_id, ev?.data || '',
+      r.nom, r.telefon, r.email || '', r.places,
+      ((r.total_cents || 0) / 100).toFixed(2).replace('.', ','),
+      ESTAT_LABEL[r.status] || r.status,
+      r.created_at || '', r.confirmed_at || ''
+    ].map(cell).join(';');
+  });
+  const csv = '\uFEFF' + [cap.map(cell).join(';'), ...files].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `reserves-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+/* ── AUDITORIA ─────────────────────────────────────────────── */
+function resumCanvis(row) {
+  if (row.accio === 'insert') {
+    const f = row.fila_despres || {};
+    return esc([f.nom, f.telefon, f.places ? f.places + ' places' : null, f.status]
+      .filter(Boolean).join(' · ') || 'registre creat');
+  }
+  if (row.accio === 'delete') return '<span style="color:var(--danger)">esborrat</span>';
+  const c = row.canvis || {};
+  return Object.keys(c).map(k => {
+    const abans = JSON.stringify(c[k].abans), despres = JSON.stringify(c[k].despres);
+    return `<code>${esc(k)}</code>: ${esc(abans)} → <strong>${esc(despres)}</strong>`;
+  }).join('<br>') || '—';
+}
+
+function renderAuditoria() {
+  const rows = state.auditoria.map(r => `
+    <tr>
+      <td style="white-space:nowrap">${esc(new Date(r.created_at).toLocaleString('ca-ES'))}</td>
+      <td>${esc(r.taula)}</td>
+      <td><code>${esc(r.registre_id)}</code></td>
+      <td>${esc(r.accio)}</td>
+      <td>${esc(r.actor)}</td>
+      <td style="font-size:var(--fs-sm)">${resumCanvis(r)}${r.motiu ? `<br><em>${esc(r.motiu)}</em>` : ''}</td>
+    </tr>`).join('');
+
+  app.innerHTML = `
+${tabsHTML()}
+<h1>Auditoria</h1>
+<p class="muted">Registre immutable de tot el que passa a events i reserves. No es pot editar ni esborrar.
+Mostrant els ${state.auditoria.length} moviments més recents.</p>
+<table class="admin-table">
+  <thead>
+    <tr><th>Quan</th><th>Taula</th><th>Registre</th><th>Acció</th><th>Qui</th><th>Què</th></tr>
+  </thead>
+  <tbody>${rows || '<tr><td colspan="6" style="text-align:center; padding: var(--sp-4)" class="muted">Cap moviment registrat encara.</td></tr>'}</tbody>
+</table>`;
+}
 
 // Boot
 render();
