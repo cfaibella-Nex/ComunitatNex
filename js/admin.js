@@ -5,7 +5,16 @@
 
    Abans es confiava que el navegador mostraria el diàleg de Basic Auth,
    però fetch() no l'obre mai: la resposta 401 feia location.reload() i
-   la pàgina es quedava en blanc en un bucle. */
+   la pàgina es quedava en blanc en un bucle.
+
+   IMPORTANT: tot el fitxer va dins d'una IIFE. main.js declara esc(), qs(),
+   qsa(), formatDate(), formatPrice() i tipoLabel() com a funcions globals, i
+   els scripts clàssics comparteixen àmbit. Sense l'embolcall, el
+   `const { esc, ... } = window.NX` peta amb "Identifier 'esc' has already
+   been declared" i el fitxer no s'executa gens. agenda.js, checkout.js i
+   recursos.js fan el mateix. */
+
+(function() {
 
 const { esc, formatDate, formatPrice, tipoLabel, qs, qsa } = window.NX;
 const app = qs('#admin-app');
@@ -502,3 +511,5 @@ Mostrant els ${state.auditoria.length} moviments més recents.</p>
 
 // Boot
 if (getAuth()) render(); else renderLogin();
+
+})();
