@@ -111,6 +111,23 @@ const EVENTS_DATA = [
     estat: 'proximament'
   },
   {
+    id: 'taller-angles-canpepus', tipo: 'taller',
+    titol: { ca: 'Conversa en anglès', es: 'Conversación en inglés' },
+    descripcio: {
+      ca: "Trobada setmanal per practicar l'anglès parlant, sense exàmens ni deures. Comencem pel que ja saps i anem fent. L'important és perdre la vergonya i passar-ho bé. Grup estable: la plaça et queda reservada per a totes les sessions.",
+      es: 'Encuentro semanal para practicar el inglés hablando, sin exámenes ni deberes. Empezamos por lo que ya sabes y vamos haciendo. Lo importante es perder la vergüenza y pasarlo bien. Grupo estable: la plaza te queda reservada para todas las sesiones.'
+    },
+    entitat: { ca: 'Casal de la Solidaritat Can Pepus', es: 'Casal de la Solidaritat Can Pepus' },
+    ubicacio: { ca: 'Can Pepus, Raval (Badalona)', es: 'Can Pepus, Raval (Badalona)' },
+    mapa_url: 'https://maps.google.com/?q=Casal+Can+Pepus+Badalona',
+    data: '2026-10-08', hora: '18:00', durada: 90,
+    data_label: { ca: 'Cada setmana', es: 'Cada semana' },
+    cupo: 12, reservades: 0, preu_cents: 0, tipo_iva: 'exempt',
+    imatge: '/assets/taller-idioma.jpg',
+    imatge_lloc: '/assets/canpepus.jpg',
+    estat: 'proximament'
+  },
+  {
     id: 'taller-autodefensa-santroc', tipo: 'taller',
     titol: { ca: "Taller d'autodefensa", es: 'Taller de autodefensa' },
     descripcio: {

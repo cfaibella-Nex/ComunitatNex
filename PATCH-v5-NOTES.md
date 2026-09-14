@@ -1,4 +1,4 @@
-# Patch v4 — Auditoria de reserves + admin operatiu + pàgina de Recursos
+# Patch v5 — Auditoria + admin operatiu + Recursos + contingut (foto i taller nou)
 
 Acumulatiu: inclou tot el de la v1. Descomprimir sobre l'arrel del clon local.
 
@@ -120,6 +120,27 @@ Casals Cívics · La Teranyina).
 
 Cap d'ells és competència: són administracions. Quan tinguem guies pròpies s'afegeixen
 al mateix fitxer amb `propi: true` i destaquen visualment.
+
+---
+
+## BLOC D · Contingut
+
+| Fitxer | Canvi |
+|---|---|
+| `assets/taller-emocional.jpg` | Foto nova del taller de benestar emocional (1200px, q85) |
+| `assets/taller-emocional.webp` | Versió WebP de la mateixa foto |
+| `js/data.js` | Nou taller "Conversa en anglès" a Can Pepus |
+
+La foto substitueix l'anterior amb el mateix nom, així que no cal tocar cap referència.
+El taller nou fa servir `assets/taller-idioma.jpg`, que ja era al repo.
+
+Dades confirmades: gratuït, 12 places, grup setmanal estable. Com que el model no
+té un tipus "setmanal", es queda com a `taller` i el caràcter setmanal es comunica
+amb `data_label: 'Cada setmana'` i a la descripció. La data `2026-10-08` només
+serveix per ordenar; ⚑ falta saber quin dia de la setmana és.
+
+⚑ Pendent de decidir: una reserva d'aquest taller = plaça al grup per a tot el curs
+(model actual, coherent amb cupo 12) o inscripció sessió a sessió.
 
 ---
 
