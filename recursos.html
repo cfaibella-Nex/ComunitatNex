@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recursos i consells · Comunitat NexSocial</title>
-  <meta name="description" content="Guies senzilles, vídeos, passatemps i idees per al dia a dia. Salut, tràmits, tecnologia i vida comunitària a Badalona.">
+  <meta name="description" content="Recursos oficials i gratuïts per a persones grans a Badalona: salut, alimentació, activitat física, tràmits, tecnologia, biblioteques i casals.">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon-96.png">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="/css/styles.css?v=28">
+  <link rel="stylesheet" href="/css/styles.css?v=29">
   <meta property="og:title" content="Recursos i consells · Comunitat NexSocial">
-  <meta property="og:description" content="Guies senzilles, vídeos, passatemps i idees per al dia a dia. Salut, tràmits, tecnologia i vida comunitària a Badalona.">
+  <meta property="og:description" content="Recursos oficials i gratuïts per a persones grans a Badalona: salut, alimentació, activitat física, tràmits, tecnologia, biblioteques i casals.">
   <meta property="og:image" content="https://comunitat.nexsocial.org/assets/og-comunitat.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -21,16 +21,52 @@
   <meta property="og:site_name" content="Comunitat NexSocial">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Recursos i consells · Comunitat NexSocial">
-  <meta name="twitter:description" content="Guies senzilles, vídeos, passatemps i idees per al dia a dia. Salut, tràmits, tecnologia i vida comunitària a Badalona.">
+  <meta name="twitter:description" content="Recursos oficials i gratuïts per a persones grans a Badalona: salut, alimentació, activitat física, tràmits, tecnologia, biblioteques i casals.">
   <meta name="twitter:image" content="https://comunitat.nexsocial.org/assets/og-comunitat.jpg">
+
+  <style>
+    /* Recursos — estils propis de la pàgina */
+    .recursos-filtres { margin: var(--sp-4) 0 var(--sp-3); }
+    .recursos-filtres-title {
+      font-size: var(--fs-md);
+      margin: 0 0 var(--sp-2);
+    }
+    .filter-btn--gran { font-size: var(--fs-base); padding: 14px 24px; }
+    .recursos-estat {
+      display: flex; align-items: center; gap: var(--sp-2);
+      flex-wrap: wrap; margin-top: calc(var(--sp-2) * -1);
+    }
+    .resource-card--destacat {
+      border-left-color: var(--green-mid);
+      background: var(--cards-odd);
+    }
+    .resource-title { margin: 0; font-size: var(--fs-lg); }
+    .resource-desc  { margin: 0; }
+    .resource-font {
+      margin: 0; font-size: var(--fs-xs); color: var(--text-muted);
+      border-top: 1px solid rgba(15,45,30,0.10); padding-top: var(--sp-2);
+    }
+    .resource-cta { margin-top: auto; text-align: center; }
+    .resource-domini {
+      font-size: var(--fs-xs); color: var(--text-muted);
+      text-align: center; word-break: break-all;
+    }
+    .recursos-ajuda {
+      margin-top: var(--sp-5);
+      background: var(--forest-hero);
+      border-radius: var(--radius-lg);
+      padding: var(--sp-4);
+    }
+    .recursos-ajuda h2 { margin-top: 0; }
+    .recursos-ajuda-tel { font-size: var(--fs-md); }
+  </style>
 </head>
 <body>
   <div id="nav-placeholder"></div>
   <main id="main">
     <section class="section">
       <h1 data-i18n="recursos.title">Recursos i consells</h1>
-      <p class="lead" data-i18n="recursos.sub">Guies senzilles per al dia a dia.</p>
-      <div id="recursos-list" class="mt-4"></div>
+      <div id="recursos-app"></div>
     </section>
 
     <!-- Enllaç a Passatemps (ara pàgina pròpia) -->
@@ -47,41 +83,14 @@
   </main>
   <div id="footer-placeholder"></div>
 
-  <script src="/js/main.js?v=28"></script>
-  <script src="/js/data.js?v=28"></script>
+  <script src="/js/main.js?v=29"></script>
+  <script src="/js/recursos-data.js?v=29"></script>
+  <script src="/js/recursos.js?v=29"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = window.NX.T(el.dataset.i18n);
       });
-
-      const CAT_LABEL = {
-        ca: { salut: 'Salut', tramits: 'Tràmits', tecnologia: 'Tecnologia', 'vida-comunitaria': 'Vida comunitària', seguretat: 'Seguretat' },
-        es: { salut: 'Salud', tramits: 'Trámites', tecnologia: 'Tecnología', 'vida-comunitaria': 'Vida comunitaria', seguretat: 'Seguridad' }
-      };
-      const cta = { ca: { veure: 'Veure vídeo →', llegir: 'Llegir guia →', ajuda: "Necessites ajuda? Truca'ns:" },
-                    es: { veure: 'Ver vídeo →', llegir: 'Leer guía →', ajuda: '¿Necesitas ayuda? Llámanos:' } };
-      const lang = window.NX.getLang();
-
-      const html = (window.RECURSOS_DATA || []).map(r => {
-        const iconMap = { salut: '❤️', tramits: '📋', tecnologia: '📱', 'vida-comunitaria': '👥', seguretat: '🛡️' };
-        const cataLabel = CAT_LABEL[lang]?.[r.categoria] || r.categoria;
-        return `
-        <div class="resource-card">
-          <span class="resource-tag">${iconMap[r.categoria] || '💡'} ${window.NX.esc(cataLabel)}</span>
-          <h3 style="margin: 0;">${window.NX.esc(window.NX.L(r.titol))}</h3>
-          <p>${window.NX.esc(window.NX.L(r.descripcio))}</p>
-          <a href="${window.NX.esc(r.enllaç)}" class="btn btn-primary" target="_blank" rel="noopener">
-            ${r.tipus === 'video' ? cta[lang].veure : cta[lang].llegir}
-          </a>
-          <div class="muted" style="font-size: var(--fs-sm); margin-top: 8px;">
-            ${cta[lang].ajuda} <a href="tel:${window.NX.PHONE_TEL}"><strong>${window.NX.PHONE}</strong></a>
-          </div>
-        </div>`;
-      }).join('');
-
-      document.getElementById('recursos-list').innerHTML =
-        `<div class="events-grid">${html}</div>` + window.NX.phoneBannerHTML();
     });
   </script>
   <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "4633e2458bba49eab9dc7c8eb543bb30"}'></script><!-- End Cloudflare Web Analytics -->
