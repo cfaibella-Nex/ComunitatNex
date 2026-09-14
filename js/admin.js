@@ -234,8 +234,9 @@ window.editEvent = function(id) {
     titol: { ca: '', es: '' }, descripcio: { ca: '', es: '' },
     entitat: { ca: '', es: '' }, ubicacio: { ca: '', es: '' },
     mapa_url: '', data: '', hora: '17:00', durada: 90,
+    data_label: { ca: '', es: '' },
     cupo: 15, preu_cents: 0, tipo_iva: 'exempt',
-    imatge: '/assets/placeholder-taller.svg', estat: 'proximament'
+    imatge: '/assets/placeholder-taller.svg', imatge_lloc: '', estat: 'proximament'
   };
   const isNew = !id;
 
@@ -323,8 +324,22 @@ window.editEvent = function(id) {
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Imatge (URL)</label>
+      <label class="form-label">Imatge de l'activitat (URL)</label>
       <input class="form-input" name="imatge" value="${esc(ev.imatge)}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Imatge del lloc (URL)</label>
+      <input class="form-input" name="imatge_lloc" value="${esc(ev.imatge_lloc)}">
+      <div class="form-help">Foto de l'edifici, surt a "On es fa"</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Etiqueta de data CA</label>
+      <input class="form-input" name="datalabel_ca" value="${esc(ev.data_label?.ca)}">
+      <div class="form-help">Ex: "Octubre 2026", "Cada setmana". Buit = es mostra la data.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Etiqueta de data ES</label>
+      <input class="form-input" name="datalabel_es" value="${esc(ev.data_label?.es)}">
     </div>
     <div class="form-group">
       <label class="form-label">Estat</label>
@@ -362,6 +377,9 @@ window.editEvent = function(id) {
       preu_cents: Math.round(parseFloat(fd.preu_eur || 0) * 100),
       tipo_iva: fd.tipo_iva,
       imatge: fd.imatge,
+      imatge_lloc: fd.imatge_lloc || null,
+      data_label: (fd.datalabel_ca || fd.datalabel_es)
+        ? { ca: fd.datalabel_ca, es: fd.datalabel_es } : null,
       estat: fd.estat
     };
     try {
