@@ -1,6 +1,11 @@
 /* admin.js — Comunitat NexSocial
    ────────────────────────────────────────
-   Panell admin. Basic Auth: el navegador demana user/pass. */
+   Panell admin. Login propi: el token Basic es guarda a sessionStorage
+   (es perd en tancar la pestanya) i s'envia a cada crida a l'API.
+
+   Abans es confiava que el navegador mostraria el diàleg de Basic Auth,
+   però fetch() no l'obre mai: la resposta 401 feia location.reload() i
+   la pàgina es quedava en blanc en un bucle. */
 
 const { esc, formatDate, formatPrice, tipoLabel, qs, qsa } = window.NX;
 const app = qs('#admin-app');
@@ -23,9 +28,30 @@ const ESTAT_LABEL = {
   'no-show': 'No va venir'
 };
 
+/* ── Autenticació ─────────────────────────────────────────── */
+const AUTH_KEY = 'nx-admin-auth';
+
+class AuthError extends Error {}
+
+const getAuth   = () => sessionStorage.getItem(AUTH_KEY);
+const setAuth   = v  => sessionStorage.setItem(AUTH_KEY, v);
+const clearAuth = () => sessionStorage.removeItem(AUTH_KEY);
+
+function basicToken(user, pass) {
+  // btoa no accepta caràcters no-ASCII: passem per UTF-8 abans
+  return btoa(String.fromCharCode(...new TextEncoder().encode(`${user}:${pass}`)));
+}
+
+function authHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  const t = getAuth();
+  if (t) h['Authorization'] = 'Basic ' + t;
+  return h;
+}
+
 async function apiGet(path) {
-  const r = await fetch(path, { credentials: 'include' });
-  if (r.status === 401) { location.reload(); return null; }
+  const r = await fetch(path, { headers: authHeaders() });
+  if (r.status === 401) throw new AuthError('401');
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -33,19 +59,66 @@ async function apiGet(path) {
 async function apiSend(path, method, body) {
   const r = await fetch(path, {
     method,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: body ? JSON.stringify(body) : undefined
   });
+  if (r.status === 401) throw new AuthError('401');
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
+
+/* ── Pantalla de login ────────────────────────────────────── */
+function renderLogin(msg) {
+  app.innerHTML = `
+<div class="admin-login">
+  <h1>Accés al panel</h1>
+  <p class="muted">Panel de gestió d'activitats i reserves de Comunitat NexSocial.</p>
+  ${msg ? `<div class="alert alert-danger">${esc(msg)}</div>` : ''}
+  <form id="login-form">
+    <div class="form-group">
+      <label class="form-label" for="login-u">Usuari</label>
+      <input class="form-input" id="login-u" type="text" autocomplete="username" required autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="login-p">Contrasenya</label>
+      <input class="form-input" id="login-p" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit" id="login-btn">Entrar</button>
+  </form>
+</div>`;
+
+  qs('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = qs('#login-btn');
+    btn.disabled = true;
+    btn.textContent = 'Comprovant…';
+
+    const token = basicToken(qs('#login-u').value.trim(), qs('#login-p').value);
+    try {
+      const r = await fetch('/api/admin/events', { headers: { Authorization: 'Basic ' + token } });
+      if (r.status === 401) { renderLogin('Usuari o contrasenya incorrectes.'); return; }
+      if (!r.ok) { renderLogin('Error del servidor: ' + r.status + '. Comprova les variables ADMIN_USER/ADMIN_PASS i Supabase.'); return; }
+      setAuth(token);
+      state.tab = 'events';
+      await render();
+    } catch (err) {
+      renderLogin('No s\'ha pogut connectar amb el servidor.');
+    }
+  });
+}
+
+window.logout = function() {
+  clearAuth();
+  state.events = []; state.reserves = []; state.auditoria = [];
+  renderLogin('Has tancat la sessió.');
+};
 
 async function loadEvents() {
   try {
     const d = await apiGet('/api/admin/events');
     state.events = d?.events || [];
   } catch (e) {
+    if (e instanceof AuthError) throw e;
     app.innerHTML = `<div class="alert alert-danger">Error carregant events: ${esc(e.message)}</div>
       <p>Comprova que Supabase estigui configurat i les vars ADMIN_USER/ADMIN_PASS.</p>`;
     return false;
@@ -66,6 +139,20 @@ async function loadReserves(eventId) {
 
 /* ── Render principal ─────────────────────────────────────── */
 async function render() {
+  if (!getAuth()) { renderLogin(); return; }
+  try {
+    await renderTab();
+  } catch (e) {
+    if (e instanceof AuthError) {
+      clearAuth();
+      renderLogin('La sessió ha caducat. Torna a entrar.');
+      return;
+    }
+    app.innerHTML = `<div class="alert alert-danger">${esc(e.message || 'Error inesperat')}</div>`;
+  }
+}
+
+async function renderTab() {
   if (state.tab === 'events') {
     if (!(await loadEvents())) return;
     renderEvents();
@@ -78,6 +165,7 @@ async function render() {
       await loadAuditoria();
       renderAuditoria();
     } catch (e) {
+      if (e instanceof AuthError) throw e;
       app.innerHTML = tabsHTML() + `<div class="alert alert-danger">Error carregant l'auditoria: ${esc(e.message)}</div>
         <p>Comprova que hagis executat <code>api/schema-v2.sql</code> a Supabase.</p>`;
     }
@@ -90,6 +178,7 @@ function tabsHTML() {
   <button class="filter-btn ${state.tab==='events'?'active':''}" onclick="setTab('events')">Events</button>
   <button class="filter-btn ${state.tab==='reserves'?'active':''}" onclick="setTab('reserves')">Reserves</button>
   <button class="filter-btn ${state.tab==='auditoria'?'active':''}" onclick="setTab('auditoria')">Auditoria</button>
+  <button class="filter-btn" onclick="logout()" style="margin-left:auto">Sortir</button>
 </div>`;
 }
 
@@ -412,4 +501,4 @@ Mostrant els ${state.auditoria.length} moviments més recents.</p>
 }
 
 // Boot
-render();
+if (getAuth()) render(); else renderLogin();
