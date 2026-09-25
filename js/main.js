@@ -520,6 +520,20 @@ function placesRestants(ev) {
   return Math.max(0, cupo - reservades);
 }
 
+/* Quantes places queden perquè surti l'avís d'últimes places.
+   Un sol lloc: abans estava escrit a mà dins d'agenda.js i només
+   s'aplicava a la portada, no a l'agenda. */
+const LLINDAR_ULTIMES = 3;
+
+/* 'esgotat' | 'ultimes' | 'lliure'. L'estat manual "esgotat" de
+   l'activitat mana sempre sobre el comptatge. */
+function estatPlaces(ev, restants) {
+  const places = restants === undefined ? placesRestants(ev) : restants;
+  if (ev.estat === 'esgotat' || places === 0) return 'esgotat';
+  if (places <= LLINDAR_ULTIMES) return 'ultimes';
+  return 'lliure';
+}
+
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
 
@@ -560,7 +574,7 @@ if (document.readyState === 'loading') {
 window.NX = {
   T, L, getLang, setLang,
   esc, formatDate, formatPrice,
-  tipoLabel, tipoBadgeClass, placesRestants,
+  tipoLabel, tipoBadgeClass, placesRestants, estatPlaces, LLINDAR_ULTIMES,
   phoneBannerHTML,
   PHONE, PHONE_TEL, WHATSAPP,
   qs, qsa

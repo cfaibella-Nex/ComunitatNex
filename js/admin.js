@@ -16,7 +16,7 @@
 
 (function() {
 
-const { esc, formatDate, formatPrice, tipoLabel, qs, qsa } = window.NX;
+const { esc, formatDate, formatPrice, tipoLabel, estatPlaces, qs, qsa } = window.NX;
 const app = qs('#admin-app');
 
 let state = {
@@ -228,7 +228,17 @@ function targetaEvent(ev, ocup) {
   const passat = (ev.data || '') < avui();
   const e = ESTAT_EVENT[ev.estat] || { nom: ev.estat, color: 'var(--text-muted)' };
   const ocupades = ocup[ev.id] || 0;
+  const restants = Math.max(0, (ev.cupo || 0) - ocupades);
   const pct = ev.cupo ? Math.min(100, Math.round(ocupades * 100 / ev.cupo)) : 0;
+
+  /* Mateix criteri que la web pública: així el panell ensenya el
+     que la gent veu, no una altra cosa. */
+  const ep = estatPlaces(ev, restants);
+  const avisPlaces = ep === 'esgotat'
+    ? '<span class="ev-places-avis" style="background:var(--danger)">Ple</span>'
+    : ep === 'ultimes'
+      ? '<span class="ev-places-avis" style="background:var(--warning)">Últimes places</span>'
+      : '';
   const foto = ev.imatge || '/assets/placeholder-taller.svg';
 
   return `
@@ -239,6 +249,7 @@ function targetaEvent(ev, ocup) {
       <div class="ev-dalt">
         <span class="event-badge" style="position:static">${esc(tipoLabel(ev.tipo))}</span>
         <span class="ev-estat" style="background:${e.color}">${esc(e.nom)}</span>
+        ${avisPlaces}
         ${passat ? '<span class="ev-avis">Data passada: no surt a la web</span>' : ''}
       </div>
 
@@ -268,7 +279,7 @@ function targetaEvent(ev, ocup) {
 
       <div class="ev-places">
         <div class="ev-barra"><span style="width:${pct}%"></span></div>
-        <span class="muted">${ocupades} de ${ev.cupo} places${ocupades ? '' : ' · cap reserva'}</span>
+        <span class="muted">${ocupades} de ${ev.cupo}${restants ? ` · en queden ${restants}` : ''}</span>
       </div>
 
       <div class="ev-accions">

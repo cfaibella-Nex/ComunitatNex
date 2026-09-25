@@ -8,7 +8,7 @@
 (function() {
 
 const { T, L, esc, formatDate, formatPrice,
-        tipoLabel, tipoBadgeClass, placesRestants,
+        tipoLabel, tipoBadgeClass, placesRestants, estatPlaces,
         phoneBannerHTML, qs, qsa } = window.NX;
 
 /* ── Fetch events (Supabase → fallback data.js) ─────────── */
@@ -39,9 +39,10 @@ function eventCardHTML(ev) {
   const places = placesRestants(ev);
   const label = ev.data_label ? L(ev.data_label) : formatDate(ev.data);
   const isProximament = ev.data_label && /pr[oò]xi/i.test(L(ev.data_label));
-  const status = ev.estat === 'esgotat' || places === 0
+  const ep = estatPlaces(ev, places);
+  const status = ep === 'esgotat'
     ? `<span class="event-badge" style="position:static;background:var(--danger)">${T('ev.esgotat')}</span>`
-    : places <= 3 && places > 0
+    : ep === 'ultimes'
       ? `<span class="event-badge" style="position:static;background:var(--warning)">${T('ev.ultimes')}</span>`
       : `<span class="muted" style="font-size:var(--fs-sm)">${places} ${T('ev.places')}</span>`;
 
@@ -96,7 +97,8 @@ function eventRowHTML(ev) {
   const diaSetm = new Intl.DateTimeFormat(lang === 'ca' ? 'ca-ES' : 'es-ES',
     { weekday: 'long' }).format(d);
   const places = placesRestants(ev);
-  const esgotat = ev.estat === 'esgotat' || places === 0;
+  const ep = estatPlaces(ev, places);
+  const esgotat = ep === 'esgotat';
 
   // Bloc de data: si hi ha data_label, mostrem mes gran o "PRÒX"
   const dateBlock = label
@@ -117,6 +119,8 @@ function eventRowHTML(ev) {
     <div class="event-row-meta">
       <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static">${esc(tipoLabel(ev.tipo))}</span>
       <span class="muted" style="font-size:var(--fs-sm)">${metaText}</span>
+      ${ep === 'ultimes'
+        ? `<span class="event-badge" style="position:static;background:var(--warning)">${T('ev.ultimes')}</span>` : ''}
     </div>
     <h3 class="event-row-title">${esc(L(ev.titol))}</h3>
     <div class="event-row-loc">📍 ${esc(L(ev.ubicacio))}</div>
