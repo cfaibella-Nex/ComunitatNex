@@ -4,6 +4,7 @@
 
 import { json, methodNotAllowed } from './_lib/http.js';
 import { hasSupabase, supabase, credencialsSupabase, ESQUEMA } from './_lib/supabase.js';
+import { estatGestor, gestorLlest } from './_lib/gestor/estat.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
@@ -62,6 +63,17 @@ export default async function handler(req, res) {
   } catch (e) {
     estat.ok = false;
     estat.supabase_error = String(e.message || e);
+  }
+
+  // 3) Estat del gestor (S1: taules i secret; encara no actiu)
+  try {
+    const g = await estatGestor();
+    estat.gestor = { ...g, llest: gestorLlest(g) };
+    if (g.taules_ok && g.usuaris === 0 && g.secret) {
+      estat.pista = estat.pista || 'Gestor llest i sense usuaris: falta crear el primer amb GESTOR_SETUP_KEY.';
+    }
+  } catch (e) {
+    estat.gestor = { error: String(e.message || e) };
   }
 
   return json(res, 200, estat);

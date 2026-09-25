@@ -22,3 +22,13 @@ export function methodNotAllowed(res, allowed) {
   res.setHeader('Allow', allowed.join(', '));
   return json(res, 405, { error: 'Mètode no permès' });
 }
+
+/* Talla una espera que no torna. Sense això, un Supabase pausat
+   deixa la funció penjada fins que Vercel la mata amb un 504 mut. */
+export function ambTimeout(promesa, ms, etiqueta) {
+  return Promise.race([
+    promesa,
+    new Promise((_, rej) =>
+      setTimeout(() => rej(new Error(`timeout ${etiqueta} (${ms} ms)`)), ms))
+  ]);
+}
