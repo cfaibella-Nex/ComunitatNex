@@ -65,7 +65,29 @@ export default async function handler(req, res) {
     estat.supabase_error = String(e.message || e);
   }
 
-  // 3) Estat del gestor (S1: taules i secret; encara no actiu)
+  // 3) Amb quin projecte parla de debò i quins bucket hi veu?
+  //    És la comprovació que desfà la confusió de tenir-ne tres oberts.
+  try {
+    const { url } = credencialsSupabase();
+    estat.projecte = new URL(url).hostname.split('.')[0];
+    const sb = supabase();
+    const { data, error } = await sb.storage.listBuckets();
+    if (error) {
+      estat.storage_error = error.message;
+    } else {
+      estat.buckets = (data || []).map(b => `${b.name}${b.public ? ' (públic)' : ' (privat)'}`);
+      estat.bucket_fotos = (data || []).some(b => b.name === 'comunitat-media');
+      if (!estat.bucket_fotos) {
+        estat.ok = false;
+        estat.pista = `Falta el bucket "comunitat-media" al projecte ${estat.projecte}. `
+                    + 'Comprova que el crees en aquest projecte i no en un altre.';
+      }
+    }
+  } catch (e) {
+    estat.storage_error = String(e.message || e);
+  }
+
+  // 4) Estat del gestor (S1: taules i secret; encara no actiu)
   try {
     const g = await estatGestor();
     estat.gestor = { ...g, llest: gestorLlest(g) };
