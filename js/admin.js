@@ -329,15 +329,8 @@ window.editEvent = function(id) {
         <option value="iva21" ${ev.tipo_iva==='iva21'?'selected':''}>IVA 21% (altres)</option>
       </select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Imatge de l'activitat (URL)</label>
-      <input class="form-input" name="imatge" value="${esc(ev.imatge)}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Imatge del lloc (URL)</label>
-      <input class="form-input" name="imatge_lloc" value="${esc(ev.imatge_lloc)}">
-      <div class="form-help">Foto de l'edifici, surt a "On es fa"</div>
-    </div>
+    ${campImatge('imatge', "Imatge de l'activitat", ev.imatge, 'Es veu a la targeta i a la pàgina de l\'activitat')}
+    ${campImatge('imatge_lloc', 'Imatge del lloc', ev.imatge_lloc, 'Foto de l\'edifici, surt a "On es fa"')}
     <div class="form-group">
       <label class="form-label">Etiqueta de data CA</label>
       <input class="form-input" name="datalabel_ca" value="${esc(ev.data_label?.ca)}">
@@ -411,6 +404,90 @@ window.viewReserves = function(eventId) {
   state.eventFilter = eventId;
   state.tab = 'reserves';
   render();
+};
+
+/* ── CAMPS D'IMATGE ────────────────────────────────────────
+   Pujada directa al bucket. La foto es redueix al navegador abans
+   d'enviar-la: una foto de mòbil de 6 MB baixa a uns 300 KB, i de
+   pas tots els assets queden a la mateixa mida. */
+function campImatge(clau, etiqueta, valor, ajuda) {
+  const v = valor || '';
+  return `
+    <div class="form-group">
+      <label class="form-label">${esc(etiqueta)}</label>
+      <div style="display:flex; gap: var(--sp-2); align-items:flex-start;">
+        <img id="prev-${clau}" src="${esc(v)}" alt=""
+             style="${v ? '' : 'display:none;'} width:96px; height:64px; object-fit:cover; border-radius: var(--radius-sm); flex:none;">
+        <div style="flex:1; min-width:0;">
+          <input class="form-input" name="${clau}" id="camp-${clau}" value="${esc(v)}" placeholder="Cap imatge">
+          <input type="file" id="file-${clau}" accept="image/jpeg,image/png,image/webp" style="display:none">
+          <div style="display:flex; gap: var(--sp-2); align-items:center; margin-top: var(--sp-1);">
+            <button type="button" class="btn btn-secondary" onclick="triarImatge('${clau}')">Pujar una foto</button>
+            ${v ? `<button type="button" class="btn btn-ghost" onclick="treureImatge('${clau}')">Treure</button>` : ''}
+            <span id="estat-${clau}" class="muted" style="font-size:var(--fs-sm)"></span>
+          </div>
+          <div class="form-help">${esc(ajuda)}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* Redueix i recomprimeix abans de pujar */
+function reduirImatge(file, maxAmple = 1600, qualitat = 0.85) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error('No s\'ha pogut llegir el fitxer'));
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('El fitxer no és una imatge vàlida'));
+      img.onload = () => {
+        const ample = Math.min(img.width, maxAmple);
+        const alt = Math.round(img.height * ample / img.width);
+        const c = document.createElement('canvas');
+        c.width = ample; c.height = alt;
+        c.getContext('2d').drawImage(img, 0, 0, ample, alt);
+        resolve(c.toDataURL('image/jpeg', qualitat));
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(file);
+  });
+}
+
+window.triarImatge = function(clau) {
+  const input = qs(`#file-${clau}`);
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const estat = qs(`#estat-${clau}`);
+    estat.textContent = 'Preparant la foto…';
+    try {
+      const dades = await reduirImatge(file);
+      estat.textContent = 'Pujant…';
+      const r = await fetch('/api/media', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ nom: file.name, dades })
+      });
+      const out = await r.json().catch(() => ({}));
+      if (!r.ok) { estat.textContent = out.error || `Error ${r.status}`; return; }
+      qs(`#camp-${clau}`).value = out.url;
+      const prev = qs(`#prev-${clau}`);
+      prev.src = out.url;
+      prev.style.display = '';
+      estat.textContent = `Pujada (${Math.round(out.bytes / 1024)} KB)`;
+    } catch (e) {
+      estat.textContent = e.message || 'Error pujant la foto';
+    }
+  };
+  input.click();
+};
+
+window.treureImatge = function(clau) {
+  qs(`#camp-${clau}`).value = '';
+  const prev = qs(`#prev-${clau}`);
+  prev.src = ''; prev.style.display = 'none';
+  qs(`#estat-${clau}`).textContent = 'Imatge treta';
 };
 
 /* ── RESERVES ─────────────────────────────────────────────── */
