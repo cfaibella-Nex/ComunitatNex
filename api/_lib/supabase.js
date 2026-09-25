@@ -33,12 +33,23 @@ export function credencialsSupabase() {
   if (!key) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY a les variables d\'entorn de Vercel');
 
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url)) {
-    throw new Error(`SUPABASE_URL no té el format esperat (https://xxxx.supabase.co): "${url}"`);
+    /* MAI es torna el valor: si algú ha enganxat la clau en aquesta
+       variable, el missatge d'error la filtraria a qui llegeixi
+       /api/health, que és públic. Només es descriu què s'hi ha trobat. */
+    const pista = url.startsWith('eyJ')
+      ? 'sembla que hi has enganxat la clau service_role en lloc de la URL'
+      : `${url.length} caràcters que no tenen la forma esperada`;
+    throw new Error(`SUPABASE_URL no té el format esperat (https://xxxx.supabase.co): ${pista}`);
   }
   /* La service_role és un JWT: tres parts separades per punts.
      Si algú enganxa la anon o el Project ID, es detecta aquí. */
-  if (key.split('.').length !== 3) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY no sembla una clau vàlida (ha de ser un JWT de tres parts)');
+  /* Ull: una URL de Supabase també té tres parts separades per punts,
+     així que la comprovació de JWT sola no la detecta. Primer l'esquema. */
+  if (/^https?:\/\//i.test(key)) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY no sembla una clau vàlida: sembla que hi has enganxat la URL en lloc de la clau');
+  }
+  if (key.split('.').length !== 3 || !key.startsWith('eyJ')) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY no sembla una clau vàlida: ha de ser un JWT que comença per "eyJ"');
   }
 
   return { url: url.replace(/\/$/, ''), key };
