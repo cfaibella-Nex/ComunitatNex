@@ -25,6 +25,7 @@ let state = {
   reserves: [],
   auditoria: [],
   eventFilter: null,
+  eventVista: 'properes',
 };
 
 const ESTATS = ['pending','confirmed','waitlist','cancelled','attended','no-show'];
@@ -170,6 +171,7 @@ async function render() {
 async function renderTab() {
   if (state.tab === 'events') {
     if (!(await loadEvents())) return;
+    try { await loadReserves(null); } catch { state.reserves = []; }
     renderEvents();
   } else if (state.tab === 'reserves') {
     if (!(await loadEvents())) return;
@@ -203,35 +205,164 @@ window.setTab = async function(t) {
 };
 
 /* ── EVENTS list + editor ─────────────────────────────────── */
-function renderEvents() {
-  const rows = state.events.map(ev => `
-    <tr>
-      <td><code>${esc(ev.id)}</code></td>
-      <td><span class="event-badge" style="position:static">${esc(tipoLabel(ev.tipo))}</span></td>
-      <td><strong>${esc(ev.titol?.ca || '')}</strong><br><span class="muted" style="font-size:var(--fs-sm)">${esc(ev.titol?.es || '')}</span></td>
-      <td>${esc(formatDate(ev.data))}<br>${esc(ev.hora || '')}</td>
-      <td>${ev.cupo}</td>
-      <td>${formatPrice(ev.preu_cents)}</td>
-      <td>${esc(ev.estat)}</td>
-      <td>
+const ESTAT_EVENT = {
+  actiu:       { nom: 'Visible',      color: 'var(--success)' },
+  proximament: { nom: 'Pròximament',  color: 'var(--info)' },
+  esgotat:     { nom: 'Esgotat',      color: 'var(--warning)' },
+  arxivat:     { nom: 'Arxivat',      color: 'var(--text-muted)' }
+};
+
+function avui() { return new Date().toISOString().slice(0, 10); }
+
+/* Places ocupades per activitat, a partir de les reserves vives */
+function ocupacio() {
+  const m = {};
+  for (const r of state.reserves) {
+    if (!['pending', 'confirmed', 'attended'].includes(r.status)) continue;
+    m[r.event_id] = (m[r.event_id] || 0) + (r.places || 0);
+  }
+  return m;
+}
+
+function targetaEvent(ev, ocup) {
+  const passat = (ev.data || '') < avui();
+  const e = ESTAT_EVENT[ev.estat] || { nom: ev.estat, color: 'var(--text-muted)' };
+  const ocupades = ocup[ev.id] || 0;
+  const pct = ev.cupo ? Math.min(100, Math.round(ocupades * 100 / ev.cupo)) : 0;
+  const foto = ev.imatge || '/assets/placeholder-taller.svg';
+
+  return `
+  <article class="ev-card${passat ? ' ev-card--passat' : ''}">
+    <img class="ev-foto" src="${esc(foto)}" alt="" loading="lazy">
+
+    <div class="ev-cos">
+      <div class="ev-dalt">
+        <span class="event-badge" style="position:static">${esc(tipoLabel(ev.tipo))}</span>
+        <span class="ev-estat" style="background:${e.color}">${esc(e.nom)}</span>
+        ${passat ? '<span class="ev-avis">Data passada: no surt a la web</span>' : ''}
+      </div>
+
+      <h3 class="ev-titol">${esc(ev.titol?.ca || ev.id)}</h3>
+      <p class="ev-sub">${esc(ev.ubicacio?.ca || '')}${ev.preu_cents ? ' · ' + formatPrice(ev.preu_cents) : ' · Gratuït'}</p>
+
+      <div class="ev-rapid">
+        <label>Data
+          <input type="date" value="${esc(ev.data || '')}"
+                 onchange="canviRapid('${esc(ev.id)}','data',this.value)">
+        </label>
+        <label>Hora
+          <input type="time" value="${esc(ev.hora || '')}"
+                 onchange="canviRapid('${esc(ev.id)}','hora',this.value)">
+        </label>
+        <label>Places
+          <input type="number" min="0" max="999" value="${ev.cupo}"
+                 onchange="canviRapid('${esc(ev.id)}','cupo',parseInt(this.value,10))">
+        </label>
+        <label>Estat
+          <select onchange="canviRapid('${esc(ev.id)}','estat',this.value)">
+            ${Object.entries(ESTAT_EVENT).map(([k, v]) =>
+              `<option value="${k}" ${ev.estat === k ? 'selected' : ''}>${v.nom}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+
+      <div class="ev-places">
+        <div class="ev-barra"><span style="width:${pct}%"></span></div>
+        <span class="muted">${ocupades} de ${ev.cupo} places${ocupades ? '' : ' · cap reserva'}</span>
+      </div>
+
+      <div class="ev-accions">
         <button class="btn btn-secondary" onclick="editEvent('${esc(ev.id)}')">Editar</button>
-        <button class="btn btn-ghost" onclick="viewReserves('${esc(ev.id)}')">Reserves</button>
-        <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger)" onclick="deleteEvent('${esc(ev.id)}')">Arxivar</button>
-      </td>
-    </tr>`).join('');
+        <button class="btn btn-ghost" onclick="duplicarEvent('${esc(ev.id)}')">Duplicar</button>
+        <button class="btn btn-ghost" onclick="viewReserves('${esc(ev.id)}')">Reserves${ocupades ? ` (${ocupades})` : ''}</button>
+        ${ev.estat !== 'arxivat'
+          ? `<button class="btn btn-ghost ev-arxivar" onclick="deleteEvent('${esc(ev.id)}')">Arxivar</button>` : ''}
+      </div>
+      <p class="ev-id"><code>${esc(ev.id)}</code></p>
+    </div>
+  </article>`;
+}
+
+window.setFiltreEvents = function(f) { state.eventVista = f; renderEvents(); };
+
+/* Canvi d'un sol camp sense obrir el formulari. Envia l'activitat
+   sencera perquè l'API fa un upsert complet. */
+window.canviRapid = async function(id, camp, valor) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+  const abans = ev[camp];
+  ev[camp] = valor;
+  try {
+    await apiSend('/api/admin/events', 'PATCH', ev);
+    renderEvents();
+  } catch (e) {
+    ev[camp] = abans;
+    alert('No s\'ha pogut desar: ' + e.message);
+    renderEvents();
+  }
+};
+
+/* Duplicar: edició nova amb data buida, oculta i sense reserves.
+   És el camí correcte per repetir un taller, en lloc de canviar-li
+   la data a l'antic i arrossegar-hi la gent que ja s'hi va apuntar. */
+window.duplicarEvent = async function(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+  const copia = JSON.parse(JSON.stringify(ev));
+  delete copia.versio; delete copia.created_at; delete copia.updated_at;
+  copia.id = `${ev.id}-${Math.random().toString(36).slice(2, 6)}`.slice(0, 80);
+  copia.estat = 'proximament';
+  copia.data = '';
+  if (copia.titol?.ca) copia.titol.ca = `${copia.titol.ca} (còpia)`.slice(0, 120);
+  if (copia.titol?.es) copia.titol.es = `${copia.titol.es} (copia)`.slice(0, 120);
+  try {
+    await apiSend('/api/admin/events', 'POST', copia);
+    await render();
+  } catch (e) { alert('Error duplicant: ' + e.message); }
+};
+
+function renderEvents() {
+  const vista = state.eventVista || 'properes';
+  const hui = avui();
+  const ocup = ocupacio();
+
+  const filtres = {
+    properes: e => (e.data || '') >= hui && e.estat !== 'arxivat',
+    passades: e => (e.data || '') < hui && e.estat !== 'arxivat',
+    arxivades: e => e.estat === 'arxivat',
+    totes: () => true
+  };
+  const comptes = Object.fromEntries(
+    Object.entries(filtres).map(([k, f]) => [k, state.events.filter(f).length]));
+
+  const visibles = state.events.filter(filtres[vista] || filtres.totes)
+    .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+
+  const etiquetes = { properes: 'Properes', passades: 'Passades', arxivades: 'Arxivades', totes: 'Totes' };
 
   app.innerHTML = `
 ${tabsHTML()}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--sp-3);">
-  <h1 style="margin:0">Events</h1>
-  <button class="btn btn-primary" onclick="editEvent(null)">+ Nou event</button>
+<div class="ev-capcalera">
+  <h1 style="margin:0">Activitats</h1>
+  <button class="btn btn-primary" onclick="editEvent(null)">+ Nova activitat</button>
 </div>
-<table class="admin-table">
-  <thead>
-    <tr><th>ID</th><th>Tipus</th><th>Títol</th><th>Data</th><th>Cupo</th><th>Preu</th><th>Estat</th><th></th></tr>
-  </thead>
-  <tbody>${rows || '<tr><td colspan="8" style="text-align:center; padding: var(--sp-4)" class="muted">Cap event encara. Crea el primer!</td></tr>'}</tbody>
-</table>`;
+
+<div class="filters" style="margin-bottom: var(--sp-3)">
+  ${Object.keys(filtres).map(k => `
+    <button class="filter-btn ${vista === k ? 'active' : ''}" onclick="setFiltreEvents('${k}')">
+      ${etiquetes[k]} (${comptes[k]})
+    </button>`).join('')}
+</div>
+
+${comptes.passades && vista === 'properes'
+  ? `<div class="alert alert-warning">${comptes.passades === 1
+       ? 'Hi ha una activitat amb data passada que no surt a la web.'
+       : `Hi ha ${comptes.passades} activitats amb data passada que no surten a la web.`}
+     Mira-les a "Passades": pots posar-los data nova o duplicar-les per a una edició nova.</div>` : ''}
+
+${visibles.length
+  ? `<div class="ev-graella">${visibles.map(ev => targetaEvent(ev, ocup)).join('')}</div>`
+  : `<div class="alert alert-info">Cap activitat en aquesta vista.</div>`}`;
 }
 
 window.editEvent = function(id) {
