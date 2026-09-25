@@ -587,7 +587,12 @@ function reduirImatge(file, maxAmple = 1600, qualitat = 0.85) {
         const alt = Math.round(img.height * ample / img.width);
         const c = document.createElement('canvas');
         c.width = ample; c.height = alt;
-        c.getContext('2d').drawImage(img, 0, 0, ample, alt);
+        const ctx = c.getContext('2d');
+        /* Els PNG amb transparència es tornarien negres en passar a
+           JPEG: hi posem fons blanc abans de dibuixar. */
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, ample, alt);
+        ctx.drawImage(img, 0, 0, ample, alt);
         resolve(c.toDataURL('image/jpeg', qualitat));
       };
       img.src = lector.result;

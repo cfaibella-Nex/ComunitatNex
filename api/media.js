@@ -50,8 +50,11 @@ export default async function handler(req, res) {
   if (!hasSupabase()) return json(res, 503, { error: 'Supabase no configurat' });
 
   let body;
-  try { body = await readBody(req); }
-  catch { return json(res, 400, { error: 'Body no vàlid' }); }
+  try {
+    body = await readBody(req, 6e6);   // base64 infla un 33%: 6 MB de marge
+  } catch (e) {
+    return json(res, 413, { error: e.message || 'Body no vàlid' });
+  }
 
   const { nom, dades } = body;
   if (!dades || typeof dades !== 'string') {
@@ -90,9 +93,17 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error(err);
     const msg = String(err.message || err);
-    if (/bucket/i.test(msg)) {
-      return json(res, 500, { error: `Falta el bucket "${BUCKET}". Executa api/gestor-schema.sql o crea'l a Supabase.` });
+    if (/bucket not found|not found.*bucket/i.test(msg)) {
+      return json(res, 500, { error: `Falta el bucket "${BUCKET}". Crea'l a Supabase → Storage, públic.` });
     }
-    return json(res, 500, { error: msg });
+    if (/mime|content type/i.test(msg)) {
+      return json(res, 415, { error: `El bucket "${BUCKET}" no accepta aquest tipus. Afegeix image/jpeg als tipus permesos.` });
+    }
+    if (/exceeded|size/i.test(msg)) {
+      return json(res, 413, { error: `La imatge supera el límit del bucket "${BUCKET}".` });
+    }
+    /* Qualsevol altra cosa: el missatge original de Supabase, que és
+       molt més útil que una frase meva inventada. */
+    return json(res, 500, { error: `Supabase: ${msg}` });
   }
 }

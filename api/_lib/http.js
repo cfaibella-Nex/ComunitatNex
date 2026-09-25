@@ -5,16 +5,32 @@ export function json(res, status, body) {
   res.status(status).send(JSON.stringify(body));
 }
 
-export function readBody(req) {
+/* Llegeix el cos de la petició.
+   Abans: en superar el límit feia req.destroy() i la promesa no es
+   resolia MAI, o sigui que la funció es quedava penjada fins que
+   Vercel la matava. L'usuari veia un error mut. Ara es rebutja amb
+   un missatge i el límit és configurable: les imatges necessiten
+   més que un formulari. */
+export function readBody(req, maxBytes = 1e6) {
   return new Promise((resolve, reject) => {
     if (req.body && typeof req.body === 'object') return resolve(req.body);
     let buf = '';
-    req.on('data', c => { buf += c; if (buf.length > 1e6) req.destroy(); });
+    let passat = false;
+    req.on('data', c => {
+      if (passat) return;
+      buf += c;
+      if (buf.length > maxBytes) {
+        passat = true;
+        reject(new Error(`La petició supera el màxim de ${Math.round(maxBytes / 1024)} KB`));
+        req.destroy();
+      }
+    });
     req.on('end', () => {
+      if (passat) return;
       try { resolve(buf ? JSON.parse(buf) : {}); }
       catch { reject(new Error('Body no és JSON vàlid')); }
     });
-    req.on('error', reject);
+    req.on('error', e => { if (!passat) reject(e); });
   });
 }
 
