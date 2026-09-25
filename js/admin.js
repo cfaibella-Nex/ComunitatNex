@@ -106,7 +106,13 @@ function renderLogin(msg) {
     try {
       const r = await fetch('/api/admin/events', { headers: { Authorization: 'Basic ' + token } });
       if (r.status === 401) { renderLogin('Usuari o contrasenya incorrectes.'); return; }
-      if (!r.ok) { renderLogin('Error del servidor: ' + r.status + '. Comprova les variables ADMIN_USER/ADMIN_PASS i Supabase.'); return; }
+      if (!r.ok) {
+        const detall = await r.json().catch(() => null);
+        renderLogin(detall?.error
+          ? `Error ${r.status}: ${detall.error}`
+          : `Error del servidor ${r.status}. Obre /api/health per veure què falla.`);
+        return;
+      }
       setAuth(token);
       state.tab = 'events';
       await render();

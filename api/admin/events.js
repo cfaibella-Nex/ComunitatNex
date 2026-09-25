@@ -8,9 +8,9 @@ export default async function handler(req, res) {
   if (!actor) return;
   if (!hasSupabase()) return json(res, 503, { error: 'Supabase no configurat' });
 
-  const sb = supabase();
-
   try {
+    const sb = supabase();
+
     switch (req.method) {
       case 'GET': {
         const { data, error } = await sb.from('events').select('*').order('data', { ascending: false });

@@ -10,9 +10,9 @@ export default async function handler(req, res) {
   if (!actor) return;
   if (!hasSupabase()) return json(res, 503, { error: 'Supabase no configurat' });
 
-  const sb = supabase();
-
   try {
+    const sb = supabase();
+
     if (req.method === 'GET') {
       const eventId = req.query?.event_id;
       let q = sb.from('reserves').select('*').order('created_at', { ascending: false });
