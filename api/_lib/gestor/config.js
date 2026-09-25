@@ -65,6 +65,40 @@ export const GESTOR = {
       ajuda: 'Foto de l\'edifici; surt a "On es fa"' }
   ],
 
+  media: { bucket: 'comunitat-media', maxMB: 5 },
+
+  /* ── Col·leccions ───────────────────────────────────────
+     Comunitat té dos magatzems i el panell els tracta igual:
+
+       activitats → comunitat.events  (taula tipada; hi pengen
+                    les reserves per clau forana)
+       recursos   → comunitat.contingut (documents jsonb: textos,
+                    enllaços i imatges de la pàgina de Recursos)
+
+     Els camps de les activitats són els de GESTOR.camps. */
+  colleccions: {
+    activitats: {
+      nom: 'Activitats', singular: 'activitat',
+      magatzem: 'events', ambEstat: true, ambTipus: true
+    },
+    recursos: {
+      nom: 'Recursos', singular: 'recurs',
+      magatzem: 'contingut', ambEstat: false, ambTipus: false,
+      camps: [
+        { path: 'categoria',  tipus: 'text',          nom: 'Categoria', max: 40, requerit: true,
+          ajuda: 'salut · alimentacio · moviment · tramits · tecnologia · cultura · comunitat' },
+        { path: 'titol',      tipus: 'text-i18n',     nom: 'Títol', requerit: true, max: 120 },
+        { path: 'descripcio', tipus: 'textarea-i18n', nom: 'Descripció', max: 600 },
+        { path: 'font',       tipus: 'text',          nom: 'Qui el publica', max: 120, requerit: true,
+          ajuda: 'Es mostra a la targeta: "Canal Salut · Generalitat de Catalunya"' },
+        { path: 'url',        tipus: 'url',           nom: 'Enllaç', requerit: true },
+        { path: 'imatge',     tipus: 'imatge',        nom: 'Imatge (opcional)' },
+        { path: 'intencions', tipus: 'text',          nom: 'Intencions', max: 120,
+          ajuda: 'Separades per comes: exercici, gent, aprendre, informacio, memoria, acompanyament' }
+      ]
+    }
+  },
+
   /* Camps que el panell NO deixa tocar mai, encara que arribin a la
      petició: es calculen o es gestionen des d'un altre lloc. */
   prohibits: ['id', 'reservades', 'tipo_iva', 'created_at', 'updated_at']
@@ -73,6 +107,14 @@ export const GESTOR = {
 /* Camps aplicables a un tipus d'activitat */
 export function campsPerTipus(tipus) {
   return GESTOR.camps.filter(c => !c.nomes || c.nomes.includes(tipus));
+}
+
+export function colleccio(nom) {
+  return GESTOR.colleccions[nom] || null;
+}
+
+export function esColleccioValida(nom) {
+  return Object.prototype.hasOwnProperty.call(GESTOR.colleccions, nom);
 }
 
 export function esEstatValid(id) {
