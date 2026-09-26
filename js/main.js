@@ -41,7 +41,7 @@ const i18n = {
     'ev.veure':        'Veure detalls',
     'ev.gratis':       'Gratuït',
     'ev.cartell_alt':  'Cartell oficial',
-    'ev.cartell_veure': 'Veure el cartell sencer',
+    'ev.cartell_veure': 'Veure el cartell',
     'ev.places':       'places disponibles',
     'ev.ultimes':      'Últimes places!',
     'ev.esgotat':      'Ple',
@@ -225,7 +225,7 @@ const i18n = {
     'ev.veure':        'Ver detalles',
     'ev.gratis':       'Gratuito',
     'ev.cartell_alt':  'Cartel oficial',
-    'ev.cartell_veure': 'Ver el cartel completo',
+    'ev.cartell_veure': 'Ver el cartel',
     'ev.places':       'plazas disponibles',
     'ev.ultimes':      '¡Últimas plazas!',
     'ev.esgotat':      'Completo',
@@ -546,6 +546,70 @@ function imatgePublica(ev) {
   return ev?.cartell || ev?.imatge || '/assets/placeholder-taller.svg';
 }
 
+/* ── Cartell ampliat ──────────────────────────────────────
+   A les targetes el cartell es retalla a la mateixa mida que la resta
+   d'imatges (es veu la part de dalt: títol i il·lustració). La lupa
+   l'obre sencer, a pantalla completa. Es tanca amb ×, Esc o clicant
+   fora, i el focus torna al botó que l'ha obert. */
+function botoCartell(ev) {
+  if (!ev?.cartell) return '';
+  const alt = `${T('ev.cartell_alt')}: ${L(ev.titol)}`;
+  return `<button type="button" class="cartell-lupa" data-cartell="${esc(ev.cartell)}" data-cartell-alt="${esc(alt)}"
+    aria-label="${esc(T('ev.cartell_veure'))}: ${esc(L(ev.titol))}">🔍</button>`;
+}
+
+function obrirCartell(src, alt, origen) {
+  tancarCartell();
+  const capa = document.createElement('div');
+  capa.className = 'cartell-capa';
+  capa.setAttribute('role', 'dialog');
+  capa.setAttribute('aria-modal', 'true');
+  capa.setAttribute('aria-label', alt || T('ev.cartell_alt'));
+  capa.innerHTML = `
+    <button type="button" class="cartell-tanca" aria-label="${getLang() === 'ca' ? 'Tancar' : 'Cerrar'}">×</button>
+    <img src="${esc(src)}" alt="${esc(alt || '')}">`;
+  document.body.appendChild(capa);
+  document.body.classList.add('cartell-obert');
+  capa._origen = origen || null;
+  capa.addEventListener('click', e => { if (e.target === capa || e.target.closest('.cartell-tanca')) tancarCartell(); });
+  capa.querySelector('.cartell-tanca').focus();
+}
+
+function tancarCartell() {
+  const capa = document.querySelector('.cartell-capa');
+  if (!capa) return;
+  const origen = capa._origen;
+  capa.remove();
+  document.body.classList.remove('cartell-obert');
+  origen?.focus?.();
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-cartell]');
+  if (!b) return;
+  /* La lupa viu dins d'enllaços (targeta, fila): no ha de navegar */
+  e.preventDefault();
+  e.stopPropagation();
+  obrirCartell(b.dataset.cartell, b.dataset.cartellAlt, b);
+}, true);
+document.addEventListener('keydown', e => {
+  const capa = document.querySelector('.cartell-capa');
+  if (!capa) return;
+  if (e.key === 'Escape') tancarCartell();
+  if (e.key === 'Tab') { e.preventDefault(); capa.querySelector('.cartell-tanca').focus(); }   // focus atrapat
+});
+
+/* Imatges verticals (cartells, fotos de mòbil) a les targetes: si
+   algú puja un cartell al camp "Imatge de NexSocial" en lloc de
+   "Cartell oficial", es retallaria pel mig i es perdria el títol.
+   Es detecta en carregar i es retalla per dalt, com els cartells. */
+document.addEventListener('load', e => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  if (!img.closest('.event-card-img, .event-poster, .event-row-img, .detail-hero, .summary-poster')) return;
+  if (img.naturalHeight > img.naturalWidth * 1.1) img.classList.add('img-vertical');
+}, true);
+
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
 
@@ -587,7 +651,7 @@ window.NX = {
   T, L, getLang, setLang,
   esc, formatDate, formatPrice,
   tipoLabel, tipoBadgeClass, placesRestants, estatPlaces, LLINDAR_ULTIMES,
-  phoneBannerHTML, imatgePublica,
+  phoneBannerHTML, imatgePublica, botoCartell, obrirCartell,
   PHONE, PHONE_TEL, WHATSAPP,
   qs, qsa
 };

@@ -50,7 +50,8 @@ function eventCardHTML(ev) {
 <article class="event-card">
   <div class="event-card-img${ev.cartell ? ' event-card-img--cartell' : ''}">
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}">${esc(tipoLabel(ev.tipo))}</span>
-    <img src="${esc(window.NX.imatgePublica(ev))}" alt="${ev.cartell ? esc(T('ev.cartell_alt') + ': ' + L(ev.titol)) : ''}" loading="lazy">
+    <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
+    ${window.NX.botoCartell(ev)}
   </div>
   <div class="event-card-body">
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
@@ -75,16 +76,10 @@ window.eventCardHTML = eventCardHTML;
 
 /* ═══ Vista 1b: POSTER gran (portada · foto amb títol overlay) ═══ */
 function eventPosterHTML(ev) {
-  /* El cartell oficial ja porta el títol: sense capa de text al damunt */
-  if (ev.cartell) {
-    return `
-<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster event-poster--cartell">
-  <img src="${esc(ev.cartell)}" alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}" loading="lazy">
-</a>`;
-  }
   return `
-<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster">
-  <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}" loading="lazy">
+<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster${ev.cartell ? ' event-poster--cartell' : ''}">
+  <img src="${esc(window.NX.imatgePublica(ev))}" alt="${esc(L(ev.titol))}" loading="lazy">
+  ${window.NX.botoCartell(ev)}
   <div class="event-poster-overlay">
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static;display:inline-block;margin-bottom:8px">${esc(tipoLabel(ev.tipo))}</span>
     <h3 class="event-poster-title">${esc(L(ev.titol))}</h3>
@@ -137,6 +132,7 @@ function eventRowHTML(ev) {
   </div>
   <div class="event-row-img${ev.cartell ? ' event-row-img--cartell' : ''}">
     <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
+    ${window.NX.botoCartell(ev)}
   </div>
 </a>`;
 }
@@ -233,9 +229,10 @@ async function renderDetail() {
   container.innerHTML = `
 ${ev.cartell ? `
 <div class="detail-hero detail-hero--cartell">
-  <a href="${esc(ev.cartell)}" target="_blank" rel="noopener" title="${esc(T('ev.cartell_veure'))}">
+  <button type="button" class="detail-cartell-obre" data-cartell="${esc(ev.cartell)}" data-cartell-alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">
     <img src="${esc(ev.cartell)}" alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">
-  </a>
+    <span class="cartell-lupa-text">🔍 ${esc(T('ev.cartell_veure'))}</span>
+  </button>
 </div>` : `
 <div class="detail-hero">
   <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}">

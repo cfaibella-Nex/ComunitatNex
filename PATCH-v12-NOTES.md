@@ -43,3 +43,12 @@ al detall i places pròpies si és un grup a part).
 - **Horaris** a revisar al panell: castellà Sant Roc dimarts 16.30–17.30 · mòbil Sant Roc dimarts 11–12 ·
   anglès Can Pepus dimarts 16.30–17.30 · memòria Can Pepus dijous 11–12 · mòbil Can Pepus dijous 10–11.
 - Els cartells porten el text "Vecteezy.com" al marge (crèdit de la il·lustració): comprovar que la llicència ho cobreix.
+
+## v12b · Cartells a la mateixa mida que la resta
+
+- Targetes, portada i agenda: el cartell es retalla a la mida de sempre i es veu la part de dalt
+  (títol i il·lustració). Totes les targetes queden iguals.
+- **Lupa 🔍** a cada cartell (48 px): l'obre sencer a pantalla completa, sense sortir de la pàgina.
+  Es tanca amb ×, Esc o clicant fora; el focus torna a la lupa (teclat i lector de pantalla).
+- Detall: capçalera de mida normal amb el botó "🔍 Veure el cartell".
+- Sense canvis a la base de dades.

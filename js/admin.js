@@ -713,8 +713,8 @@ window.editEvent = function(id) {
         <option value="iva21" ${ev.tipo_iva==='iva21'?'selected':''}>IVA 21% (altres)</option>
       </select>
     </div>
-    ${campImatge('cartell', 'Cartell oficial (centre cívic)', ev.cartell, 'Si n\'hi ha, és el que es veu a la web. Buit = es fa servir la imatge de NexSocial.')}
-    ${campImatge('imatge', 'Imatge de NexSocial', ev.imatge, 'Es veu al final de la reserva. Sense cartell, també a la targeta i a la pàgina.')}
+    ${campImatge('cartell', 'Cartell oficial (centre cívic)', ev.cartell, 'Puja aquí el cartell del centre cívic (vertical). A la web es veu retallat a la mida de les targetes i s\'amplia amb la lupa 🔍.')}
+    ${campImatge('imatge', 'Imatge de NexSocial', ev.imatge, 'Foto horitzontal pròpia. Es veu al final de la reserva i, si no hi ha cartell, també a la targeta.')}
     ${campImatge('imatge_lloc', 'Imatge del lloc', ev.imatge_lloc, 'Foto de l\'edifici, surt a "On es fa"')}
     <div class="form-group">
       <label class="form-label">Etiqueta de data CA</label>
