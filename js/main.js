@@ -40,6 +40,8 @@ const i18n = {
     'ev.reservar':     'Reservar plaça',
     'ev.veure':        'Veure detalls',
     'ev.gratis':       'Gratuït',
+    'ev.cartell_alt':  'Cartell oficial',
+    'ev.cartell_veure': 'Veure el cartell sencer',
     'ev.places':       'places disponibles',
     'ev.ultimes':      'Últimes places!',
     'ev.esgotat':      'Ple',
@@ -222,6 +224,8 @@ const i18n = {
     'ev.reservar':     'Reservar plaza',
     'ev.veure':        'Ver detalles',
     'ev.gratis':       'Gratuito',
+    'ev.cartell_alt':  'Cartel oficial',
+    'ev.cartell_veure': 'Ver el cartel completo',
     'ev.places':       'plazas disponibles',
     'ev.ultimes':      '¡Últimas plazas!',
     'ev.esgotat':      'Completo',
@@ -534,6 +538,14 @@ function estatPlaces(ev, restants) {
   return 'lliure';
 }
 
+/* Dues imatges per activitat (com BookingFEB):
+   · cartell → cartell oficial del centre cívic: és el que es veu a la web
+   · imatge  → la de NexSocial: es veu al final de la reserva
+   Sense cartell, la imatge de NexSocial es veu a tot arreu. */
+function imatgePublica(ev) {
+  return ev?.cartell || ev?.imatge || '/assets/placeholder-taller.svg';
+}
+
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
 
@@ -575,7 +587,7 @@ window.NX = {
   T, L, getLang, setLang,
   esc, formatDate, formatPrice,
   tipoLabel, tipoBadgeClass, placesRestants, estatPlaces, LLINDAR_ULTIMES,
-  phoneBannerHTML,
+  phoneBannerHTML, imatgePublica,
   PHONE, PHONE_TEL, WHATSAPP,
   qs, qsa
 };

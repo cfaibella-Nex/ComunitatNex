@@ -48,9 +48,9 @@ function eventCardHTML(ev) {
 
   return `
 <article class="event-card">
-  <div class="event-card-img">
+  <div class="event-card-img${ev.cartell ? ' event-card-img--cartell' : ''}">
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}">${esc(tipoLabel(ev.tipo))}</span>
-    <img src="${esc(ev.imatge)}" alt="" loading="lazy">
+    <img src="${esc(window.NX.imatgePublica(ev))}" alt="${ev.cartell ? esc(T('ev.cartell_alt') + ': ' + L(ev.titol)) : ''}" loading="lazy">
   </div>
   <div class="event-card-body">
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
@@ -75,6 +75,13 @@ window.eventCardHTML = eventCardHTML;
 
 /* ═══ Vista 1b: POSTER gran (portada · foto amb títol overlay) ═══ */
 function eventPosterHTML(ev) {
+  /* El cartell oficial ja porta el títol: sense capa de text al damunt */
+  if (ev.cartell) {
+    return `
+<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster event-poster--cartell">
+  <img src="${esc(ev.cartell)}" alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}" loading="lazy">
+</a>`;
+  }
   return `
 <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster">
   <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}" loading="lazy">
@@ -128,8 +135,8 @@ function eventRowHTML(ev) {
       <span class="event-row-arrow">${esgotat ? T('ev.esgotat') : T('ev.reservar') + ' →'}</span>
     </div>
   </div>
-  <div class="event-row-img">
-    <img src="${esc(ev.imatge)}" alt="" loading="lazy">
+  <div class="event-row-img${ev.cartell ? ' event-row-img--cartell' : ''}">
+    <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
   </div>
 </a>`;
 }
@@ -224,9 +231,15 @@ async function renderDetail() {
     : null;
 
   container.innerHTML = `
+${ev.cartell ? `
+<div class="detail-hero detail-hero--cartell">
+  <a href="${esc(ev.cartell)}" target="_blank" rel="noopener" title="${esc(T('ev.cartell_veure'))}">
+    <img src="${esc(ev.cartell)}" alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">
+  </a>
+</div>` : `
 <div class="detail-hero">
   <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}">
-</div>
+</div>`}
 <div class="container mt-4">
   <a href="/agenda.html" class="detail-back">${T('ev.tornar')}</a>
 

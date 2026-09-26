@@ -1,7 +1,8 @@
 /* data.js — Comunitat NexSocial · font estàtica
    ────────────────────────────────────────
    Model d'imatges:
-   - imatge      → foto comercial de l'activitat (cards, agenda, hero del detall)
+   - cartell     → cartell oficial (centres cívics): el que es veu a la web si hi és
+   - imatge      → imatge de NexSocial: final de la reserva (i a tot arreu si no hi ha cartell)
    - imatge_lloc → foto de l'edifici on es fa (mostrada al detall > "On es fa")
 */
 
@@ -95,6 +96,7 @@ const EVENTS_DATA = [
   },
   {
     id: 'taller-autodefensa-canpepus', tipo: 'taller',
+    cartell: '/assets/cartells/csbcanpepus-autodefensa.jpg',
     titol: { ca: "Taller d'autodefensa", es: 'Taller de autodefensa' },
     descripcio: {
       ca: 'Recursos pràctics per sentir-nos més segures al carrer i a casa. Postura, veu, tècniques bàsiques i confiança.',
@@ -112,6 +114,7 @@ const EVENTS_DATA = [
   },
   {
     id: 'taller-angles-canpepus', tipo: 'taller',
+    cartell: '/assets/cartells/csbcanpepus-conversaenangles.jpg',
     titol: { ca: 'Conversa en anglès', es: 'Conversación en inglés' },
     descripcio: {
       ca: "Trobada setmanal per practicar l'anglès parlant, sense exàmens ni deures. Comencem pel que ja saps i anem fent. L'important és perdre la vergonya i passar-ho bé. Grup estable: la plaça et queda reservada per a totes les sessions.",
@@ -129,6 +132,7 @@ const EVENTS_DATA = [
   },
   {
     id: 'taller-autodefensa-santroc', tipo: 'taller',
+    cartell: '/assets/cartells/ccstroc-autodefensa.jpg',
     titol: { ca: "Taller d'autodefensa", es: 'Taller de autodefensa' },
     descripcio: {
       ca: 'Recursos pràctics per sentir-nos més segures al carrer i a casa. Postura, veu, tècniques bàsiques i confiança.',
@@ -146,6 +150,7 @@ const EVENTS_DATA = [
   },
   {
     id: 'taller-castellano-santroc', tipo: 'taller',
+    cartell: '/assets/cartells/ccstroc-castella.jpg',
     titol: { ca: 'Taller de castellà bàsic', es: 'Taller de castellano básico' },
     descripcio: {
       ca: "Espai per practicar castellà i guanyar autonomia al dia a dia. Adaptat i sense pressa.",
@@ -163,6 +168,7 @@ const EVENTS_DATA = [
   },
   {
     id: 'taller-mobil-santroc', tipo: 'taller',
+    cartell: '/assets/cartells/ccstroc-mobil.jpg',
     titol: { ca: 'Taller de mòbil bàsic', es: 'Taller de móvil básico' },
     descripcio: {
       ca: 'Aprèn a fer servir el mòbil sense por: trucades, WhatsApp, càmera, cita al metge... Va al teu ritme.',

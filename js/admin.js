@@ -249,7 +249,7 @@ function targetaEvent(ev, ocup) {
     : ep === 'ultimes'
       ? '<span class="ev-places-avis" style="background:var(--warning)">Últimes places</span>'
       : '';
-  const foto = ev.imatge || '/assets/placeholder-taller.svg';
+  const foto = window.NX.imatgePublica(ev);
 
   return `
   <article class="ev-card${passat ? ' ev-card--passat' : ''}">
@@ -487,7 +487,8 @@ window.editEvent = function(id) {
         <option value="iva21" ${ev.tipo_iva==='iva21'?'selected':''}>IVA 21% (altres)</option>
       </select>
     </div>
-    ${campImatge('imatge', "Imatge de l'activitat", ev.imatge, 'Es veu a la targeta i a la pàgina de l\'activitat')}
+    ${campImatge('cartell', 'Cartell oficial (centre cívic)', ev.cartell, 'Si n\'hi ha, és el que es veu a la web. Buit = es fa servir la imatge de NexSocial.')}
+    ${campImatge('imatge', 'Imatge de NexSocial', ev.imatge, 'Es veu al final de la reserva. Sense cartell, també a la targeta i a la pàgina.')}
     ${campImatge('imatge_lloc', 'Imatge del lloc', ev.imatge_lloc, 'Foto de l\'edifici, surt a "On es fa"')}
     <div class="form-group">
       <label class="form-label">Etiqueta de data CA</label>
@@ -543,6 +544,7 @@ window.editEvent = function(id) {
       extres: cfg.extres.map(netejaItem),
       tipo_iva: fd.tipo_iva,
       imatge: fd.imatge,
+      cartell: fd.cartell || null,
       imatge_lloc: fd.imatge_lloc || null,
       data_label: (fd.datalabel_ca || fd.datalabel_es)
         ? { ca: fd.datalabel_ca, es: fd.datalabel_es } : null,

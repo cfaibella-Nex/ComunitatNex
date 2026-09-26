@@ -63,6 +63,8 @@ export default async function handler(req, res) {
     /* Migració v11 (cobraments i passar llista) executada? */
     const { error: v11 } = await sb.from('assistencia').select('id', { head: true, count: 'exact' });
     estat.control_v11 = v11 ? `FALTA: executa api/schema-v11-control.sql (${v11.message})` : true;
+    const { error: v12 } = await sb.from('events').select('cartell').limit(1);
+    estat.cartells_v12 = v12 ? `FALTA: executa api/schema-v12-cartells.sql (${v12.message})` : true;
     estat.esquema_ok = Object.values(out).every(v => typeof v === 'number');
     if (!estat.esquema_ok) {
       estat.ok = false;

@@ -32,6 +32,16 @@ export default async function handler(req, res) {
         /* Activitat antiga o canvi ràpid des de la targeta: sense tarifes
            explícites se'n desa una amb el preu de sempre. */
         if (!Array.isArray(body.tarifes) || !body.tarifes.length) body.tarifes = tarifesEvent(body);
+        /* Cartell: només imatges pròpies (assets o el bucket de Supabase) */
+        if (body.cartell) {
+          const c = String(body.cartell).trim();
+          const propi = c.startsWith('/assets/') || /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\//i.test(c);
+          if (!propi) return json(res, 400, { error: 'El cartell ha de ser una imatge pujada des del panell o de /assets/' });
+          body.cartell = c;
+        } else {
+          body.cartell = null;
+        }
+
         let config;
         try {
           config = validarConfig(body, { eventIds: (ids || []).map(e => e.id) });

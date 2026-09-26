@@ -110,9 +110,9 @@ if (typeof window.eventCardHTML !== 'function') {
 
     return `
 <article class="event-card">
-  <div class="event-card-img">
+  <div class="event-card-img${ev.cartell ? ' event-card-img--cartell' : ''}">
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}">${esc(tipoLabel(ev.tipo))}</span>
-    <img src="${esc(ev.imatge)}" alt="" loading="lazy">
+    <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
   </div>
   <div class="event-card-body">
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
