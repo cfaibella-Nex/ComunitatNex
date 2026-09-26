@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         falta: !e.secret ? 'GESTOR_SECRET' : !e.taules_ok ? 'gestor-schema.sql' : null
       });
     }
-    if (op === 'setup' && req.method === 'POST') return opSetup(req, res, cos);
+    if (op === 'setup' && req.method === 'POST') return await opSetup(req, res, cos);
     if (op === 'login' && req.method === 'POST') {
       if (!secretOk()) return err(res, 'falta_secret', 500);
       const r = await login(cos.email, String(cos.contrasenya || ''));
@@ -99,9 +99,9 @@ export default async function handler(req, res) {
 
     switch (`${req.method} ${op}`) {
       case 'GET jo':           return json(res, 200, { usuari: u, rols: ROL_NOM });
-      case 'POST contrasenya': return opContrasenya(res, u, cos);
-      case 'GET usuaris':      return pot(u, 'usuaris') ? opUsuaris(res) : err(res, 'sense_permis', 403);
-      case 'POST usuari':      return pot(u, 'usuaris') ? opUsuari(res, u, cos) : err(res, 'sense_permis', 403);
+      case 'POST contrasenya': return await opContrasenya(res, u, cos);
+      case 'GET usuaris':      return pot(u, 'usuaris') ? await opUsuaris(res) : err(res, 'sense_permis', 403);
+      case 'POST usuari':      return pot(u, 'usuaris') ? await opUsuari(res, u, cos) : err(res, 'sense_permis', 403);
     }
     return err(res, 'operacio_desconeguda', 404);
   } catch (e) {

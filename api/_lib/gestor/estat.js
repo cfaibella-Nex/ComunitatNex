@@ -19,9 +19,12 @@ export async function estatGestor() {
   };
   if (!e.supabase) return e;
   try {
-    const { count, error } = await ambTimeout(
-      getGestorDb().from('usuaris').select('id', { count: 'exact', head: true }), 5000, 'estat');
-    if (error) e.error = error.message;
+    /* Sense head:true: amb head, una taula inexistent pot tornar sense
+       error i semblar que tot està bé (va passar: "taules_ok" deia true
+       sense haver executat gestor-schema.sql). */
+    const { data, count, error } = await ambTimeout(
+      getGestorDb().from('usuaris').select('id', { count: 'exact' }).limit(1), 5000, 'estat');
+    if (error || !Array.isArray(data)) e.error = error?.message || 'Taula usuaris no accessible: executa api/gestor-schema.sql';
     else { e.taules_ok = true; e.usuaris = count || 0; }
   } catch (x) { e.error = String(x.message || x); }
   return e;

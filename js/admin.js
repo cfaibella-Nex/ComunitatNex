@@ -101,8 +101,14 @@ async function gestorPost(op, body) {
     headers: { 'Content-Type': 'application/json', 'x-gestor': '1' },
     body: JSON.stringify(body || {})
   });
-  const out = await r.json().catch(() => ({}));
-  if (!r.ok) { const e = new Error(out.error || `Error ${r.status}`); e.codi = out.codi; e.status = r.status; throw e; }
+  const text = await r.text();
+  let out = {};
+  try { out = JSON.parse(text); } catch { /* resposta no JSON */ }
+  if (!r.ok) {
+    /* Sempre el motiu: el missatge, el detall tècnic o el text de Vercel */
+    const motiu = [out.error, out.detall].filter(Boolean).join(' · ') || text.slice(0, 200) || `Error ${r.status}`;
+    const e = new Error(`${motiu} (${r.status})`); e.codi = out.codi; e.status = r.status; throw e;
+  }
   return out;
 }
 

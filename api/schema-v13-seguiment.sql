@@ -7,8 +7,8 @@
 --     el dia de l'activitat, amb dates afegides o tretes a mà
 --   · Correcció: el hash de contrasenya ja no arriba a l'auditoria
 --
--- Requereix v10, v11, v12 i gestor-schema.sql (ja executat: les
--- taules d'usuaris existeixen). És idempotent.
+-- Requereix v10, v11, v12 i api/gestor-schema.sql (taules d'usuaris).
+-- Ordre: gestor-schema.sql → aquest fitxer. És idempotent.
 -- ═══════════════════════════════════════════════════════════════
 
 -- ── 1. RESERVES: origen i observacions ────────────────────────
@@ -73,7 +73,12 @@ begin
   end if;
 end $$;
 
-drop trigger if exists trg_auditoria_usuaris_net on comunitat.usuaris;
+-- (si gestor-schema.sql encara no s'ha executat, la taula no hi és: no fa res)
+do $$ begin
+  if to_regclass('comunitat.usuaris') is not null then
+    drop trigger if exists trg_auditoria_usuaris_net on comunitat.usuaris;
+  end if;
+end $$;
 
 -- ── 4. AFEGIR UNA PERSONA DES DEL PANELL ──────────────────────
 -- Per a qui s'apunta trucant o al centre cívic. Mateixes comprovacions

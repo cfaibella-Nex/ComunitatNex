@@ -18,8 +18,8 @@ let _usuaris = { n: null, t: 0 };
 export async function hiHaUsuaris() {
   if (_usuaris.n !== null && Date.now() - _usuaris.t < 30000) return _usuaris.n > 0;
   try {
-    const { count, error } = await getGestorDb().from('usuaris').select('id', { count: 'exact', head: true });
-    if (error) return false;               // sense taula d'usuaris → accés antic
+    const { data, count, error } = await getGestorDb().from('usuaris').select('id', { count: 'exact' }).limit(1);
+    if (error || !Array.isArray(data)) return false;   // sense taula d'usuaris → accés antic
     _usuaris = { n: count || 0, t: Date.now() };
     return _usuaris.n > 0;
   } catch { return false; }
