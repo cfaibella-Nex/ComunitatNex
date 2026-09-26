@@ -5,6 +5,7 @@
 import { json, methodNotAllowed } from './_lib/http.js';
 import { hasSupabase, supabase, credencialsSupabase, ESQUEMA } from './_lib/supabase.js';
 import { estatGestor, gestorLlest } from './_lib/gestor/estat.js';
+import { modeStripe } from './_lib/stripe.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
@@ -18,6 +19,8 @@ export default async function handler(req, res) {
       ADMIN_USER: Boolean(process.env.ADMIN_USER),
       ADMIN_PASS: Boolean(process.env.ADMIN_PASS)
     },
+    /* 'off' | 'test' | 'live' — sense mostrar cap clau */
+    stripe: modeStripe(),
     credencials_ok: false,
     esquema_ok: false,
     taules: null
@@ -54,6 +57,9 @@ export default async function handler(req, res) {
       out[taula] = error ? `ERROR: ${error.message}` : (count ?? 0);
     }
     estat.taules = out;
+    /* Migració v10 (tarifes i pagament) executada? */
+    const { error: v10 } = await sb.from('events').select('model, tarifes').limit(1);
+    estat.inscripcions_v10 = v10 ? `FALTA: executa api/schema-v10-inscripcions.sql (${v10.message})` : true;
     estat.esquema_ok = Object.values(out).every(v => typeof v === 'number');
     if (!estat.esquema_ok) {
       estat.ok = false;

@@ -209,9 +209,12 @@ async function renderDetail() {
   }
 
   const places = placesRestants(ev);
-  const isFree = !ev.preu_cents || ev.preu_cents === 0;
   const esgotat = ev.estat === 'esgotat' || places === 0;
-  const maxPlaces = Math.min(6, places);
+  const NXC = window.NXC;
+  const tarifes = NXC.tarifesEvent(ev);
+  const unica = NXC.esTarifaUnica(ev);
+  const preuResum = NXC.preuResum(ev);
+  const gratuit = tarifes.every(x => x.preu_mode === 'gratuit');
 
   document.title = `${L(ev.titol)} · Comunitat NexSocial`;
 
@@ -246,7 +249,7 @@ async function renderDetail() {
           <dt>${T('ev.entitat')}</dt>
           <dd>${esc(L(ev.entitat))}</dd>
           <dt>${T('ev.preu')}</dt>
-          <dd class="event-price ${isFree ? 'free' : ''}" style="font-size:var(--fs-lg)">${formatPrice(ev.preu_cents)}${!isFree ? ' <span class="muted" style="font-size:var(--fs-sm)">/ plaça</span>' : ''}</dd>
+          <dd class="event-price ${gratuit ? 'free' : ''}" style="font-size:var(--fs-lg)">${esc(preuResum)}</dd>
         </dl>
       </div>
 
@@ -283,34 +286,22 @@ async function renderDetail() {
     <!-- Booking card (PAS 1: selector + Continuar) -->
     <aside class="booking-card">
       <h3 style="margin-top:0">${T('form.title')}</h3>
-      <p class="muted" style="margin-bottom:var(--sp-3); font-size:var(--fs-sm)">${T('form.step1')}</p>
+      <p class="muted" style="margin-bottom:var(--sp-3); font-size:var(--fs-sm)">${NXC.t(unica ? 'ins.tria' : 'ins.tria_nivell')}</p>
 
       ${esgotat
         ? `<div class="alert alert-warning">${T('ev.esgotat')}</div>`
         : `
-        <div class="form-group">
-          <label class="form-label" for="places">${T('form.places')}</label>
-          <div class="places-selector">
-            <button type="button" class="places-btn" data-op="dec" aria-label="Restar">−</button>
-            <input class="form-input places-input" id="places" type="number"
-                   min="1" max="${maxPlaces}" value="1" inputmode="numeric" readonly>
-            <button type="button" class="places-btn" data-op="inc" aria-label="Sumar">+</button>
-          </div>
-          <div class="form-help">${places} ${T('ev.places')}</div>
+        <div class="ins-tarifes" id="ins-tarifes">
+          ${tarifes.map(x => tarifaHTML(ev, x, unica)).join('')}
+        </div>
+        <div class="form-help ins-queden">${places} ${T('ev.places')}</div>
+
+        <div class="total-box">
+          <span>${T('form.total')}</span>
+          <strong id="total-display"></strong>
         </div>
 
-        ${isFree ? `
-          <div class="total-box">
-            <span>${T('form.total')}</span>
-            <strong>${T('ev.gratis')}</strong>
-          </div>
-        ` : `
-          <div class="total-box">
-            <span>${T('form.total')}</span>
-            <strong id="total-display">${formatPrice(ev.preu_cents)}</strong>
-          </div>
-        `}
-
+        <p class="form-error" id="ins-error" hidden>${NXC.t('ins.cap')}</p>
         <button type="button" id="btn-continuar" class="btn btn-primary btn-lg btn-block">
           ${T('form.continuar')} →
         </button>
@@ -324,52 +315,101 @@ async function renderDetail() {
   </div>
 </div>`;
 
-  if (!esgotat) {
-    bindPlacesSelector(ev);
-    const btn = qs('#btn-continuar');
-    btn?.addEventListener('click', () => {
-      const places = parseInt(qs('#places').value, 10) || 1;
-      // Guardem selecció al sessionStorage per al pas 2
-      sessionStorage.setItem('nx-checkout', JSON.stringify({
-        event_id: ev.id,
-        places,
-        preu_cents: ev.preu_cents || 0,
-        total_cents: (ev.preu_cents || 0) * places
-      }));
-      location.href = `/checkout.html?id=${encodeURIComponent(ev.id)}`;
-    });
-  }
+  if (!esgotat) bindInscripcio(ev, events, places);
 }
 
-function bindPlacesSelector(ev) {
-  const input = qs('#places');
-  const total = qs('#total-display');
-  const preuUnit = ev.preu_cents || 0;
-  const max = parseInt(input.max, 10);
+/* Una fila per tarifa (nivell). Amb una sola tarifa es veu com
+   sempre: "Places" i el selector, sense parlar de nivells. */
+function tarifaHTML(ev, tarifa, unica) {
+  const NXC = window.NXC;
+  const estat = NXC.estatTarifa(ev, tarifa);
+  const complet = estat === 'complet';
+  const restants = NXC.restantsTarifa(ev, tarifa);
+  const nom = unica ? T('form.places') : L(tarifa.nom);
+  const pill = complet
+    ? `<span class="ins-pill ins-pill--ple">${NXC.t('nivell.complet')}</span>`
+    : estat === 'ultimes'
+      ? `<span class="ins-pill ins-pill--ultimes">${NXC.t('nivell.ultimes')}</span>` : '';
+  return `
+<div class="ins-tarifa${complet ? ' ins-tarifa--ple' : ''}" data-id="${esc(tarifa.id)}">
+  <div class="ins-tarifa-cap">
+    <span class="ins-tarifa-nom">${esc(nom)}</span>
+    <span class="ins-tarifa-preu">${esc(NXC.preuTxt(tarifa, ev, true))}</span>
+  </div>
+  ${tarifa.detall && L(tarifa.detall) ? `<div class="ins-tarifa-detall">${esc(L(tarifa.detall))}</div>` : ''}
+  ${pill || (restants !== null && !complet ? `<div class="ins-tarifa-detall">${esc(NXC.t('nivell.queden', { n: restants }))}</div>` : '')}
+  ${NXC.selectorHTML({ id: tarifa.id, qty: 0, max: 0, nom: unica ? '' : L(tarifa.nom), desactivat: complet })}
+</div>`;
+}
 
-  function refresh() {
-    let val = parseInt(input.value, 10) || 1;
-    if (val < 1) val = 1;
-    if (val > max) val = max;
-    input.value = val;
-    if (total) {
-      const totalCents = preuUnit * val;
-      total.textContent = formatPrice(totalCents);
+/* Pas 1: quantitats per tarifa. Límits: places de l'activitat, places
+   del nivell (si en té) i 10 per reserva, com fins ara. */
+function bindInscripcio(ev, events, placesEv) {
+  const NXC = window.NXC;
+  const tarifes = NXC.tarifesEvent(ev);
+  const MAX_RESERVA = 10;
+  const prev = NXC.getCart(ev.id);
+  const cart = { event_id: ev.id, linies: {}, extres: {} };
+  if (prev) { cart.linies = prev.linies; cart.extres = prev.extres; }
+
+  /* Un carret desat abans que el nivell s'omplís no el pot arrossegar */
+  for (const x of tarifes) {
+    if (NXC.estatTarifa(ev, x) === 'complet') delete cart.linies[x.id];
+  }
+  /* Amb una sola tarifa, 1 plaça preseleccionada: com abans */
+  const obertes = tarifes.filter(x => NXC.estatTarifa(ev, x) !== 'complet');
+  if (!NXC.cartPlaces(cart) && tarifes.length === 1 && obertes.length) cart.linies[obertes[0].id] = 1;
+
+  const maxDe = (tarifa) => {
+    if (NXC.estatTarifa(ev, tarifa) === 'complet') return 0;
+    const altres = NXC.cartPlaces(cart) - (cart.linies[tarifa.id] || 0);
+    let max = Math.min(placesEv, MAX_RESERVA) - altres;
+    const rt = NXC.restantsTarifa(ev, tarifa);
+    if (rt !== null) max = Math.min(max, rt);
+    return Math.max(0, max);
+  };
+
+  function pinta() {
+    for (const x of tarifes) {
+      const box = qs(`.ins-qty[data-id="${CSS.escape(x.id)}"]`);
+      if (!box) continue;
+      const q = cart.linies[x.id] || 0;
+      const max = maxDe(x);
+      box.querySelector('.ins-qty-val').textContent = q;
+      box.querySelector('[data-op="dec"]').disabled = q <= 0;
+      box.querySelector('[data-op="inc"]').disabled = q >= max;
     }
-    // Actualitzar disabled state dels botons
-    qsa('.places-btn').forEach(b => {
-      b.disabled = (b.dataset.op === 'dec' && val <= 1) || (b.dataset.op === 'inc' && val >= max);
-    });
+    qs('#total-display').textContent = NXC.cartPlaces(cart) ? NXC.totalTxt(ev, cart) : '—';
   }
 
-  qsa('.places-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cur = parseInt(input.value, 10) || 1;
-      input.value = btn.dataset.op === 'inc' ? cur + 1 : cur - 1;
-      refresh();
-    });
+  qs('#ins-tarifes').addEventListener('click', (e) => {
+    const btn = e.target.closest('.places-btn');
+    if (!btn || btn.disabled) return;
+    const id = btn.closest('.ins-qty').dataset.id;
+    const tarifa = tarifes.find(x => x.id === id);
+    let q = cart.linies[id] || 0;
+    q = btn.dataset.op === 'inc' ? Math.min(q + 1, maxDe(tarifa)) : Math.max(0, q - 1);
+    if (q <= 0) delete cart.linies[id]; else cart.linies[id] = q;
+    qs('#ins-error').hidden = true;
+    pinta();
   });
-  refresh();
+
+  qs('#btn-continuar').addEventListener('click', () => {
+    if (!NXC.cartPlaces(cart)) {
+      qs('#ins-error').hidden = false;
+      return;
+    }
+    /* Els extres que ja no quadren amb les places triades es retallen */
+    const places = NXC.cartPlaces(cart);
+    for (const [k, v] of Object.entries(cart.extres)) {
+      if (v > places) cart.extres[k] = places;
+    }
+    NXC.setCart(cart);
+    const hiHaExtres = NXC.extresVisibles(ev, events).length > 0;
+    location.href = `/${hiHaExtres ? 'extres' : 'checkout'}.html?id=${encodeURIComponent(ev.id)}`;
+  });
+
+  pinta();
 }
 
 // Auto-init segons pàgina

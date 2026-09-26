@@ -1,25 +1,18 @@
 /* checkout.js — Comunitat NexSocial
    ────────────────────────────────────────
-   PAS 2: dades del reservant + resum + WhatsApp/pagar.
-   Llegeix la selecció (event_id + places + total) del sessionStorage
-   que ha desat el pas 1 (renderDetail a agenda.js). */
+   PAS 3: dades de la persona + resum + reservar o pagar.
+   Llegeix el carret (js/carret.js) que han deixat els passos 1 i 2.
+
+   Què passa en prémer el botó ho decideix el servidor:
+     · reserva / presencial / "online aviat" → queda reservada
+     · online (Stripe connectat)            → redirigeix a Stripe
+     · sense places                         → llista d'espera
+   WhatsApp només si l'API no respon. */
 
 (function() {
 
-const { T, L, esc, formatDate, formatPrice,
-        tipoLabel, tipoBadgeClass, phoneBannerHTML, qs, qsa } = window.NX;
-
-async function fetchEvents() {
-  try {
-    const r = await fetch('/api/events', { cache: 'no-store' });
-    if (!r.ok) throw new Error('API error');
-    const data = await r.json();
-    if (Array.isArray(data.events) && data.events.length) return data.events;
-    throw new Error('empty');
-  } catch {
-    return window.EVENTS_DATA || [];
-  }
-}
+const { T, L, esc, formatDate, qs, qsa } = window.NX;
+const NXC = window.NXC;
 
 function validaTelefon(t) {
   const clean = String(t || '').replace(/[\s\-\(\)]/g, '');
@@ -34,11 +27,10 @@ async function renderCheckout() {
   const app = qs('#checkout-app');
   if (!app) return;
 
-  const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  const stored = JSON.parse(sessionStorage.getItem('nx-checkout') || 'null');
+  const id = new URLSearchParams(location.search).get('id');
+  const cart = NXC.getCart(id);
 
-  if (!id || !stored || stored.event_id !== id) {
+  if (!id || !cart || !NXC.cartPlaces(cart)) {
     app.innerHTML = `
     <section class="section">
       <div class="alert alert-warning">${T('checkout.expired')}</div>
@@ -47,28 +39,40 @@ async function renderCheckout() {
     return;
   }
 
-  const events = await fetchEvents();
+  const events = await NXC.fetchEvents();
   const ev = events.find(e => e.id === id);
   if (!ev) {
     app.innerHTML = `<section class="section"><div class="alert alert-warning">${T('ev.no_trobat')}</div></section>`;
     return;
   }
 
-  const isFree = !ev.preu_cents || ev.preu_cents === 0;
-  const totalCents = (ev.preu_cents || 0) * stored.places;
+  const linies = NXC.cartLinies(ev, cart, events);
+  const { cents, consultar } = NXC.cartTotal(ev, cart);
+  const mode = NXC.cobrament(ev);
+  /* Mateixa regla que el servidor: amb alguna línia a consultar o un
+     total per sota del mínim de Stripe, no es cobra en línia. */
+  const pagaAra = mode === 'online' && !consultar && cents >= 50;
+  const avis = consultar ? 'chk.consultar'
+             : pagaAra ? 'chk.online'
+             : cents > 0 && mode === 'online_aviat' ? 'chk.online_aviat'
+             : cents > 0 && mode === 'presencial' ? 'chk.presencial'
+             : null;
+  const tornar = NXC.extresVisibles(ev, events).length ? 'extres' : 'detall';
+  const dataTxt = ev.data_label ? L(ev.data_label) : formatDate(ev.data, { weekday: 'long' });
+  const ambHora = !(ev.data_label && /pr[oò]xi/i.test(L(ev.data_label))) && ev.hora;
+
   document.title = `${T('checkout.title')} · Comunitat NexSocial`;
 
   app.innerHTML = `
 <section class="section checkout-section">
-  <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="detail-back">${T('checkout.back')}</a>
+  <a href="/${tornar}.html?id=${encodeURIComponent(ev.id)}" class="detail-back">${T('checkout.back')}</a>
 
   <div class="checkout-heading">
-    <span class="checkout-eyebrow">${T('checkout.eyebrow')}</span>
+    <span class="checkout-eyebrow">${esc(NXC.t('chk.eyebrow'))}</span>
     <h1 style="margin-top: var(--sp-1)">${T('checkout.title')}</h1>
   </div>
 
   <div class="checkout-layout">
-    <!-- Formulari dades -->
     <form id="checkout-form" novalidate>
       <div class="form-group">
         <label class="form-label" for="nom">${T('form.nom')}<span class="form-required">*</span></label>
@@ -100,39 +104,30 @@ async function renderCheckout() {
       <div id="form-msg" aria-live="polite" aria-atomic="true"></div>
     </form>
 
-    <!-- Sidebar resum -->
     <aside class="checkout-summary">
-      <div class="summary-poster">
-        <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}">
-      </div>
+      ${ev.imatge ? `<div class="summary-poster"><img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}"></div>` : ''}
 
       <div class="summary-body">
         <h3 style="margin: 0 0 var(--sp-2)">${T('checkout.resum')}</h3>
         <div class="summary-title">${esc(L(ev.titol))}</div>
-        <div class="summary-line muted">${esc(ev.data_label ? L(ev.data_label) : formatDate(ev.data, { weekday: 'long' }))}${ev.data_label && /pr[oò]xi/i.test(L(ev.data_label)) ? '' : ' · ' + esc(ev.hora || '')}</div>
+        <div class="summary-line muted">${esc(dataTxt)}${ambHora ? ' · ' + esc(ev.hora) : ''}</div>
         <div class="summary-line muted">${esc(L(ev.entitat))}</div>
 
-        <div class="summary-row">
-          <span>${stored.places} × ${T('form.places_single')}</span>
-          <strong>${isFree ? T('ev.gratis') : formatPrice(ev.preu_cents * stored.places)}</strong>
-        </div>
+        ${linies.map((l, i) => `
+        <div class="summary-row"${i ? ' style="margin-top:0"' : ''}>
+          <span>${l.qty} × ${esc(l.nom)}</span>
+          <strong>${esc(l.importTxt)}</strong>
+        </div>`).join('')}
 
         <div class="summary-total">
           <span>${T('form.total')}</span>
-          <strong>${isFree ? T('ev.gratis') : formatPrice(totalCents)}</strong>
+          <strong>${esc(NXC.totalTxt(ev, cart))}</strong>
         </div>
 
-        ${!isFree ? `
-          <div class="alert alert-info" style="font-size: var(--fs-sm); margin: var(--sp-3) 0">
-            ${T('checkout.stripe_soon')}
-          </div>
-          <button type="button" class="btn btn-secondary btn-block" disabled>
-            💳 ${T('checkout.pay_card')}
-          </button>
-        ` : ''}
+        ${avis ? `<div class="alert alert-info ins-avis">${esc(NXC.t(avis))}</div>` : ''}
 
         <button type="button" id="btn-reservar" class="btn btn-primary btn-lg btn-block" style="margin-top: var(--sp-2)">
-          ${T('form.enviar')}
+          ${pagaAra ? '💳 ' + esc(NXC.t('chk.pagar')) : T('form.enviar')}
         </button>
 
         <div class="muted" style="font-size: var(--fs-xs); margin-top: var(--sp-2); text-align: center">
@@ -143,7 +138,6 @@ async function renderCheckout() {
   </div>
 </section>`;
 
-  // Bind botó "Confirmar la reserva"
   qs('#btn-reservar').addEventListener('click', async (e) => {
     e.preventDefault();
     const nom = qs('#nom').value.trim();
@@ -152,17 +146,16 @@ async function renderCheckout() {
     const notes = qs('#notes').value.trim();
     const msg = qs('#form-msg');
 
-    // Validació
     qsa('.form-input, .form-textarea').forEach(el => {
       el.classList.remove('error');
       el.removeAttribute('aria-invalid');
     });
-    let errors = [];
+    const errors = [];
     if (nom.length < 2) errors.push('nom');
     if (!validaTelefon(tel)) errors.push('tel');
     if (!validaEmail(email)) errors.push('email');
     errors.forEach(k => {
-      const el = qs('#' + (k === 'tel' ? 'tel' : k));
+      const el = qs('#' + k);
       if (el) { el.classList.add('error'); el.setAttribute('aria-invalid', 'true'); }
     });
     if (errors.length) {
@@ -171,51 +164,60 @@ async function renderCheckout() {
       return;
     }
 
-    // La web es la font de veritat: nomes caiem a WhatsApp si l'API falla.
     const btn = qs('#btn-reservar');
     btn.disabled = true;
-    const btnOrig = btn.textContent;
-    btn.textContent = T('form.enviant');
+    const btnOrig = btn.innerHTML;
+    btn.textContent = pagaAra ? NXC.t('chk.obrint') : T('form.enviant');
 
     try {
       const r = await fetch('/api/reserva', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          event_id: ev.id, nom, telefon: tel, email: email || null,
-          places: stored.places, notes: notes || null,
+          event_id: ev.id,
+          linies: cart.linies,
+          extres: cart.extres,
+          nom, telefon: tel, email: email || null, notes: notes || null,
           web: qs('#hp-web')?.value || '',
           lang: window.NX.getLang()
         })
       });
 
-      // Sistema no disponible -> fallback WhatsApp
+      /* 503: sistema no disponible · 404: activitat que només és a data.js */
       if (r.status === 503 || r.status === 404) { obrirWhatsApp(); return; }
 
       const out = await r.json().catch(() => ({}));
 
       if (r.ok) {
-        sessionStorage.removeItem('nx-checkout');
+        if (out.redirect) {                 // Stripe: el carret es buida en tornar
+          location.href = out.redirect;
+          return;
+        }
+        NXC.clearCart();
         if (out.status === 'waitlist') {
           msg.innerHTML = `<div class="alert alert-warning">${T('form.waitlist')}</div>
             <div class="muted" style="font-size:var(--fs-sm);margin-top:var(--sp-2)">Ref. ${esc(out.reserva_id || '')}</div>`;
           btn.remove();
           return;
         }
-        location.href = `/confirmacio.html?ref=${encodeURIComponent(out.reserva_id || 'OK')}`;
+        const extra = out.pagament === 'presencial' && cents > 0 ? '&pagament=presencial' : '';
+        location.href = `/confirmacio.html?ref=${encodeURIComponent(out.reserva_id || 'OK')}${extra}`;
         return;
       }
 
-      // Errors controlats: mostrem el motiu, no obrim WhatsApp
+      // Errors controlats: es mostra el motiu, no s'obre WhatsApp
+      const traduit = out.codi && NXC.t('err.' + out.codi);
       if (out.codi === 'duplicate') {
         msg.innerHTML = `<div class="alert alert-warning">${T('form.duplicat')}</div>`;
       } else if (r.status === 429) {
         msg.innerHTML = `<div class="alert alert-warning">${T('form.massa')}</div>`;
+      } else if (traduit && traduit !== 'err.' + out.codi) {
+        msg.innerHTML = `<div class="alert alert-warning">${esc(traduit)}</div>`;
       } else {
         msg.innerHTML = `<div class="alert alert-danger">${esc(out.error || T('form.error_srv'))}</div>`;
       }
       btn.disabled = false;
-      btn.textContent = btnOrig;
+      btn.innerHTML = btnOrig;
       return;
 
     } catch (err) {
@@ -225,17 +227,16 @@ async function renderCheckout() {
     }
 
     function obrirWhatsApp() {
-    const lang = window.NX.getLang();
-    const dataStr = formatDate(ev.data);
-    const totalStr = isFree ? T('ev.gratis') : formatPrice(totalCents);
-    const txt = lang === 'ca'
-      ? `Hola! Vull confirmar una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataStr} · ${ev.hora}\n📍 ${L(ev.entitat)}\n\nDades:\nNom: ${nom}\nTelèfon: ${tel}${email ? '\nCorreu: ' + email : ''}\nPlaces: ${stored.places}\nTotal: ${totalStr}${notes ? '\nNotes: ' + notes : ''}`
-      : `¡Hola! Quiero confirmar una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataStr} · ${ev.hora}\n📍 ${L(ev.entitat)}\n\nDatos:\nNombre: ${nom}\nTeléfono: ${tel}${email ? '\nCorreo: ' + email : ''}\nPlazas: ${stored.places}\nTotal: ${totalStr}${notes ? '\nNotas: ' + notes : ''}`;
+      const lang = window.NX.getLang();
+      const detall = linies.map(l => `• ${l.qty} × ${l.nom} — ${l.importTxt}`).join('\n');
+      const total = NXC.totalTxt(ev, cart);
+      const txt = lang === 'ca'
+        ? `Hola! Vull fer una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataTxt}${ambHora ? ' · ' + ev.hora : ''}\n📍 ${L(ev.entitat)}\n\n${detall}\nTotal: ${total}\n\nDades:\nNom: ${nom}\nTelèfon: ${tel}${email ? '\nCorreu: ' + email : ''}${notes ? '\nNotes: ' + notes : ''}`
+        : `¡Hola! Quiero hacer una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataTxt}${ambHora ? ' · ' + ev.hora : ''}\n📍 ${L(ev.entitat)}\n\n${detall}\nTotal: ${total}\n\nDatos:\nNombre: ${nom}\nTeléfono: ${tel}${email ? '\nCorreo: ' + email : ''}${notes ? '\nNotas: ' + notes : ''}`;
 
       msg.innerHTML = `<div class="alert alert-warning">${T('form.error_srv')}</div>`;
       btn.disabled = false;
-      btn.textContent = btnOrig;
-      sessionStorage.removeItem('nx-checkout');
+      btn.innerHTML = btnOrig;
       window.open(`https://wa.me/${window.NX.WHATSAPP}?text=${encodeURIComponent(txt)}`, '_blank');
     }
   });

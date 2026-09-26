@@ -1616,3 +1616,47 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 .footer a.footer-brand-logo:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
 .footer a.footer-brand-logo img { display: block; width: 100%; height: auto; }
 @media (max-width: 720px) { .footer a.footer-brand-logo { max-width: 260px; } }
+
+/* ── Inscripció: tarifes (nivells) i extres · v10 ─────────────
+   Mateixa lògica que BookingFEB, amb l'escala senior de Comunitat:
+   text mínim 18px, botons de 56px i res que depengui només del color. */
+.ins-tarifes { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.ins-tarifa {
+  border: 2px solid rgba(45,107,72,0.15);
+  border-radius: var(--radius);
+  padding: var(--sp-2);
+  background: var(--white);
+}
+.ins-tarifa-cap {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: var(--sp-2); flex-wrap: wrap; margin-bottom: 4px;
+}
+.ins-tarifa-nom { font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.ins-tarifa-preu { font-size: var(--fs-base); font-weight: 700; color: var(--forest); white-space: nowrap; }
+.ins-tarifa-detall { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: var(--sp-1); }
+.ins-tarifa .places-selector { margin-top: var(--sp-1); }
+.ins-tarifa--ple { background: var(--cream); }
+.ins-tarifa--ple .ins-tarifa-nom,
+.ins-tarifa--ple .ins-tarifa-preu { color: var(--text-muted); }
+.ins-qty .places-input { display: flex; align-items: center; justify-content: center; }
+.ins-queden { margin-bottom: var(--sp-3); }
+
+.ins-pill {
+  display: inline-block; font-size: var(--fs-xs); font-weight: 700;
+  padding: 2px 12px; border-radius: var(--radius-pill); margin-bottom: var(--sp-1);
+}
+.ins-pill--ple     { background: var(--danger); color: var(--white); }
+.ins-pill--ultimes { background: #FFF4D6; color: var(--ink); border: 1px solid var(--warning); }
+
+/* Pas 2 · extres */
+.ins-extres-layout {
+  display: grid; grid-template-columns: 1fr 380px; gap: var(--sp-4); align-items: start;
+}
+@media (max-width: 900px) { .ins-extres-layout { grid-template-columns: 1fr; } }
+.ins-extra { padding: var(--sp-3); }
+.ins-extra--on { border-color: var(--forest); background: var(--cards-odd); }
+.ins-extra-ctrl { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.ins-totes { min-height: var(--touch); }
+
+/* Pas 3 · avís de com es paga */
+.ins-avis { font-size: var(--fs-sm); margin: var(--sp-3) 0 0; }

@@ -6,7 +6,7 @@
   <title>Admin · Comunitat NexSocial</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/styles.css?v=29">
+  <link rel="stylesheet" href="/css/styles.css?v=31">
 
   <style>
     /* ── Escala del panell ───────────────────────────────────
@@ -102,6 +102,22 @@
     .ev-arxivar { color: var(--danger); border-color: var(--danger); }
     .ev-id { margin: var(--sp-2) 0 0; font-size: var(--fs-xs); color: var(--text-muted); }
 
+    /* Editor d'inscripció (tarifes i extres) */
+    .ins-ed { border:1px solid rgba(15,45,30,0.15); border-radius: var(--radius-lg);
+              padding: var(--sp-3); margin-top: var(--sp-4); background: var(--white); }
+    .ins-ed legend { font-weight:700; padding: 0 var(--sp-1); font-size: var(--fs-md); }
+    .ins-ed h3 { margin: var(--sp-4) 0 var(--sp-1); }
+    .ins-ed-grid { display:grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    .ins-ed-fila { border:1px solid rgba(15,45,30,0.10); border-radius: var(--radius);
+                   padding: var(--sp-2); margin-bottom: var(--sp-2); background: var(--cream); }
+    .ins-ed-cap { display:flex; align-items:center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+    .ins-ed-cap code { font-size: var(--fs-xs); color: var(--text-muted); }
+    .ins-ed-treure { margin-left:auto; color: var(--danger); }
+    .ins-camp { display:flex; flex-direction:column; gap:2px; font-size: var(--fs-sm); }
+    .ins-camp > span { font-weight:600; }
+    .ins-camp small { color: var(--text-muted); font-size: var(--fs-xs); line-height:1.4; }
+    .res-detall { max-width: 260px; }
+
     @media (max-width: 520px) {
       .ev-card { flex-direction: column; }
       .ev-foto { width:100%; height:140px; }
@@ -125,7 +141,8 @@
     <div id="admin-app"></div>
   </main>
 
-  <script src="/js/main.js?v=34"></script>
-  <script src="/js/admin.js?v=34"></script>
+  <script src="/js/main.js?v=35"></script>
+  <script src="/js/carret.js?v=35"></script>
+  <script src="/js/admin.js?v=35"></script>
 </body>
 </html>

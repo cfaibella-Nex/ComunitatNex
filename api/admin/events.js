@@ -2,6 +2,7 @@
 import { json, readBody, methodNotAllowed } from '../_lib/http.js';
 import { supabase, hasSupabase } from '../_lib/supabase.js';
 import { requireAdmin } from '../_lib/auth.js';
+import { validarConfig, tarifesEvent } from '../_lib/tarifes.js';
 
 export default async function handler(req, res) {
   const actor = requireAdmin(req, res);
@@ -23,8 +24,23 @@ export default async function handler(req, res) {
       case 'PATCH': {
         const body = await readBody(req);
         if (!body?.id) return json(res, 400, { error: 'Falta id' });
+
+        /* Tarifes, extres, model i cobrament: es validen aquí i es
+           desa la versió neta, mai el que arriba tal qual. */
+        const { data: ids, error: idsErr } = await sb.from('events').select('id');
+        if (idsErr) throw idsErr;
+        /* Activitat antiga o canvi ràpid des de la targeta: sense tarifes
+           explícites se'n desa una amb el preu de sempre. */
+        if (!Array.isArray(body.tarifes) || !body.tarifes.length) body.tarifes = tarifesEvent(body);
+        let config;
+        try {
+          config = validarConfig(body, { eventIds: (ids || []).map(e => e.id) });
+        } catch (e) {
+          return json(res, 400, { error: e.message });
+        }
+
         const { data, error } = await sb.rpc('admin_upsert_event', {
-          p_event: body,
+          p_event: { ...body, ...config },
           p_actor: actor
         });
         if (error) throw error;

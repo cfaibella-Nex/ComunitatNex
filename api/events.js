@@ -1,6 +1,7 @@
 // api/events.js — GET públic del llistat d'events
 import { json, methodNotAllowed } from './_lib/http.js';
 import { hasSupabase, supabase } from './_lib/supabase.js';
+import { cobramentEvent } from './_lib/stripe.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
@@ -26,9 +27,23 @@ export default async function handler(req, res) {
     const { data: ocup } = await sb.rpc('places_ocupades_totes', { p_hold_min: 60 });
     const ocupMap = new Map((ocup || []).map(o => [o.event_id, o.places]));
 
+    /* Ocupació per nivell (v10). Si la migració encara no s'ha
+       executat, la funció no existeix: es continua sense, com abans. */
+    const ocupTarifa = new Map();
+    const { data: ot, error: otErr } = await sb.rpc('ocupacio_tarifes_totes');
+    if (!otErr) {
+      for (const o of ot || []) {
+        if (!ocupTarifa.has(o.event_id)) ocupTarifa.set(o.event_id, {});
+        ocupTarifa.get(o.event_id)[o.tarifa_id] = o.places;
+      }
+    }
+
     const enriched = (events || []).map(ev => ({
       ...ev,
-      reservades: ocupMap.get(ev.id) || 0
+      reservades: ocupMap.get(ev.id) || 0,
+      reservades_tarifa: ocupTarifa.get(ev.id) || {},
+      /* Com es cobra de debò ara mateix (depèn de si Stripe està connectat) */
+      cobrament: cobramentEvent(ev)
     }));
 
     return json(res, 200, { events: enriched });

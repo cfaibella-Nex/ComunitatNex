@@ -254,7 +254,7 @@ function targetaEvent(ev, ocup) {
       </div>
 
       <h3 class="ev-titol">${esc(ev.titol?.ca || ev.id)}</h3>
-      <p class="ev-sub">${esc(ev.ubicacio?.ca || '')}${ev.preu_cents ? ' · ' + formatPrice(ev.preu_cents) : ' · Gratuït'}</p>
+      <p class="ev-sub">${esc(ev.ubicacio?.ca || '')} · ${esc(window.NXC.preuResum(ev))} · ${esc(MODEL_NOM[ev.model] || MODEL_NOM.puntual)}${ev.pagament && ev.pagament !== 'reserva' ? ' · ' + esc(PAGAMENT_NOM[ev.pagament]) : ''}</p>
 
       <div class="ev-rapid">
         <label>Data
@@ -388,6 +388,16 @@ window.editEvent = function(id) {
   };
   const isNew = !id;
 
+  /* Configuració d'inscripció en edició. Es parteix de la mateixa
+     lectura que fa la web: una activitat antiga surt amb una tarifa. */
+  const cfg = {
+    id: ev.id,
+    model: ev.model || 'puntual',
+    pagament: ev.pagament || 'reserva',
+    tarifes: window.NXC.tarifesEvent(ev).map(x => ({ ...x })),
+    extres: window.NXC.extresEvent(ev).map(x => ({ ...x }))
+  };
+
   app.innerHTML = `
 <button class="btn btn-secondary mb-3" onclick="setTab('events')">← Tornar</button>
 <h1>${isNew ? 'Nou event' : 'Editar: ' + esc(ev.titol?.ca)}</h1>
@@ -459,11 +469,6 @@ window.editEvent = function(id) {
       <input class="form-input" name="cupo" type="number" min="1" value="${ev.cupo}" required>
     </div>
     <div class="form-group">
-      <label class="form-label">Preu (€)</label>
-      <input class="form-input" name="preu_eur" type="number" min="0" step="0.5" value="${(ev.preu_cents/100).toFixed(2)}">
-      <div class="form-help">0 = gratuït</div>
-    </div>
-    <div class="form-group">
       <label class="form-label">Tipus IVA</label>
       <select class="form-select" name="tipo_iva">
         <option value="exempt" ${ev.tipo_iva==='exempt'?'selected':''}>Exempt (assistència tercera edat, art. 20.Uno.8)</option>
@@ -492,6 +497,8 @@ window.editEvent = function(id) {
     </div>
   </div>
 
+  <div id="ins-editor"></div>
+
   <div id="ev-msg" class="mt-3"></div>
 
   <div style="display:flex; gap: var(--sp-2); margin-top: var(--sp-4);">
@@ -500,8 +507,11 @@ window.editEvent = function(id) {
   </div>
 </form>`;
 
+  editorInscripcio(cfg, () => qs('#ev-form [name="data"]')?.value || ev.data);
+
   qs('#ev-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    cfg.id = qs('#ev-form [name="id"]').value.trim();
     const fd = Object.fromEntries(new FormData(e.target).entries());
     const payload = {
       id: fd.id,
@@ -515,7 +525,11 @@ window.editEvent = function(id) {
       hora: fd.hora,
       durada: parseInt(fd.durada) || 90,
       cupo: parseInt(fd.cupo),
-      preu_cents: Math.round(parseFloat(fd.preu_eur || 0) * 100),
+      /* preu_cents el calcula el servidor a partir de les tarifes */
+      model: cfg.model,
+      pagament: cfg.pagament,
+      tarifes: cfg.tarifes.map(netejaItem),
+      extres: cfg.extres.map(netejaItem),
       tipo_iva: fd.tipo_iva,
       imatge: fd.imatge,
       imatge_lloc: fd.imatge_lloc || null,
@@ -533,6 +547,207 @@ window.editEvent = function(id) {
     }
   });
 };
+
+/* ── EDITOR D'INSCRIPCIÓ (model, cobrament, tarifes, extres) ──
+   Mateix plantejament que BookingFEB. Es re-pinta només quan canvia
+   l'estructura (afegir, treure, canviar tipus o mode de preu); en
+   escriure dins d'un camp s'actualitza l'objecte sense re-pintar,
+   perquè el cursor no salti. */
+const MODEL_NOM = { puntual: 'Puntual', mensual: 'Mensual', trimestral: 'Trimestral' };
+const MODEL_AJUDA = {
+  puntual:    "Una o poques sessions amb data. Pots oferir-hi una altra sessió com a extra (ex. autodefensa 13/10 + 10/11): cada sessió és una activitat amb les seves places.",
+  mensual:    "La inscripció cobra el primer mes (si hi ha matrícula, suma-la al preu i explica-ho al detall). Els mesos següents s'afegeixen com a extres.",
+  trimestral: "Es paga el període sencer d'un cop. Indica el període al detall de la tarifa (ex. \"Octubre – desembre\")."
+};
+const PAGAMENT_NOM = { reserva: 'Només reserva', presencial: 'Pagament presencial', online: 'Pagament online' };
+const PAGAMENT_AJUDA = {
+  reserva:    "Només es reserva la plaça. Per a activitats gratuïtes o amb preu a consultar.",
+  presencial: "Es reserva i es paga el dia de l'activitat, al centre.",
+  online:     "Pagament amb targeta (Stripe). Mentre Stripe no estigui connectat, es reserva igualment i surt l'avís de \"pagament aviat\"."
+};
+const PREU_NOM = { fix: 'Preu fix', gratuit: 'Gratuït', consultar: 'A consultar' };
+const TIPUS_NOM = { mes: 'Mes', sessio: 'Sessió vinculada', extra: 'Extra' };
+
+const nouId = (prefix) => `${prefix}-${Math.random().toString(36).slice(2, 7)}`;
+
+/* Treu camps que només fa servir l'editor i passa € a cèntims */
+function netejaItem(x) {
+  const o = { ...x };
+  o.preu_cents = o.preu_mode === 'fix' ? Math.round(Number(o.preu_cents) || 0) : 0;
+  if (o.places === '' || o.places == null) o.places = null;
+  if ('tipus' in o) {            // extra
+    if (o.tipus !== 'sessio') delete o.event_id;
+    delete o.places; delete o.estat;
+  }
+  return o;
+}
+
+function nomMes(dataBase, desplacament, lang) {
+  const d = dataBase ? new Date(dataBase + 'T12:00:00') : new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + desplacament);
+  const txt = new Intl.DateTimeFormat(lang === 'es' ? 'es-ES' : 'ca-ES', { month: 'long', year: 'numeric' }).format(d);
+  const net = txt.replace(/\s+(de|del)\s+/i, ' ').replace(/\s+d[’']/i, ' ');   // "gener del 2027" → "gener 2027"
+  return net.charAt(0).toUpperCase() + net.slice(1);
+}
+
+function camp(etiqueta, html, ajuda) {
+  return `<label class="ins-camp"><span>${etiqueta}</span>${html}${ajuda ? `<small>${ajuda}</small>` : ''}</label>`;
+}
+function inp(k, i, v, extra = '') {
+  return `<input class="form-input" data-k="${k}" data-i="${i}" value="${esc(v ?? '')}" ${extra}>`;
+}
+function preuCamps(llista, i, x) {
+  return `
+    ${camp('Preu', `<select class="form-select" data-k="preu_mode" data-i="${i}" data-llista="${llista}" data-repinta>
+      ${Object.entries(PREU_NOM).map(([k, v]) => `<option value="${k}" ${x.preu_mode === k ? 'selected' : ''}>${v}</option>`).join('')}
+    </select>`)}
+    ${x.preu_mode === 'fix'
+      ? camp('Import (€)', `<input class="form-input" type="number" min="0.01" step="0.01" data-k="preu_eur" data-i="${i}" data-llista="${llista}" value="${((x.preu_cents || 0) / 100).toFixed(2)}">`)
+      : ''}`;
+}
+
+function editorInscripcio(cfg, dataActivitat) {
+  const box = qs('#ins-editor');
+
+  function pinta() {
+    const altres = state.events
+      .filter(e => e.id !== cfg.id && e.estat !== 'arxivat')
+      .sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')));
+
+    const tarifa = (x, i) => `
+<div class="ins-ed-fila">
+  <div class="ins-ed-cap">
+    <strong>${cfg.tarifes.length > 1 ? `Nivell ${i + 1}` : 'Tarifa'}</strong>
+    <code>${esc(x.id)}</code>
+    ${cfg.tarifes.length > 1 ? `<button type="button" class="btn btn-ghost ins-ed-treure" data-treure="tarifes" data-i="${i}">Treure</button>` : ''}
+  </div>
+  <div class="ins-ed-grid">
+    ${camp('Nom CA *', inp('nom.ca', i, x.nom?.ca, 'data-llista="tarifes" placeholder="Ex. Bàsic"'))}
+    ${camp('Nom ES', inp('nom.es', i, x.nom?.es, 'data-llista="tarifes" placeholder="Ex. Básico"'))}
+    ${camp('Detall CA', inp('detall.ca', i, x.detall?.ca, 'data-llista="tarifes" placeholder="Ex. Dimarts 17:00 – 18:30"'))}
+    ${camp('Detall ES', inp('detall.es', i, x.detall?.es, 'data-llista="tarifes" placeholder="Ex. Martes 17:00 – 18:30"'))}
+    ${preuCamps('tarifes', i, x)}
+    ${camp('Places del nivell', `<input class="form-input" type="number" min="1" max="999" data-k="places" data-i="${i}" data-llista="tarifes" value="${x.places ?? ''}" placeholder="Comparteix">`,
+           'Buit = comparteix les places de l\'activitat')}
+    ${camp('Estat', `<select class="form-select" data-k="estat" data-i="${i}" data-llista="tarifes">
+      <option value="disponible" ${x.estat !== 'complet' ? 'selected' : ''}>Disponible</option>
+      <option value="complet" ${x.estat === 'complet' ? 'selected' : ''}>Complet</option>
+    </select>`)}
+  </div>
+</div>`;
+
+    const extra = (x, i) => `
+<div class="ins-ed-fila">
+  <div class="ins-ed-cap">
+    <strong>${TIPUS_NOM[x.tipus]}</strong>
+    <code>${esc(x.id)}</code>
+    <button type="button" class="btn btn-ghost ins-ed-treure" data-treure="extres" data-i="${i}">Treure</button>
+  </div>
+  <div class="ins-ed-grid">
+    ${x.tipus === 'sessio' ? camp('Activitat de la sessió *', `<select class="form-select" data-k="event_id" data-i="${i}" data-llista="extres">
+        <option value="">— Tria —</option>
+        ${altres.map(e => `<option value="${esc(e.id)}" ${x.event_id === e.id ? 'selected' : ''}>${esc(e.data || 'sense data')} · ${esc(e.titol?.ca || e.id)} · ${esc(e.entitat?.ca || '')}</option>`).join('')}
+      </select>`, 'Ocupa una plaça en aquesta altra activitat. La data es mostra sola.') : ''}
+    ${camp('Nom CA *', inp('nom.ca', i, x.nom?.ca, 'data-llista="extres"'))}
+    ${camp('Nom ES', inp('nom.es', i, x.nom?.es, 'data-llista="extres"'))}
+    ${camp('Detall CA', inp('detall.ca', i, x.detall?.ca, 'data-llista="extres"'))}
+    ${camp('Detall ES', inp('detall.es', i, x.detall?.es, 'data-llista="extres"'))}
+    ${preuCamps('extres', i, x)}
+  </div>
+</div>`;
+
+    box.innerHTML = `
+<fieldset class="ins-ed">
+  <legend>Inscripció i preus</legend>
+
+  <div class="ins-ed-grid">
+    ${camp('Model', `<select class="form-select" data-cfg="model" data-repinta>
+      ${Object.entries(MODEL_NOM).map(([k, v]) => `<option value="${k}" ${cfg.model === k ? 'selected' : ''}>${v}</option>`).join('')}
+    </select>`, MODEL_AJUDA[cfg.model])}
+    ${camp('Com es cobra', `<select class="form-select" data-cfg="pagament" data-repinta>
+      ${Object.entries(PAGAMENT_NOM).map(([k, v]) => `<option value="${k}" ${cfg.pagament === k ? 'selected' : ''}>${v}</option>`).join('')}
+    </select>`, PAGAMENT_AJUDA[cfg.pagament])}
+  </div>
+
+  <h3>Tarifes${cfg.tarifes.length > 1 ? ' (nivells)' : ''}</h3>
+  <p class="form-help">Amb una sola tarifa la web mostra "Places", com sempre. Amb més d'una, la persona tria el nivell.</p>
+  ${cfg.tarifes.map(tarifa).join('')}
+  <button type="button" class="btn btn-secondary" data-afegir="tarifa">+ Afegir nivell</button>
+
+  <h3>Extres</h3>
+  <p class="form-help">${cfg.model === 'mensual'
+    ? 'Afegeix un extra per cada mes que es pugui reservar a més del primer.'
+    : 'Opcional. Es mostren en un pas propi abans de les dades.'}</p>
+  ${cfg.extres.map(extra).join('') || '<p class="muted">Cap extra.</p>'}
+  <div style="display:flex; gap: var(--sp-1); flex-wrap: wrap;">
+    ${cfg.model === 'mensual' ? '<button type="button" class="btn btn-secondary" data-afegir="mes">+ Afegir mes</button>' : ''}
+    <button type="button" class="btn btn-secondary" data-afegir="sessio">+ Afegir sessió vinculada</button>
+    <button type="button" class="btn btn-secondary" data-afegir="extra">+ Afegir extra</button>
+  </div>
+  ${cfg.model !== 'mensual' && cfg.extres.some(x => x.tipus === 'mes')
+    ? '<div class="alert alert-warning mt-3">Hi ha mesos com a extra però l\'activitat no és mensual: treu-los o canvia el model.</div>' : ''}
+</fieldset>`;
+  }
+
+  function assigna(el) {
+    const { k, i, llista } = el.dataset;
+    if (el.dataset.cfg) { cfg[el.dataset.cfg] = el.value; return; }
+    const item = cfg[llista]?.[Number(i)];
+    if (!item) return;
+    if (k === 'preu_eur') { item.preu_cents = Math.round((parseFloat(el.value) || 0) * 100); return; }
+    if (k === 'places') { item.places = el.value === '' ? null : parseInt(el.value, 10); return; }
+    if (k.includes('.')) {
+      const [a, b] = k.split('.');
+      item[a] = { ...(item[a] || {}), [b]: el.value };
+      return;
+    }
+    item[k] = el.value;
+  }
+
+  box.addEventListener('input', e => { if (e.target.matches('[data-k],[data-cfg]')) assigna(e.target); });
+  box.addEventListener('change', e => {
+    if (!e.target.matches('[data-k],[data-cfg]')) return;
+    assigna(e.target);
+    if ('repinta' in e.target.dataset) pinta();
+  });
+
+  box.addEventListener('click', e => {
+    const tr = e.target.closest('[data-treure]');
+    if (tr) {
+      cfg[tr.dataset.treure].splice(Number(tr.dataset.i), 1);
+      pinta();
+      return;
+    }
+    const af = e.target.closest('[data-afegir]');
+    if (!af) return;
+    const quin = af.dataset.afegir;
+    if (quin === 'tarifa') {
+      cfg.tarifes.push({ id: nouId('t'), nom: { ca: '', es: '' }, detall: { ca: '', es: '' },
+                         preu_mode: 'gratuit', preu_cents: 0, places: null, estat: 'disponible' });
+    } else if (quin === 'mes') {
+      /* Nom automàtic: el mes següent a l'últim afegit, comptant des de
+         la data de l'activitat. Preu per defecte: el de la primera
+         tarifa amb preu fix. Tot es pot canviar. */
+      const n = cfg.extres.filter(x => x.tipus === 'mes').length + 1;
+      const base = cfg.tarifes.find(x => x.preu_mode === 'fix');
+      cfg.extres.push({ id: nouId('mes'), tipus: 'mes',
+        nom: { ca: nomMes(dataActivitat(), n, 'ca'), es: nomMes(dataActivitat(), n, 'es') },
+        detall: { ca: 'Quota mensual, pagada per endavant.', es: 'Cuota mensual, pagada por adelantado.' },
+        preu_mode: base ? 'fix' : (cfg.tarifes[0]?.preu_mode || 'gratuit'), preu_cents: base ? base.preu_cents : 0 });
+    } else if (quin === 'sessio') {
+      cfg.extres.push({ id: nouId('s'), tipus: 'sessio', event_id: '',
+        nom: { ca: 'Segona sessió', es: 'Segunda sesión' }, detall: { ca: '', es: '' },
+        preu_mode: cfg.tarifes[0]?.preu_mode || 'gratuit', preu_cents: cfg.tarifes[0]?.preu_cents || 0 });
+    } else {
+      cfg.extres.push({ id: nouId('x'), tipus: 'extra', nom: { ca: '', es: '' }, detall: { ca: '', es: '' },
+                        preu_mode: 'gratuit', preu_cents: 0 });
+    }
+    pinta();
+  });
+
+  pinta();
+}
 
 window.deleteEvent = async function(id) {
   if (!confirm('Arxivar aquest event? No apareixerà més a la web pública.')) return;
@@ -638,6 +853,15 @@ window.treureImatge = function(clau) {
 };
 
 /* ── RESERVES ─────────────────────────────────────────────── */
+const PAGAMENT_ESTAT = { none: '—', pending: 'Pendent de pagar', paid: 'Pagat', refunded: 'Retornat', failed: 'No pagat' };
+
+/* "2× Bàsic · 1× Novembre 2026" · les sessions vinculades diuen de quina reserva venen */
+function resumLinies(r) {
+  const ls = Array.isArray(r.linies) ? r.linies : [];
+  if (r.pare_id) return `Sessió vinculada a ${r.pare_id}`;
+  return ls.map(l => `${l.qty}× ${l.nom?.ca || l.id}${l.preu_mode === 'consultar' ? ' (a consultar)' : ''}`).join(' · ');
+}
+
 function renderReserves() {
   const evMap = new Map(state.events.map(e => [e.id, e.titol?.ca || e.id]));
   const filterHTML = state.eventFilter
@@ -652,7 +876,9 @@ function renderReserves() {
       <td><strong>${esc(r.nom)}</strong></td>
       <td><a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a></td>
       <td>${r.places}</td>
-      <td>${formatPrice(r.total_cents)}</td>
+      <td class="res-detall">${esc(resumLinies(r))}</td>
+      <td>${formatPrice(r.total_cents)}${r.consultar ? ' <small class="muted">+ a consultar</small>' : ''}</td>
+      <td>${esc(PAGAMENT_ESTAT[r.payment_status] || '—')}</td>
       <td>
         <select onchange="changeStatus('${esc(r.id)}', this.value)">
           ${ESTATS.map(s =>
@@ -676,9 +902,9 @@ ${tabsHTML()}
 ${filterHTML}
 <table class="admin-table">
   <thead>
-    <tr><th>Ref</th><th>Event</th><th>Nom</th><th>Telèfon</th><th>Places</th><th>Total</th><th>Estat</th><th>Data</th></tr>
+    <tr><th>Ref</th><th>Event</th><th>Nom</th><th>Telèfon</th><th>Places</th><th>Detall</th><th>Total</th><th>Pagament</th><th>Estat</th><th>Data</th></tr>
   </thead>
-  <tbody>${rows || '<tr><td colspan="8" style="text-align:center; padding: var(--sp-4)" class="muted">Cap reserva encara.</td></tr>'}</tbody>
+  <tbody>${rows || '<tr><td colspan="10" style="text-align:center; padding: var(--sp-4)" class="muted">Cap reserva encara.</td></tr>'}</tbody>
 </table>`;
 }
 
@@ -696,14 +922,15 @@ window.changeStatus = async function(id, status) {
 /* ── EXPORT CSV ────────────────────────────────────────────── */
 window.exportCSV = function() {
   const evMap = new Map(state.events.map(e => [e.id, e.titol?.ca || e.id]));
-  const cap = ['Ref','Activitat','Data acte','Nom','Telefon','Email','Places','Total EUR','Estat','Creada','Confirmada'];
+  const cap = ['Ref','Activitat','Data acte','Nom','Telefon','Email','Places','Detall','Total EUR','Pagament','Estat','Creada','Confirmada'];
   const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const files = state.reserves.map(r => {
     const ev = state.events.find(e => e.id === r.event_id);
     return [
       r.id, evMap.get(r.event_id) || r.event_id, ev?.data || '',
-      r.nom, r.telefon, r.email || '', r.places,
+      r.nom, r.telefon, r.email || '', r.places, resumLinies(r),
       ((r.total_cents || 0) / 100).toFixed(2).replace('.', ','),
+      PAGAMENT_ESTAT[r.payment_status] || '',
       ESTAT_LABEL[r.status] || r.status,
       r.created_at || '', r.confirmed_at || ''
     ].map(cell).join(';');
