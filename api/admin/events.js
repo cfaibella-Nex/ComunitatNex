@@ -1,12 +1,13 @@
 // api/admin/events.js — CRUD events per admin (v2: auditat)
 import { json, readBody, methodNotAllowed } from '../_lib/http.js';
 import { supabase, hasSupabase } from '../_lib/supabase.js';
-import { requireAdmin } from '../_lib/auth.js';
+import { autoritzar } from '../_lib/auth.js';
 import { validarConfig, tarifesEvent } from '../_lib/tarifes.js';
 
 export default async function handler(req, res) {
-  const actor = requireAdmin(req, res);
-  if (!actor) return;
+  const a = await autoritzar(req, res, req.method === 'DELETE' ? 'esborrar' : 'contingut');
+  if (!a) return;
+  const actor = a.actor;
   if (!hasSupabase()) return json(res, 503, { error: 'Supabase no configurat' });
 
   try {

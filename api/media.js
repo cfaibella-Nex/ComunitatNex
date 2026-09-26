@@ -12,7 +12,7 @@
 
 import { json, readBody, methodNotAllowed } from './_lib/http.js';
 import { hasSupabase, supabase } from './_lib/supabase.js';
-import { requireAdmin } from './_lib/auth.js';
+import { autoritzar } from './_lib/auth.js';
 import { BUCKET } from './_lib/gestor/db.js';
 
 const MIMES = {
@@ -44,7 +44,8 @@ function nomSegur(original, ext) {
 }
 
 export default async function handler(req, res) {
-  const actor = requireAdmin(req, res);
+  const a = await autoritzar(req, res, 'contingut');
+  const actor = a ? a.actor : null;
   if (!actor) return;
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
   if (!hasSupabase()) return json(res, 503, { error: 'Supabase no configurat' });

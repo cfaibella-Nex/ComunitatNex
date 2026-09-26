@@ -44,10 +44,11 @@ export const ROL_NOM = {
    L'editor pot preparar activitats però no esborrar-les ni tocar
    dades de persones. */
 export const PERMISOS = {
-  contingut: ['admin', 'responsable', 'editor'],
-  esborrar:  ['admin', 'responsable'],
-  reserves:  ['admin', 'responsable'],
-  usuaris:   ['admin', 'responsable']
+  contingut: ['admin', 'responsable', 'editor'],   // crear i editar activitats
+  esborrar:  ['admin', 'responsable'],             // arxivar activitats
+  reserves:  ['admin', 'responsable'],             // reserves, cobraments, llista, seguiment
+  auditoria: ['admin', 'responsable'],
+  usuaris:   ['admin']                             // només l'admin crea i gestiona usuaris
 };
 
 export function pot(usuari, accio) {

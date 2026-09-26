@@ -29,7 +29,10 @@ let state = {
   stripe: 'off',                 // 'off' | 'test' | 'live' (ho diu l'API)
   filtreReserves: 'totes',       // totes | cobrar | pagades | espera
   cobrant: null,                 // id de la reserva amb el panell de cobrament obert
-  llista: { eventId: null, data: null, assistencia: {} }
+  llista: { eventId: null, data: null, assistencia: {} },
+  seguiment: { eventId: null, mes: null, assistencia: {} },   // assistencia[reserva][data] = true/false
+  usuari: null,
+  gestor: null
 };
 
 const ESTATS = ['pending','confirmed','waitlist','cancelled','attended','no-show'];
@@ -66,6 +69,7 @@ function authHeaders(extra) {
 async function apiGet(path) {
   const r = await fetch(path, { headers: authHeaders() });
   if (r.status === 401) throw new AuthError('401');
+  if (r.status === 403) { const d = await r.clone().json().catch(() => ({})); if (d.codi === 'cal_canviar_contrasenya') throw new AuthError('canviar'); }
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -81,56 +85,263 @@ async function apiSend(path, method, body) {
   return r.json();
 }
 
-/* ── Pantalla de login ────────────────────────────────────── */
+/* ── Entrada al panell ─────────────────────────────────────
+   Cada persona entra amb el seu correu. L'accés compartit d'abans
+   només surt mentre no hi hagi cap usuari creat. */
+async function gestorEstat() {
+  try {
+    const r = await fetch('/api/gestor?op=estat', { cache: 'no-store' });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
+async function gestorPost(op, body) {
+  const r = await fetch(`/api/gestor?op=${op}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-gestor': '1' },
+    body: JSON.stringify(body || {})
+  });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(out.error || `Error ${r.status}`); e.codi = out.codi; e.status = r.status; throw e; }
+  return out;
+}
+
+const potFer = (permis) => {
+  const rol = state.usuari?.rol || 'admin';
+  const P = { contingut: ['admin', 'responsable', 'editor'], esborrar: ['admin', 'responsable'],
+              reserves: ['admin', 'responsable'], auditoria: ['admin', 'responsable'], usuaris: ['admin'] };
+  return P[permis]?.includes(rol);
+};
+
 function renderLogin(msg) {
+  const g = state.gestor || {};
   app.innerHTML = `
 <div class="admin-login">
-  <h1>Accés al panel</h1>
-  <p class="muted">Panel de gestió d'activitats i reserves de Comunitat NexSocial.</p>
+  <h1>Accés al panell</h1>
+  <p class="muted">Activitats, reserves, cobraments i seguiment de Comunitat NexSocial.</p>
   ${msg ? `<div class="alert alert-danger">${esc(msg)}</div>` : ''}
+
+  ${g.gestor && g.inicialitzat ? `
   <form id="login-form">
     <div class="form-group">
-      <label class="form-label" for="login-u">Usuari</label>
-      <input class="form-input" id="login-u" type="text" autocomplete="username" required autofocus>
+      <label class="form-label" for="login-e">Correu</label>
+      <input class="form-input" id="login-e" type="email" autocomplete="username" required autofocus>
     </div>
     <div class="form-group">
       <label class="form-label" for="login-p">Contrasenya</label>
       <input class="form-input" id="login-p" type="password" autocomplete="current-password" required>
     </div>
     <button class="btn btn-primary btn-block" type="submit" id="login-btn">Entrar</button>
-  </form>
+  </form>` : ''}
+
+  ${g.setup_disponible ? `
+  <details class="mt-3" ${g.acces_antic ? '' : 'open'}>
+    <summary><strong>Crear el primer administrador</strong></summary>
+    <p class="form-help">Cal la clau d'instal·lació (GESTOR_SETUP_KEY de Vercel). Només es pot fer un cop.</p>
+    <form id="setup-form">
+      <div class="form-group"><label class="form-label">Clau d'instal·lació</label>
+        <input class="form-input" id="st-clau" type="password" required autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">Nom</label>
+        <input class="form-input" id="st-nom" required></div>
+      <div class="form-group"><label class="form-label">Correu</label>
+        <input class="form-input" id="st-email" type="email" required autocomplete="username"></div>
+      <div class="form-group"><label class="form-label">Contrasenya (mínim 10 caràcters)</label>
+        <input class="form-input" id="st-pw" type="password" minlength="10" required autocomplete="new-password"></div>
+      <button class="btn btn-primary btn-block" type="submit">Crear i entrar</button>
+    </form>
+  </details>` : ''}
+
+  ${g.gestor === false && g.falta ? `<div class="alert alert-info mt-3">Usuaris individuals encara no actius: falta <code>${esc(g.falta)}</code>. Mentrestant, accés compartit.</div>` : ''}
+
+  ${g.acces_antic || !g.gestor ? `
+  <details class="mt-3" ${g.gestor && g.inicialitzat ? '' : 'open'}>
+    <summary>Accés compartit (fins que es creï el primer usuari)</summary>
+    <form id="legacy-form">
+      <div class="form-group"><label class="form-label" for="login-u">Usuari</label>
+        <input class="form-input" id="login-u" type="text" autocomplete="username" required></div>
+      <div class="form-group"><label class="form-label" for="login-lp">Contrasenya</label>
+        <input class="form-input" id="login-lp" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-secondary btn-block" type="submit">Entrar</button>
+    </form>
+  </details>` : ''}
 </div>`;
 
-  qs('#login-form').addEventListener('submit', async (e) => {
+  qs('#login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = qs('#login-btn');
-    btn.disabled = true;
-    btn.textContent = 'Comprovant…';
-
-    const token = basicToken(qs('#login-u').value.trim(), qs('#login-p').value);
+    btn.disabled = true; btn.textContent = 'Comprovant…';
     try {
-      const r = await fetch('/api/admin/events', { headers: { Authorization: 'Basic ' + token } });
-      if (r.status === 401) { renderLogin('Usuari o contrasenya incorrectes.'); return; }
-      if (!r.ok) {
-        const detall = await r.json().catch(() => null);
-        renderLogin(detall?.error
-          ? `Error ${r.status}: ${detall.error}`
-          : `Error del servidor ${r.status}. Obre /api/health per veure què falla.`);
-        return;
-      }
-      setAuth(token);
-      state.tab = 'events';
+      const out = await gestorPost('login', { email: qs('#login-e').value.trim(), contrasenya: qs('#login-p').value });
+      clearAuth();
+      state.usuari = out.usuari;
+      if (out.usuari.ha_de_canviar) return renderContrasenya(true);
+      state.tab = potFer('reserves') ? 'events' : 'events';
       await render();
     } catch (err) {
-      renderLogin('No s\'ha pogut connectar amb el servidor.');
+      renderLogin(err.message + (err.codi === 'credencials' && err.queden ? '' : ''));
     }
+  });
+
+  qs('#setup-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const email = qs('#st-email').value.trim(), contrasenya = qs('#st-pw').value;
+      await gestorPost('setup', { clau: qs('#st-clau').value, nom: qs('#st-nom').value.trim(), email, contrasenya });
+      const out = await gestorPost('login', { email, contrasenya });
+      clearAuth();
+      state.usuari = out.usuari;
+      state.gestor = await gestorEstat();
+      state.tab = 'usuaris';
+      await render();
+    } catch (err) { renderLogin(err.message); }
+  });
+
+  qs('#legacy-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = basicToken(qs('#login-u').value.trim(), qs('#login-lp').value);
+    try {
+      const r = await fetch('/api/admin/events', { headers: { Authorization: 'Basic ' + token } });
+      if (r.status === 401) {
+        const d = await r.json().catch(() => ({}));
+        return renderLogin(d.codi === 'acces_antic_tancat' ? d.error : 'Usuari o contrasenya incorrectes.');
+      }
+      if (!r.ok) return renderLogin(`Error del servidor ${r.status}. Obre /api/health per veure què falla.`);
+      setAuth(token);
+      state.usuari = { nom: 'Accés compartit', rol: 'admin', antic: true };
+      state.tab = 'events';
+      await render();
+    } catch { renderLogin('No s\'ha pogut connectar amb el servidor.'); }
   });
 }
 
-window.logout = function() {
+/* Canvi de contrasenya: obligatori amb una de temporal */
+function renderContrasenya(obligatori) {
+  app.innerHTML = `
+${obligatori ? '' : tabsHTML()}
+<div class="admin-login">
+  <h1>${obligatori ? 'Tria la teva contrasenya' : 'Canviar la contrasenya'}</h1>
+  ${obligatori ? '<p class="muted">Has entrat amb una contrasenya temporal. Posa\'n una de teva per continuar.</p>' : ''}
+  <div id="pw-msg"></div>
+  <form id="pw-form">
+    <div class="form-group"><label class="form-label">Contrasenya ${obligatori ? 'temporal' : 'actual'}</label>
+      <input class="form-input" id="pw-actual" type="password" required autocomplete="current-password"></div>
+    <div class="form-group"><label class="form-label">Nova (mínim 10 caràcters)</label>
+      <input class="form-input" id="pw-nova" type="password" minlength="10" required autocomplete="new-password"></div>
+    <div class="form-group"><label class="form-label">Repeteix la nova</label>
+      <input class="form-input" id="pw-nova2" type="password" minlength="10" required autocomplete="new-password"></div>
+    <button class="btn btn-primary btn-block" type="submit">Desar</button>
+  </form>
+  ${obligatori ? '<button class="btn btn-ghost btn-block mt-3" onclick="logout()">Sortir</button>' : ''}
+</div>`;
+  qs('#pw-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (qs('#pw-nova').value !== qs('#pw-nova2').value) {
+      qs('#pw-msg').innerHTML = '<div class="alert alert-danger">Les dues contrasenyes noves no coincideixen.</div>'; return;
+    }
+    try {
+      const out = await gestorPost('contrasenya', { actual: qs('#pw-actual').value, nova: qs('#pw-nova').value });
+      state.usuari = out.usuari;
+      state.tab = 'events';
+      await render();
+    } catch (err) { qs('#pw-msg').innerHTML = `<div class="alert alert-danger">${esc(err.message)}</div>`; }
+  });
+}
+window.canviarContrasenya = () => renderContrasenya(false);
+
+window.logout = async function() {
+  try { await gestorPost('logout'); } catch { /* res */ }
   clearAuth();
+  state.usuari = null;
   state.events = []; state.reserves = []; state.auditoria = [];
+  state.gestor = await gestorEstat();
   renderLogin('Has tancat la sessió.');
+};
+
+/* ── USUARIS (només admin) ─────────────────────────────────── */
+async function renderUsuaris(avis) {
+  let d;
+  try { d = await apiGet('/api/gestor?op=usuaris'); }
+  catch (e) {
+    if (e instanceof AuthError) throw e;
+    app.innerHTML = tabsHTML() + `<div class="alert alert-danger">${esc(errText(e))}</div>`; return;
+  }
+  const rols = d.rols || {};
+  const ROL_AJUDA = {
+    admin: 'Tot, inclosos els usuaris.',
+    responsable: 'Activitats, reserves, cobraments, passar llista i seguiment.',
+    editor: 'Només preparar i editar activitats.'
+  };
+  const fila = u => `
+    <tr${u.actiu ? '' : ' class="muted"'}>
+      <td><strong>${esc(u.nom)}</strong>${u.id === state.usuari?.id ? ' <small>(tu)</small>' : ''}</td>
+      <td>${esc(u.email)}</td>
+      <td>${u.id === state.usuari?.id ? esc(rols[u.rol] || u.rol) : `
+        <select onchange="usuariAccio('${esc(u.id)}','rol',this.value)">
+          ${Object.entries(rols).map(([k, v]) => `<option value="${k}" ${u.rol === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+        </select>`}</td>
+      <td>${!u.actiu ? 'Desactivat' : u.ha_de_canviar ? 'Pendent de primera entrada' : 'Actiu'}</td>
+      <td>${u.ultim_acces ? esc(formatDate(u.ultim_acces, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })) : '—'}</td>
+      <td class="usr-accions">
+        <button class="btn btn-ghost btn-mini" onclick="usuariAccio('${esc(u.id)}','reiniciar')">Nova contrasenya temporal</button>
+        ${u.id === state.usuari?.id ? '' : u.actiu
+          ? `<button class="btn btn-ghost btn-mini ev-arxivar" onclick="usuariAccio('${esc(u.id)}','desactivar')">Desactivar</button>`
+          : `<button class="btn btn-ghost btn-mini" onclick="usuariAccio('${esc(u.id)}','activar')">Activar</button>`}
+      </td>
+    </tr>`;
+
+  app.innerHTML = `
+${tabsHTML()}
+<h1>Usuaris del panell</h1>
+<p class="muted">Cada persona entra amb el seu correu. L'auditoria registra qui ha fet cada canvi.</p>
+${avis || ''}
+<table class="admin-table">
+  <thead><tr><th>Nom</th><th>Correu</th><th>Rol</th><th>Estat</th><th>Últim accés</th><th></th></tr></thead>
+  <tbody>${(d.usuaris || []).map(fila).join('')}</tbody>
+</table>
+
+<section class="cob mt-4">
+  <h2>Afegir una persona</h2>
+  <div id="usr-msg"></div>
+  <form id="usr-form" class="cob-grid" style="align-items:end">
+    <label class="ins-camp"><span>Nom</span><input class="form-input" id="usr-nom" required></label>
+    <label class="ins-camp"><span>Correu</span><input class="form-input" id="usr-email" type="email" required></label>
+    <label class="ins-camp"><span>Rol</span>
+      <select class="form-select" id="usr-rol">
+        ${Object.entries(rols).map(([k, v]) => `<option value="${k}" ${k === 'responsable' ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+      </select></label>
+    <button class="btn btn-primary" type="submit">Crear</button>
+  </form>
+  <ul class="form-help">${Object.entries(ROL_AJUDA).map(([k, v]) => `<li><strong>${esc(rols[k] || k)}:</strong> ${esc(v)}</li>`).join('')}</ul>
+</section>`;
+
+  qs('#usr-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const out = await gestorPost('usuari', { accio: 'crear', nom: qs('#usr-nom').value.trim(),
+        email: qs('#usr-email').value.trim(), rol: qs('#usr-rol').value });
+      renderUsuaris(avisTemporal(out.usuari, out.temporal));
+    } catch (err) { qs('#usr-msg').innerHTML = `<div class="alert alert-danger">${esc(err.message)}</div>`; }
+  });
+}
+
+/* La contrasenya temporal es mostra una sola vegada: la web no envia res */
+function avisTemporal(u, temporal) {
+  return `<div class="alert alert-success">
+    <strong>${esc(u.nom)}</strong> ja pot entrar a <code>${esc(location.origin)}/admin</code> amb el correu
+    <strong>${esc(u.email)}</strong> i aquesta contrasenya temporal:
+    <div class="usr-temporal"><code id="usr-temp">${esc(temporal)}</code>
+      <button class="btn btn-secondary btn-mini" onclick="navigator.clipboard?.writeText('${esc(temporal)}')">Copiar</button></div>
+    En entrar, haurà de triar-ne una de pròpia. <em>No es tornarà a mostrar.</em>
+  </div>`;
+}
+
+window.usuariAccio = async function(id, accio, rol) {
+  if (accio === 'desactivar' && !confirm('Desactivar aquest usuari? No podrà entrar fins que el tornis a activar.')) return;
+  if (accio === 'reiniciar' && !confirm('Generar una contrasenya temporal nova? L\'actual deixarà de funcionar.')) return;
+  try {
+    const out = await gestorPost('usuari', { accio, id, rol });
+    renderUsuaris(out.temporal ? avisTemporal(out.usuari, out.temporal) : '');
+  } catch (err) { alert(err.message); renderUsuaris(); }
 };
 
 async function loadEvents() {
@@ -160,12 +371,15 @@ async function loadReserves(eventId) {
 
 /* ── Render principal ─────────────────────────────────────── */
 async function render() {
-  if (!getAuth()) { renderLogin(); return; }
+  if (!getAuth() && !state.usuari) { renderLogin(); return; }
   try {
     await renderTab();
   } catch (e) {
     if (e instanceof AuthError) {
+      if (e.message === 'canviar') return renderContrasenya(true);
       clearAuth();
+      state.usuari = null;
+      state.gestor = await gestorEstat();
       renderLogin('La sessió ha caducat. Torna a entrar.');
       return;
     }
@@ -176,12 +390,19 @@ async function render() {
 async function renderTab() {
   if (state.tab === 'events') {
     if (!(await loadEvents())) return;
-    try { await loadReserves(null); } catch { state.reserves = []; }
+    if (potFer('reserves')) { try { await loadReserves(null); } catch (e) { if (e instanceof AuthError) throw e; state.reserves = []; } }
+    else state.reserves = [];
     renderEvents();
   } else if (state.tab === 'reserves') {
     if (!(await loadEvents())) return;
     await loadReserves(state.eventFilter);
     renderReserves();
+  } else if (state.tab === 'usuaris') {
+    await renderUsuaris();
+  } else if (state.tab === 'seguiment') {
+    if (!(await loadEvents())) return;
+    await carregaSeguiment();
+    renderSeguiment();
   } else if (state.tab === 'llista') {
     if (!(await loadEvents())) return;
     await carregaLlista();
@@ -199,13 +420,16 @@ async function renderTab() {
 }
 
 function tabsHTML() {
+  const u = state.usuari || {};
+  const b = (t, nom) => `<button class="filter-btn ${state.tab === t ? 'active' : ''}" onclick="setTab('${t}')">${nom}</button>`;
   return `
-<div class="filters" style="margin-bottom: var(--sp-4);">
-  <button class="filter-btn ${state.tab==='events'?'active':''}" onclick="setTab('events')">Events</button>
-  <button class="filter-btn ${state.tab==='reserves'?'active':''}" onclick="setTab('reserves')">Reserves i cobraments</button>
-  <button class="filter-btn ${state.tab==='llista'?'active':''}" onclick="setTab('llista')">Passar llista</button>
-  <button class="filter-btn ${state.tab==='auditoria'?'active':''}" onclick="setTab('auditoria')">Auditoria</button>
-  <button class="filter-btn" onclick="logout()" style="margin-left:auto">Sortir</button>
+<div class="filters admin-tabs" style="margin-bottom: var(--sp-4);">
+  ${b('events', 'Activitats')}
+  ${potFer('reserves') ? b('reserves', 'Reserves i cobraments') + b('seguiment', 'Seguiment') + b('llista', 'Passar llista') : ''}
+  ${potFer('auditoria') ? b('auditoria', 'Auditoria') : ''}
+  ${potFer('usuaris') && !u.antic ? b('usuaris', 'Usuaris') : ''}
+  <span class="admin-qui">${esc(u.nom || '')}${u.antic ? '' : ` · <button class="btn-link" onclick="canviarContrasenya()">Contrasenya</button>`}</span>
+  <button class="filter-btn" onclick="logout()">Sortir</button>
 </div>`;
 }
 
@@ -295,9 +519,11 @@ function targetaEvent(ev, ocup) {
       <div class="ev-accions">
         <button class="btn btn-secondary" onclick="editEvent('${esc(ev.id)}')">Editar</button>
         <button class="btn btn-ghost" onclick="duplicarEvent('${esc(ev.id)}')">Duplicar</button>
+        ${potFer('reserves') ? `
         <button class="btn btn-ghost" onclick="viewReserves('${esc(ev.id)}')">Reserves${ocupades ? ` (${ocupades})` : ''}</button>
-        <button class="btn btn-ghost" onclick="obrirLlista('${esc(ev.id)}')">Passar llista</button>
-        ${ev.estat !== 'arxivat'
+        <button class="btn btn-ghost" onclick="obrirSeguiment('${esc(ev.id)}')">Seguiment</button>
+        <button class="btn btn-ghost" onclick="obrirLlista('${esc(ev.id)}')">Passar llista</button>` : ''}
+        ${ev.estat !== 'arxivat' && potFer('esborrar')
           ? `<button class="btn btn-ghost ev-arxivar" onclick="deleteEvent('${esc(ev.id)}')">Arxivar</button>` : ''}
       </div>
       <p class="ev-id"><code>${esc(ev.id)}</code></p>
@@ -1150,6 +1376,377 @@ window.exportCSV = function() {
   URL.revokeObjectURL(url);
 };
 
+/* ── SEGUIMENT ────────────────────────────────────────────────
+   Full editable per activitat: una fila per persona, una columna per
+   sessió. Les sessions es calculen soles (cada setmana, el mateix dia
+   de la setmana que la data de l'activitat) i es poden treure o
+   afegir a mà. Cada canvi es desa al moment i queda a l'auditoria.
+   "Alta" = confirmada per nosaltres (primer contacte fet). */
+const ORIGEN_NOM = { web: 'Web', telefon: 'Trucada', presencial: 'Presencial', altres: 'Altres' };
+const pad2 = n => String(n).padStart(2, '0');
+const isoDia = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const esPuntual = ev => (ev?.model || 'puntual') === 'puntual';
+
+function sessionsDe(ev, mes) {
+  if (!ev) return [];
+  const afegides = Array.isArray(ev.sessions_afegides) ? ev.sessions_afegides : [];
+  const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
+  const auto = [];
+  if (esPuntual(ev)) {
+    if (ev.data) auto.push(String(ev.data).slice(0, 10));
+  } else if (ev.data && mes) {
+    const inici = String(ev.data).slice(0, 10);
+    const dow = new Date(inici + 'T12:00:00').getDay();
+    const [y, m] = mes.split('-').map(Number);
+    for (let d = new Date(y, m - 1, 1, 12); d.getMonth() === m - 1; d.setDate(d.getDate() + 1)) {
+      const iso = isoDia(d);
+      if (d.getDay() === dow && iso >= inici) auto.push(iso);
+    }
+  }
+  const dins = x => esPuntual(ev) || x.startsWith(mes);
+  return [...new Set([...auto.filter(x => !tretes.has(x)), ...afegides.filter(dins)])].sort();
+}
+
+function mesPerDefecte(ev) {
+  const actual = avui().slice(0, 7);
+  const inici = String(ev?.data || '').slice(0, 7);
+  return inici && inici > actual ? inici : actual;
+}
+function nomMesLlarg(mes) {
+  const [y, m] = mes.split('-').map(Number);
+  const t = new Intl.DateTimeFormat('ca-ES', { month: 'long', year: 'numeric' }).format(new Date(y, m - 1, 1, 12))
+    .replace(/\s+(de|del)\s+/i, ' ').replace(/\s+d[’']/i, ' ');   // "setembre del 2026" → "setembre 2026"
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+function capSessio(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  const dia = new Intl.DateTimeFormat('ca-ES', { weekday: 'short' }).format(d).replace('.', '');
+  return `${dia} ${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+async function carregaSeguiment() {
+  const S = state.seguiment;
+  S.error = null;
+  if (!S.eventId || !state.events.some(e => e.id === S.eventId)) { S.eventId = eventPerDefecte(); S.mes = null; }
+  const ev = state.events.find(e => e.id === S.eventId);
+  if (!S.mes) S.mes = mesPerDefecte(ev);
+  S.assistencia = {};
+  if (!ev) { state.reserves = []; return; }
+  await loadReserves(ev.id);
+  const ss = sessionsDe(ev, S.mes);
+  if (!ss.length) return;
+  try {
+    const d = await apiGet(`/api/admin/orders?llista=${encodeURIComponent(ev.id)}&des=${ss[0]}&fins=${ss[ss.length - 1]}`);
+    for (const a of d?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = a.present;
+  } catch (e) {
+    if (e instanceof AuthError) throw e;
+    S.error = 'No es pot llegir l\'assistència. Has executat els SQL v11 i v13?';
+  }
+}
+
+function dadesSeguiment() {
+  const S = state.seguiment;
+  const ev = state.events.find(e => e.id === S.eventId);
+  const sessions = sessionsDe(ev, S.mes);
+  const persones = state.reserves.filter(reservaViva).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
+  const espera = state.reserves.filter(r => r.status === 'waitlist');
+  const passades = sessions.filter(d => d <= avui());
+  const marca = (r, d) => S.assistencia[r.id]?.[d];
+  const gratuita = ev && window.NXC.tarifesEvent(ev).every(t => t.preu_mode === 'gratuit') && !(ev.extres || []).some(x => x.preu_mode !== 'gratuit');
+  const cobra = r => !r.pare_id && !gratuita && (aCobrar(r) > 0 || r.consultar);
+  const nivell = r => (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa')
+    .map(l => `${l.nom?.ca || l.id}${l.qty > 1 ? ' ×' + l.qty : ''}`).join(', ') || (r.pare_id ? 'Sessió vinculada' : '');
+  const pctPersona = r => {
+    if (!passades.length) return null;
+    const si = passades.filter(d => marca(r, d) === true).length;
+    return Math.round(si * 100 / passades.length);
+  };
+  return { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona };
+}
+
+function renderSeguiment() {
+  const { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona } = dadesSeguiment();
+  const opcions = state.events.filter(e => e.estat !== 'arxivat')
+    .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
+    .map(e => `<option value="${esc(e.id)}" ${e.id === S.eventId ? 'selected' : ''}>${esc(e.titol?.ca || e.id)}${e.entitat?.ca ? ' · ' + esc(e.entitat.ca) : ''}</option>`).join('');
+
+  if (!ev) { app.innerHTML = tabsHTML() + '<div class="alert alert-info">Cap activitat per fer seguiment.</div>'; return; }
+
+  const places = persones.reduce((t, r) => t + (r.places || 0), 0);
+  const altes = persones.filter(r => r.status !== 'pending').length;
+  const hanDePagar = persones.filter(cobra);
+  const pagades = hanDePagar.filter(r => r.payment_status === 'paid').length;
+  const totalSi = persones.reduce((t, r) => t + passades.filter(d => marca(r, d) === true).length, 0);
+  const pctMitja = persones.length && passades.length ? Math.round(totalSi * 100 / (persones.length * passades.length)) : null;
+
+  const celPagat = r => {
+    if (!cobra(r)) return `<span class="muted">${r.pare_id ? '—' : 'Gratuït'}</span>`;
+    const pagat = r.payment_status === 'paid';
+    return `<select class="sg-sel${pagat ? ' sg-pagat' : ''}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}">
+      <option value="">${r.payment_status === 'pending' ? 'Link enviat' : 'No pagat'}</option>
+      ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && r.metode_pagament === k ? 'selected' : ''}>✓ ${v}</option>`).join('')}
+    </select>${pagat ? `<small class="sg-import">${eur(r.import_pagat_cents)}</small>` : aCobrar(r) ? `<small class="sg-import">${eur(aCobrar(r))}</small>` : ''}`;
+  };
+  const celSessio = (r, d) => {
+    const m = marca(r, d);
+    const txt = m === true ? '✓' : m === false ? '✗' : '';
+    return `<td class="sg-ses"><button class="sg-marca${m === true ? ' si' : m === false ? ' no' : ''}"
+      onclick="sgMarca('${esc(r.id)}','${d}')" aria-label="${esc(r.nom)} ${capSessio(d)}: ${m === true ? 'ha vingut' : m === false ? 'no ha vingut' : 'sense marcar'}">${txt}</button></td>`;
+  };
+
+  const fila = (r, i) => `
+  <tr>
+    <td class="sg-num">${i + 1}</td>
+    <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom"></td>
+    <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
+    <td class="sg-nivell">${esc(nivell(r))}</td>
+    <td><select class="sg-sel sg-origen" onchange="sgEditar('${esc(r.id)}','origen',this.value)" aria-label="Origen">
+      ${Object.entries(ORIGEN_NOM).map(([k, v]) => `<option value="${k}" ${(r.origen || 'web') === k ? 'selected' : ''}>${v}</option>`).join('')}
+    </select></td>
+    <td class="sg-check"><input type="checkbox" ${r.status !== 'pending' ? 'checked' : ''} ${['attended', 'no-show'].includes(r.status) ? 'disabled' : ''}
+      onchange="sgAlta('${esc(r.id)}', this.checked)" aria-label="Alta de ${esc(r.nom)}"></td>
+    <td class="sg-pag">${celPagat(r)}</td>
+    ${sessions.map(d => celSessio(r, d)).join('')}
+    <td class="sg-pct">${pctPersona(r) === null ? '—' : pctPersona(r) + '%'}</td>
+    <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
+  </tr>`;
+
+  app.innerHTML = `
+${tabsHTML()}
+<div class="sg-cap no-print">
+  <h1 style="margin:0">Seguiment</h1>
+  <div class="sg-accions">
+    <button class="btn btn-primary" onclick="sgObrirAfegir()">+ Afegir persona</button>
+    <button class="btn btn-secondary" onclick="sgExcel()">⬇ Excel</button>
+    <button class="btn btn-secondary" onclick="sgImprimir(false)">🖨 Imprimir</button>
+    <button class="btn btn-ghost" onclick="sgImprimir(true)">🖨 Full en blanc</button>
+  </div>
+</div>
+<div class="sg-selectors no-print">
+  <label class="ins-camp"><span>Activitat</span>
+    <select class="form-select" onchange="sgEvent(this.value)">${opcions}</select></label>
+  ${esPuntual(ev) ? '' : `
+  <div class="ins-camp"><span>Mes</span>
+    <div class="sg-mes">
+      <button class="btn btn-ghost" onclick="sgMes(-1)" aria-label="Mes anterior">◀</button>
+      <strong>${esc(nomMesLlarg(S.mes))}</strong>
+      <button class="btn btn-ghost" onclick="sgMes(1)" aria-label="Mes següent">▶</button>
+    </div></div>`}
+  <label class="ins-camp"><span>Afegir sessió</span>
+    <span class="sg-mes"><input class="form-input" type="date" id="sg-nova-data">
+    <button class="btn btn-secondary" onclick="sgSessio(qs('#sg-nova-data').value,'afegir')">Afegir</button></span></label>
+</div>
+${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
+<div id="sg-afegir"></div>
+
+<div class="sg-print-cap">
+  <h2>${esc(ev.titol?.ca || ev.id)}${ev.entitat?.ca ? ' · ' + esc(ev.entitat.ca) : ''}</h2>
+  <p>${esPuntual(ev) ? esc(formatDate(ev.data, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) : esc(nomMesLlarg(S.mes))}${ev.hora ? ' · ' + esc(ev.hora) : ''}
+    · Aforament ${places}/${ev.cupo || '—'}</p>
+</div>
+
+<div class="res-xifres no-print">
+  <div><span>Aforament</span><strong>${places} / ${ev.cupo || '—'}</strong>${ev.cupo ? `<small>${Math.round(places * 100 / ev.cupo)}% ocupat</small>` : ''}</div>
+  <div><span>Alta confirmada</span><strong>${altes} / ${persones.length}</strong></div>
+  <div><span>Pagades</span><strong>${gratuita ? 'Gratuïta' : `${pagades} / ${hanDePagar.length}`}</strong></div>
+  <div><span>Assistència ${esPuntual(ev) ? '' : 'del mes'}</span><strong>${pctMitja === null ? '—' : pctMitja + '%'}</strong>
+    <small>${passades.length} de ${sessions.length} sessions fetes</small></div>
+</div>
+
+<div class="sg-taula-wrap">
+<table class="admin-table sg-taula">
+  <thead><tr>
+    <th>#</th><th>Nom</th><th>Telèfon</th><th>Nivell</th><th>Origen</th><th>Alta</th><th>Pagat</th>
+    ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
+    <th>Assist.</th><th>Observacions</th>
+  </tr></thead>
+  <tbody>${persones.map(fila).join('') || `<tr><td colspan="${9 + sessions.length}" class="muted" style="text-align:center">Cap persona apuntada. Fes servir “+ Afegir persona”.</td></tr>`}</tbody>
+</table>
+</div>
+${sessions.length ? '' : '<p class="muted no-print">Aquest mes no hi ha cap sessió. Afegeix-ne una amb la data.</p>'}
+
+${espera.length ? `
+<h3>Llista d'espera (${espera.length})</h3>
+<ul class="ll-espera">${espera.map(r => `<li>${esc(r.nom)} · ${esc(r.telefon || '—')} · ${r.places} pl. · ${esc(ORIGEN_NOM[r.origen] || '')}
+  <button class="btn btn-ghost btn-mini no-print" onclick="sgDeEspera('${esc(r.id)}')">Passar a inscrita</button></li>`).join('')}</ul>` : ''}
+
+<div class="sg-print-peu">Responsable: ______________________________ &nbsp;&nbsp; Signatura: ____________________ &nbsp;&nbsp; Data: ____________</div>`;
+}
+
+window.obrirSeguiment = function(eventId) {
+  state.seguiment = { eventId, mes: null, assistencia: {} };
+  setTab('seguiment');
+};
+window.sgEvent = function(id) { state.seguiment = { eventId: id, mes: null, assistencia: {} }; render(); };
+window.sgMes = function(delta) {
+  const [y, m] = state.seguiment.mes.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1, 12);
+  state.seguiment.mes = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+  render();
+};
+
+/* Cicle d'una casella: buit → ✓ → ✗ → buit */
+window.sgMarca = async function(id, data) {
+  const S = state.seguiment;
+  const abans = S.assistencia[id]?.[data];
+  const nou = abans === undefined ? true : abans === true ? false : null;
+  (S.assistencia[id] ||= {});
+  if (nou === null) delete S.assistencia[id][data]; else S.assistencia[id][data] = nou;
+  renderSeguiment();
+  try {
+    await apiSend('/api/admin/orders', 'PATCH', { accio: 'assistencia', id, data, present: nou });
+  } catch (e) {
+    if (abans === undefined) delete S.assistencia[id][data]; else S.assistencia[id][data] = abans;
+    renderSeguiment();
+    alert('No s\'ha pogut desar: ' + errText(e));
+  }
+};
+
+window.sgEditar = async function(id, camp, valor) {
+  try {
+    await accioReserva({ accio: 'editar', id, camps: { [camp]: valor } });
+  } catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
+  renderSeguiment();
+};
+
+window.sgAlta = async function(id, alta) {
+  try { await accioReserva({ id, status: alta ? 'confirmed' : 'pending' }); }
+  catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
+  renderSeguiment();
+};
+
+window.sgDeEspera = async function(id) {
+  try { await accioReserva({ id, status: 'pending' }); }
+  catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
+  renderSeguiment();
+};
+
+/* Pagat: triar un mètode registra el cobrament; "No pagat" l'anul·la */
+window.sgPagat = async function(id, metode, sel) {
+  const r = state.reserves.find(x => x.id === id);
+  if (!r) return;
+  try {
+    if (!metode) {
+      if (r.payment_status !== 'paid') return;
+      if (!confirm(`Anul·lar el cobrament de ${r.nom}?`)) { renderSeguiment(); return; }
+      await accioReserva({ accio: 'anular_pagament', id, motiu: 'desmarcat al seguiment' });
+    } else {
+      let imp = aCobrar(r) - (r.payment_status === 'paid' ? 0 : (r.import_pagat_cents || 0));
+      if (r.payment_status === 'paid') imp = r.import_pagat_cents || aCobrar(r);
+      if (!(imp > 0)) {
+        const t = prompt(`Import cobrat a ${r.nom} (€):`, '');
+        if (t === null) { renderSeguiment(); return; }
+        imp = Math.round((parseFloat(String(t).replace(',', '.')) || 0) * 100);
+      }
+      await accioReserva({ accio: 'pagament', id, import_cents: imp, metode, nota: 'seguiment' });
+    }
+  } catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
+  renderSeguiment();
+};
+
+window.sgSessio = async function(data, operacio) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '')) { alert('Tria una data.'); return; }
+  const S = state.seguiment;
+  const ev = state.events.find(e => e.id === S.eventId);
+  if (operacio === 'treure') {
+    const amb = Object.values(S.assistencia).some(a => a[data] !== undefined);
+    if (!confirm(`Treure la sessió del ${capSessio(data)}?${amb ? ' Les marques d\'assistència d\'aquell dia es conserven però no es veuran.' : ''}`)) return;
+  }
+  try {
+    const out = await apiSend('/api/admin/orders', 'PATCH', { accio: 'sessio', event_id: ev.id, data, operacio });
+    ev.sessions_afegides = out.sessions_afegides;
+    ev.sessions_tretes = out.sessions_tretes;
+    if (operacio === 'afegir' && !esPuntual(ev)) S.mes = data.slice(0, 7);
+    render();
+  } catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
+};
+
+/* Alta manual: per a qui truca al centre o s'apunta en persona */
+window.sgObrirAfegir = function() {
+  const ev = state.events.find(e => e.id === state.seguiment.eventId);
+  const tarifes = window.NXC.tarifesEvent(ev);
+  qs('#sg-afegir').innerHTML = `
+<section class="cob">
+  <div class="cob-cap"><h2>Afegir persona</h2>
+    <button class="btn btn-ghost" onclick="qs('#sg-afegir').innerHTML=''">Tancar</button></div>
+  <div id="sg-af-msg"></div>
+  <form id="sg-af-form" class="cob-grid" style="align-items:end">
+    <label class="ins-camp"><span>Nom i cognoms *</span><input class="form-input" id="af-nom" required minlength="2"></label>
+    <label class="ins-camp"><span>Telèfon</span><input class="form-input" id="af-tel" inputmode="tel"></label>
+    <label class="ins-camp"><span>Correu</span><input class="form-input" id="af-email" type="email"></label>
+    ${tarifes.length > 1 ? `<label class="ins-camp"><span>Nivell</span><select class="form-select" id="af-tarifa">
+      ${tarifes.map(t => `<option value="${esc(t.id)}">${esc(t.nom?.ca || t.id)}</option>`).join('')}</select></label>` : ''}
+    <label class="ins-camp"><span>Places</span><input class="form-input" id="af-places" type="number" min="1" max="10" value="1"></label>
+    <label class="ins-camp"><span>Com ha arribat</span><select class="form-select" id="af-origen">
+      <option value="telefon">Trucada</option><option value="presencial">Presencial al centre</option><option value="altres">Altres</option></select></label>
+    <label class="ins-camp"><span>Observacions</span><input class="form-input" id="af-obs"></label>
+    <label class="ins-camp sg-alta-check"><span>Alta confirmada</span><input type="checkbox" id="af-alta" checked></label>
+    <button class="btn btn-primary" type="submit">Afegir</button>
+  </form>
+</section>`;
+  qs('#af-nom').focus();
+  qs('#sg-af-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const out = await apiSend('/api/admin/orders', 'PATCH', {
+        accio: 'afegir_persona', event_id: ev.id,
+        nom: qs('#af-nom').value.trim(), telefon: qs('#af-tel').value.trim(), email: qs('#af-email').value.trim(),
+        tarifa_id: qs('#af-tarifa')?.value || tarifes[0].id, places: parseInt(qs('#af-places').value, 10) || 1,
+        origen: qs('#af-origen').value, alta: qs('#af-alta').checked, observacions: qs('#af-obs').value.trim()
+      });
+      state.reserves.push(out.reserva);
+      renderSeguiment();
+      if (out.espera) alert(`${out.reserva.nom} ha quedat a la llista d'espera: l'activitat no té places lliures.`);
+    } catch (err) { qs('#sg-af-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(err))}</div>`; }
+  });
+};
+
+/* Excel amb les mateixes columnes que la pantalla */
+window.sgExcel = function() {
+  const { S, ev, sessions, persones, espera, marca, cobra, nivell, pctPersona } = dadesSeguiment();
+  const cap = ['#', 'Nom', 'Telèfon', 'Correu', 'Nivell', 'Places', 'Origen', 'Alta', 'Pagat', 'Import', 'Mètode',
+               ...sessions.map(capSessio), 'Assistència %', 'Observacions', 'Referència'];
+  const files = persones.map((r, i) => [
+    i + 1, r.nom, r.telefon || '', r.email || '', nivell(r), r.places, ORIGEN_NOM[r.origen] || '',
+    r.status !== 'pending' ? 'Sí' : 'No',
+    !cobra(r) ? 'No cal' : r.payment_status === 'paid' ? 'Sí' : 'No',
+    r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
+    r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '',
+    ...sessions.map(d => marca(r, d) === true ? '✓' : marca(r, d) === false ? '✗' : ''),
+    pctPersona(r), r.observacions || '', r.id
+  ]);
+  const titol = `${ev.titol?.ca || ev.id}${ev.entitat?.ca ? ' · ' + ev.entitat.ca : ''}`;
+  const periode = esPuntual(ev) ? String(ev.data || '') : nomMesLlarg(S.mes);
+  const fulls = [{
+    nom: 'Seguiment', capcaleres: 1,
+    amplades: [4, 28, 13, 26, 16, 7, 11, 6, 8, 8, 13, ...sessions.map(() => 9), 12, 34, 12],
+    files: [cap, ...files]
+  }, {
+    nom: 'Resum', capcaleres: 0, amplades: [22, 40],
+    files: [['Activitat', titol], ['Període', periode], ['Aforament', `${persones.reduce((t, r) => t + r.places, 0)} / ${ev.cupo || ''}`],
+            ['Persones inscrites', persones.length], ["Llista d'espera", espera.length],
+            ['Exportat', new Date().toLocaleString('ca-ES')], ['Per', state.usuari?.nom || '']]
+  }];
+  const nomFitxer = `seguiment-${ev.id}-${esPuntual(ev) ? (ev.data || '') : S.mes}.xlsx`;
+  window.NXXLSX.descarregar(nomFitxer, fulls);
+};
+
+/* A4 horitzontal. "Full en blanc": només noms i caselles, per marcar a mà */
+window.sgImprimir = function(blanc) {
+  let st = document.getElementById('pagina-print');
+  if (!st) { st = document.createElement('style'); st.id = 'pagina-print'; document.head.appendChild(st); }
+  st.textContent = '@page { size: A4 landscape; margin: 10mm; }';
+  document.body.classList.add('imprimint-seguiment');
+  document.body.classList.toggle('print-blanc', !!blanc);
+  const fi = () => {
+    document.body.classList.remove('imprimint-seguiment', 'print-blanc');
+    st.textContent = '';
+    window.removeEventListener('afterprint', fi);
+  };
+  window.addEventListener('afterprint', fi);
+  window.print();
+};
+
 /* ── PASSAR LLISTA ────────────────────────────────────────────
    Per activitat i per dia: a les mensuals (castellà cada dimarts) es
    passa llista cada sessió. A les puntuals, marcar el dia de l'activitat
@@ -1315,7 +1912,20 @@ Mostrant els ${state.auditoria.length} moviments més recents.</p>
 </table>`;
 }
 
-// Boot
-if (getAuth()) render(); else renderLogin();
+// Boot: sessió d'usuari, accés compartit guardat o pantalla d'entrada
+(async function boot() {
+  state.gestor = await gestorEstat();
+  if (state.gestor?.usuari) {
+    state.usuari = state.gestor.usuari;
+    if (state.usuari.ha_de_canviar) return renderContrasenya(true);
+    return render();
+  }
+  if (getAuth() && (state.gestor?.acces_antic || !state.gestor?.gestor)) {
+    state.usuari = { nom: 'Accés compartit', rol: 'admin', antic: true };
+    return render();
+  }
+  clearAuth();
+  renderLogin();
+})();
 
 })();

@@ -1,11 +1,11 @@
 // api/admin/audit.js — Consulta del registre d'auditoria (només lectura)
 import { json, methodNotAllowed } from '../_lib/http.js';
 import { supabase, hasSupabase } from '../_lib/supabase.js';
-import { requireAdmin } from '../_lib/auth.js';
+import { autoritzar } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
-  const actor = requireAdmin(req, res);
-  if (!actor) return;
+  const a = await autoritzar(req, res, 'auditoria');
+  if (!a) return;
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
   if (!hasSupabase()) return json(res, 503, { error: 'Supabase no configurat' });
 

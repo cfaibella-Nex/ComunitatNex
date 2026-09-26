@@ -65,6 +65,8 @@ export default async function handler(req, res) {
     estat.control_v11 = v11 ? `FALTA: executa api/schema-v11-control.sql (${v11.message})` : true;
     const { error: v12 } = await sb.from('events').select('cartell').limit(1);
     estat.cartells_v12 = v12 ? `FALTA: executa api/schema-v12-cartells.sql (${v12.message})` : true;
+    const { error: v13 } = await sb.from('reserves').select('origen, observacions').limit(1);
+    estat.seguiment_v13 = v13 ? `FALTA: executa api/schema-v13-seguiment.sql (${v13.message})` : true;
     estat.esquema_ok = Object.values(out).every(v => typeof v === 'number');
     if (!estat.esquema_ok) {
       estat.ok = false;
