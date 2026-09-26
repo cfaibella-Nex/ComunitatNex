@@ -607,7 +607,34 @@ document.addEventListener('load', e => {
   const img = e.target;
   if (!(img instanceof HTMLImageElement)) return;
   if (!img.closest('.event-card-img, .event-poster, .event-row-img, .detail-hero, .summary-poster')) return;
-  if (img.naturalHeight > img.naturalWidth * 1.1) img.classList.add('img-vertical');
+  if (img.naturalHeight > img.naturalWidth * 1.1) {
+    img.classList.add('img-vertical');
+    /* Un cartell pujat al camp d'imatge també ha de tenir lupa */
+    const caixa = img.closest('.event-card-img, .event-poster, .event-row-img');
+    if (caixa && !caixa.querySelector('.cartell-lupa')) {
+      const titol = img.closest('.event-card, .event-poster, .event-row')
+        ?.querySelector('.event-title, .event-poster-title, .event-row-title')?.textContent?.trim() || '';
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cartell-lupa';
+      b.dataset.cartell = img.currentSrc || img.src;
+      b.dataset.cartellAlt = `${T('ev.cartell_alt')}${titol ? ': ' + titol : ''}`;
+      b.setAttribute('aria-label', `${T('ev.cartell_veure')}${titol ? ': ' + titol : ''}`);
+      b.textContent = '🔍';
+      caixa.appendChild(b);
+    }
+    /* Detall: capçalera amb foto vertical → clic per ampliar */
+    const hero = img.closest('.detail-hero');
+    if (hero && !hero.querySelector('[data-cartell]')) {
+      img.dataset.cartell = img.currentSrc || img.src;
+      img.dataset.cartellAlt = img.alt || T('ev.cartell_alt');
+      img.style.cursor = 'zoom-in';
+      img.tabIndex = 0;
+      img.setAttribute('role', 'button');
+      img.setAttribute('aria-label', T('ev.cartell_veure'));
+      img.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); img.click(); } });
+    }
+  }
 }, true);
 
 function qs(sel) { return document.querySelector(sel); }

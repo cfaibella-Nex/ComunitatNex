@@ -1,4 +1,4 @@
-# Comunitat · Paquet complet v10 → v13 (amb v12c)
+# Comunitat · Paquet complet v10 → v13 (amb cartells, lupa i usuaris)
 
 Conté **només fitxers nous o modificats**. No n'esborra cap: les fotos pròpies de
 NexSocial (`assets/*.jpg`, `*.webp`) i les pujades al panell (bucket `comunitat-media`)
@@ -10,7 +10,8 @@ es queden igual. Els cartells nous van a una carpeta a part: `assets/cartells/`.
    1. `api/schema-v10-inscripcions.sql`
    2. `api/schema-v11-control.sql`
    3. `api/schema-v12-cartells.sql` — només omple `cartell` on és buit; **no toca `imatge`**
-   4. `api/schema-v13-seguiment.sql`
+   4. `api/gestor-schema.sql` — taules d'usuaris del panell (si ja està fet, no passa res)
+   5. `api/schema-v13-seguiment.sql`
 2. **Vercel → Environment Variables**: `GESTOR_SECRET` (48 caràcters) i `GESTOR_SETUP_KEY` (20+). Diferents.
 3. **Descomprimir sobre el repo i push** (sobreescriure quan ho demani).
 4. `/api/health` → `inscripcions_v10`, `control_v11`, `cartells_v12`, `seguiment_v13`: tots `true`.
