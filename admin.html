@@ -118,6 +118,66 @@
     .ins-camp small { color: var(--text-muted); font-size: var(--fs-xs); line-height:1.4; }
     .res-detall { max-width: 260px; }
 
+    /* Cobraments */
+    .btn-mini { padding: 2px 10px !important; font-size: var(--fs-xs) !important; margin-left: 4px; }
+    .pag { display:inline-block; font-size: var(--fs-xs); font-weight:700; padding: 2px 10px; border-radius: 999px; }
+    .pag--ok { background: var(--forest-hero); color: var(--forest); }
+    .pag--pendent { background: #FFF4D6; color: var(--ink); border:1px solid var(--warning); }
+    .res-oberta td { background: var(--cards-odd); }
+    .res-xifres { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-2); margin: var(--sp-2) 0 var(--sp-3); }
+    .res-xifres > div { background: var(--white); border:1px solid rgba(15,45,30,0.10); border-radius: var(--radius); padding: var(--sp-2); }
+    .res-xifres span { display:block; font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+    .res-xifres strong { font-size: var(--fs-lg); color: var(--ink); }
+    .res-xifres small { display:block; color: var(--text-muted); }
+    .cob { background: var(--white); border: 2px solid var(--forest); border-radius: var(--radius-lg); padding: var(--sp-3); margin-bottom: var(--sp-3); }
+    .cob-cap { display:flex; justify-content:space-between; gap: var(--sp-2); align-items:flex-start; }
+    .cob-cap h2 { margin: 0 0 4px; }
+    .cob-cap p { margin: 0 0 4px; }
+    .cob-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--sp-3); margin-top: var(--sp-2); }
+    .cob-bloc { display:flex; flex-direction:column; gap: var(--sp-2); background: var(--cream); border-radius: var(--radius); padding: var(--sp-2); }
+    .cob-bloc h3 { margin: 0; }
+    .cob-link { display:flex; flex-direction:column; gap: var(--sp-1); }
+    .cob-accions { display:flex; gap: var(--sp-1); flex-wrap: wrap; }
+
+    /* Passar llista: pensat per al mòbil, dret al centre cívic */
+    .ll-cap { display:flex; justify-content:space-between; align-items:center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+    .ll-selectors { display:grid; grid-template-columns: 2fr 1fr; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+    .ll-titol { margin: 0 0 4px; }
+    .ll-resum { margin: 0 0 var(--sp-2); }
+    .ll-si { color: var(--forest); font-weight:700; }
+    .ll-no { color: var(--danger); font-weight:700; }
+    .ll-llista { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap: var(--sp-1); }
+    .ll-fila { display:flex; justify-content:space-between; align-items:center; gap: var(--sp-2);
+               background: var(--white); border:1px solid rgba(15,45,30,0.12); border-left: 6px solid rgba(15,45,30,0.12);
+               border-radius: var(--radius); padding: var(--sp-2); }
+    .ll-fila--si { border-left-color: var(--forest); background: var(--cards-odd); }
+    .ll-fila--no { border-left-color: var(--danger); }
+    .ll-qui strong { font-size: var(--fs-md); }
+    .ll-places { font-weight:700; color: var(--forest); }
+    .ll-qui .muted { font-size: var(--fs-sm); }
+    .ll-pag { margin-top: 4px; }
+    .ll-botons { display:flex; gap: var(--sp-1); flex:none; }
+    .ll-btn { min-height: 48px; min-width: 48px; padding: 0 14px; border-radius: var(--radius);
+              border: 2px solid rgba(15,45,30,0.25); background: var(--white); color: var(--ink);
+              font-weight:700; font-size: var(--fs-sm); cursor:pointer; }
+    .ll-btn--si[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color:#fff; }
+    .ll-btn--no[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color:#fff; }
+    .ll-espera { color: var(--text-muted); }
+    .ll-print-casella { display:none; }
+    @media (max-width: 620px) {
+      .ll-selectors { grid-template-columns: 1fr; }
+      .ll-fila { flex-direction: column; align-items: stretch; }
+      .ll-botons .ll-btn { flex:1; }
+    }
+    /* Paper: noms, telèfon i una casella per marcar a mà */
+    @media print {
+      .nav, .filters, .no-print, .ll-botons, .ll-pag { display:none !important; }
+      .admin-body .section { padding: 0; }
+      .ll-fila { border: none; border-bottom: 1px solid #999; border-radius: 0; padding: 6px 0; background: none !important; }
+      .ll-print-casella { display:block; width: 22px; height: 22px; border: 2px solid #000; flex:none; }
+      a { color: inherit; text-decoration: none; }
+    }
+
     @media (max-width: 520px) {
       .ev-card { flex-direction: column; }
       .ev-foto { width:100%; height:140px; }
@@ -141,8 +201,8 @@
     <div id="admin-app"></div>
   </main>
 
-  <script src="/js/main.js?v=35"></script>
-  <script src="/js/carret.js?v=35"></script>
-  <script src="/js/admin.js?v=35"></script>
+  <script src="/js/main.js?v=36"></script>
+  <script src="/js/carret.js?v=36"></script>
+  <script src="/js/admin.js?v=36"></script>
 </body>
 </html>

@@ -17,3 +17,8 @@ Només quan decidim cobrar online. Fins llavors no cal fer res.
 
 Cal **les dues** variables: sense el secret del webhook no s'activa mai
 (cobraria però la reserva no passaria a pagada).
+
+## Links de pagament des del panell
+
+Fan servir el mateix compte i el mateix webhook: no cal configurar res més.
+Amb `stripe: "test"` al panell surt "Mode prova" i els links no cobren de debò.

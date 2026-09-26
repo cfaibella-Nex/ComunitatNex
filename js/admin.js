@@ -26,6 +26,10 @@ let state = {
   auditoria: [],
   eventFilter: null,
   eventVista: 'properes',
+  stripe: 'off',                 // 'off' | 'test' | 'live' (ho diu l'API)
+  filtreReserves: 'totes',       // totes | cobrar | pagades | espera
+  cobrant: null,                 // id de la reserva amb el panell de cobrament obert
+  llista: { eventId: null, data: null, assistencia: {} }
 };
 
 const ESTATS = ['pending','confirmed','waitlist','cancelled','attended','no-show'];
@@ -151,6 +155,7 @@ async function loadReserves(eventId) {
   const q = eventId ? `?event_id=${encodeURIComponent(eventId)}` : '';
   const d = await apiGet('/api/admin/orders' + q);
   state.reserves = d?.reserves || [];
+  if (d?.stripe) state.stripe = d.stripe;
 }
 
 /* ── Render principal ─────────────────────────────────────── */
@@ -177,6 +182,10 @@ async function renderTab() {
     if (!(await loadEvents())) return;
     await loadReserves(state.eventFilter);
     renderReserves();
+  } else if (state.tab === 'llista') {
+    if (!(await loadEvents())) return;
+    await carregaLlista();
+    renderLlista();
   } else if (state.tab === 'auditoria') {
     try {
       await loadAuditoria();
@@ -193,7 +202,8 @@ function tabsHTML() {
   return `
 <div class="filters" style="margin-bottom: var(--sp-4);">
   <button class="filter-btn ${state.tab==='events'?'active':''}" onclick="setTab('events')">Events</button>
-  <button class="filter-btn ${state.tab==='reserves'?'active':''}" onclick="setTab('reserves')">Reserves</button>
+  <button class="filter-btn ${state.tab==='reserves'?'active':''}" onclick="setTab('reserves')">Reserves i cobraments</button>
+  <button class="filter-btn ${state.tab==='llista'?'active':''}" onclick="setTab('llista')">Passar llista</button>
   <button class="filter-btn ${state.tab==='auditoria'?'active':''}" onclick="setTab('auditoria')">Auditoria</button>
   <button class="filter-btn" onclick="logout()" style="margin-left:auto">Sortir</button>
 </div>`;
@@ -286,6 +296,7 @@ function targetaEvent(ev, ocup) {
         <button class="btn btn-secondary" onclick="editEvent('${esc(ev.id)}')">Editar</button>
         <button class="btn btn-ghost" onclick="duplicarEvent('${esc(ev.id)}')">Duplicar</button>
         <button class="btn btn-ghost" onclick="viewReserves('${esc(ev.id)}')">Reserves${ocupades ? ` (${ocupades})` : ''}</button>
+        <button class="btn btn-ghost" onclick="obrirLlista('${esc(ev.id)}')">Passar llista</button>
         ${ev.estat !== 'arxivat'
           ? `<button class="btn btn-ghost ev-arxivar" onclick="deleteEvent('${esc(ev.id)}')">Arxivar</button>` : ''}
       </div>
@@ -862,6 +873,34 @@ function resumLinies(r) {
   return ls.map(l => `${l.qty}× ${l.nom?.ca || l.id}${l.preu_mode === 'consultar' ? ' (a consultar)' : ''}`).join(' · ');
 }
 
+/* Import a cobrar d'una reserva: el que s'hagi fixat al panell o el total */
+/* Imports en euros sempre (formatPrice diu "Gratuït" per a 0) */
+const eur = c => window.NXC.euros(c || 0);
+const aCobrar = r => (r.import_cobrar_cents ?? r.total_cents) || 0;
+const reservaViva = r => ['pending', 'confirmed', 'attended', 'no-show'].includes(r.status);
+/* Pendent de cobrar: viva, principal (les sessions filles no es cobren
+   a part), no pagada i amb import o preu a consultar */
+const pendentCobrar = r => reservaViva(r) && !r.pare_id && r.payment_status !== 'paid' && (aCobrar(r) > 0 || r.consultar);
+
+const METODE_NOM = { efectiu: 'Efectiu', bizum: 'Bizum', transferencia: 'Transferència', targeta: 'Targeta', altres: 'Altres' };
+
+function errText(e) {
+  try { return JSON.parse(e.message).error || e.message; } catch { return e.message; }
+}
+
+function pagamentHTML(r) {
+  if (r.pare_id) return '<span class="muted">—</span>';
+  if (r.payment_status === 'paid') {
+    return `<span class="pag pag--ok">Pagat ${eur(r.import_pagat_cents)}</span>
+      <small class="muted">${esc(METODE_NOM[r.metode_pagament] || '')}</small>`;
+  }
+  const linkViu = r.link_pagament && r.link_caduca && new Date(r.link_caduca) > new Date();
+  if (pendentCobrar(r)) {
+    return `<span class="pag pag--pendent">${linkViu ? 'Link enviat' : 'Pendent'}${aCobrar(r) ? ' ' + eur(aCobrar(r)) : ''}${r.consultar && !r.import_cobrar_cents ? ' + a consultar' : ''}</span>`;
+  }
+  return '<span class="muted">—</span>';
+}
+
 function renderReserves() {
   const evMap = new Map(state.events.map(e => [e.id, e.titol?.ca || e.id]));
   const filterHTML = state.eventFilter
@@ -869,16 +908,26 @@ function renderReserves() {
        <button class="btn btn-ghost" style="margin-left: var(--sp-2)" onclick="clearFilter()">Veure totes</button></div>`
     : '';
 
-  const rows = state.reserves.map(r => `
-    <tr>
+  const FILTRES = {
+    totes:   { nom: 'Totes',              f: () => true },
+    cobrar:  { nom: 'Pendents de cobrar', f: pendentCobrar },
+    pagades: { nom: 'Pagades',            f: r => r.payment_status === 'paid' },
+    espera:  { nom: "Llista d'espera",    f: r => r.status === 'waitlist' }
+  };
+  const llista = state.reserves.filter(FILTRES[state.filtreReserves]?.f || (() => true));
+
+  const rows = llista.map(r => `
+    <tr${state.cobrant === r.id ? ' class="res-oberta"' : ''}>
       <td><code>${esc(r.id)}</code></td>
       <td>${esc(evMap.get(r.event_id) || r.event_id)}</td>
       <td><strong>${esc(r.nom)}</strong></td>
       <td><a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a></td>
       <td>${r.places}</td>
       <td class="res-detall">${esc(resumLinies(r))}</td>
-      <td>${formatPrice(r.total_cents)}${r.consultar ? ' <small class="muted">+ a consultar</small>' : ''}</td>
-      <td>${esc(PAGAMENT_ESTAT[r.payment_status] || '—')}</td>
+      <td>${eur(r.total_cents)}${r.consultar ? ' <small class="muted">+ a consultar</small>' : ''}</td>
+      <td class="res-pag">${pagamentHTML(r)}
+        ${!r.pare_id && reservaViva(r) ? `<button class="btn btn-ghost btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${r.payment_status === 'paid' ? 'Veure' : 'Cobrar'}</button>` : ''}
+      </td>
       <td>
         <select onchange="changeStatus('${esc(r.id)}', this.value)">
           ${ESTATS.map(s =>
@@ -891,22 +940,174 @@ function renderReserves() {
   const vives = state.reserves.filter(r => ['pending','confirmed','attended'].includes(r.status));
   const placesVives = vives.reduce((s, r) => s + (r.places || 0), 0);
   const enEspera = state.reserves.filter(r => r.status === 'waitlist').length;
+  const cobrat = state.reserves.filter(r => r.payment_status === 'paid').reduce((s, r) => s + (r.import_pagat_cents || 0), 0);
+  const pendents = state.reserves.filter(pendentCobrar);
+  const pendent = pendents.reduce((s, r) => s + aCobrar(r), 0);
+  const ambConsultar = pendents.filter(r => r.consultar && !r.import_cobrar_cents).length;
 
   app.innerHTML = `
 ${tabsHTML()}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--sp-3); gap: var(--sp-2); flex-wrap: wrap;">
-  <h1 style="margin:0">Reserves</h1>
+  <h1 style="margin:0">Reserves i cobraments</h1>
   <button class="btn btn-secondary" onclick="exportCSV()">⬇ Descarregar CSV</button>
 </div>
 <p class="muted">${vives.length} reserves actives · ${placesVives} places ocupades · ${enEspera} en llista d'espera</p>
+<div class="res-xifres">
+  <div><span>Cobrat</span><strong>${eur(cobrat)}</strong></div>
+  <div><span>Pendent de cobrar</span><strong>${eur(pendent)}</strong>
+    ${ambConsultar ? `<small>+ ${ambConsultar} a consultar</small>` : ''}</div>
+  <div><span>Pagament amb targeta</span><strong>${state.stripe === 'off' ? 'No connectat' : state.stripe === 'test' ? 'Mode prova' : 'Actiu'}</strong></div>
+</div>
 ${filterHTML}
+<div class="filters" style="margin-bottom: var(--sp-2);">
+  ${Object.entries(FILTRES).map(([k, v]) =>
+    `<button class="filter-btn ${state.filtreReserves === k ? 'active' : ''}" onclick="filtreReserves('${k}')">${v.nom}${k === 'cobrar' && pendents.length ? ` (${pendents.length})` : ''}</button>`).join('')}
+</div>
+<div id="cobrament"></div>
 <table class="admin-table">
   <thead>
     <tr><th>Ref</th><th>Event</th><th>Nom</th><th>Telèfon</th><th>Places</th><th>Detall</th><th>Total</th><th>Pagament</th><th>Estat</th><th>Data</th></tr>
   </thead>
-  <tbody>${rows || '<tr><td colspan="10" style="text-align:center; padding: var(--sp-4)" class="muted">Cap reserva encara.</td></tr>'}</tbody>
+  <tbody>${rows || '<tr><td colspan="10" style="text-align:center; padding: var(--sp-4)" class="muted">Cap reserva en aquesta vista.</td></tr>'}</tbody>
 </table>`;
+
+  if (state.cobrant) renderCobrament();
 }
+
+window.filtreReserves = function(f) { state.filtreReserves = f; state.cobrant = null; renderReserves(); };
+
+/* ── PANELL DE COBRAMENT ───────────────────────────────────
+   Dues vies: registrar un cobrament fet fora (efectiu, Bizum…) o
+   generar un link de pagament amb targeta per enviar-lo nosaltres.
+   La web no envia res a ningú. */
+window.obrirCobrament = function(id) {
+  state.cobrant = state.cobrant === id ? null : id;
+  renderReserves();
+  qs('#cobrament')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+/* 600 11 22 33 → 34600112233, per a wa.me */
+function telWhatsApp(t) {
+  const d = String(t || '').replace(/\D/g, '');
+  return d.length === 9 ? '34' + d : d;
+}
+
+function renderCobrament() {
+  const r = state.reserves.find(x => x.id === state.cobrant);
+  const box = qs('#cobrament');
+  if (!r || !box) return;
+  const ev = state.events.find(e => e.id === r.event_id);
+  const titol = ev?.titol?.ca || r.event_id;
+  const linkViu = r.link_pagament && r.link_caduca && new Date(r.link_caduca) > new Date();
+  const imp = aCobrar(r) - (r.import_pagat_cents || 0);
+  const perDefecte = imp > 0 ? (imp / 100).toFixed(2) : '';
+  const importLink = r.import_cobrar_cents || aCobrar(r);
+  const textWA = `Hola ${r.nom.split(' ')[0]}! Aquí tens l'enllaç per pagar ${titol} (ref. ${r.id}, ${eur(importLink)}): ${r.link_pagament || ''}`;
+
+  box.innerHTML = `
+<section class="cob">
+  <div class="cob-cap">
+    <div>
+      <h2>Cobrament · <code>${esc(r.id)}</code></h2>
+      <p><strong>${esc(r.nom)}</strong> · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a> · ${esc(titol)}</p>
+      <p class="muted">${esc(resumLinies(r))} · Total ${eur(r.total_cents)}${r.consultar ? ' + a consultar' : ''}</p>
+    </div>
+    <button class="btn btn-ghost" onclick="obrirCobrament('${esc(r.id)}')">Tancar</button>
+  </div>
+  <div id="cob-msg"></div>
+
+  ${r.payment_status === 'paid' ? `
+    <div class="alert alert-success">Pagat <strong>${eur(r.import_pagat_cents)}</strong>
+      · ${esc(METODE_NOM[r.metode_pagament] || '')}
+      ${r.pagat_at ? ' · ' + esc(formatDate(r.pagat_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })) : ''}
+    </div>
+    ${r.metode_pagament === 'targeta' ? '<p class="form-help">Pagat amb targeta: si cal retornar-lo, fes-ho des del tauler de Stripe i després anul·la aquí el registre.</p>' : ''}
+    <button class="btn btn-ghost ev-arxivar" onclick="anularCobrament('${esc(r.id)}')">Anul·lar el registre del cobrament</button>
+  ` : `
+  <div class="cob-grid">
+    <div class="cob-bloc">
+      <h3>Ja ha pagat</h3>
+      <label class="ins-camp"><span>Import cobrat (€)</span>
+        <input class="form-input" id="cob-import" type="number" min="0" step="0.01" value="${perDefecte}"></label>
+      <label class="ins-camp"><span>Com</span>
+        <select class="form-select" id="cob-metode">
+          ${['efectiu', 'bizum', 'transferencia', 'targeta', 'altres'].map(m => `<option value="${m}">${METODE_NOM[m]}${m === 'targeta' ? ' (TPV)' : ''}</option>`).join('')}
+        </select></label>
+      <label class="ins-camp"><span>Nota (opcional)</span>
+        <input class="form-input" id="cob-nota" maxlength="200" placeholder="Ex. pagat al centre cívic"></label>
+      <button class="btn btn-primary" onclick="registrarCobrament('${esc(r.id)}')">Registrar cobrament</button>
+    </div>
+
+    <div class="cob-bloc">
+      <h3>Enviar link de pagament</h3>
+      ${state.stripe === 'off' ? `
+        <p class="muted">Cal connectar Stripe per generar links (mira <code>STRIPE-SETUP.md</code>). Mentrestant, registra els cobraments a l'esquerra.</p>
+      ` : `
+        <label class="ins-camp"><span>Import del link (€)</span>
+          <input class="form-input" id="link-import" type="number" min="0.5" step="0.01" value="${importLink ? (importLink / 100).toFixed(2) : ''}"></label>
+        <button class="btn btn-secondary" onclick="generarLink('${esc(r.id)}')">${linkViu ? 'Generar un link nou' : 'Generar link'}</button>
+        ${state.stripe === 'test' ? '<p class="form-help">Stripe en mode prova: el link no cobra de debò.</p>' : ''}
+      `}
+      ${linkViu ? `
+        <div class="cob-link">
+          <input class="form-input" id="link-url" readonly value="${esc(r.link_pagament)}">
+          <div class="cob-accions">
+            <button class="btn btn-secondary" onclick="copiarLink()">Copiar</button>
+            <a class="btn btn-secondary" target="_blank" rel="noopener"
+               href="https://wa.me/${telWhatsApp(r.telefon)}?text=${encodeURIComponent(textWA)}">Obrir WhatsApp</a>
+          </div>
+          <p class="form-help">Import ${eur(importLink)} · caduca ${esc(formatDate(r.link_caduca, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', year: undefined }))}.
+            Si caduca, la reserva es manté i en pots generar un altre.</p>
+        </div>` : ''}
+    </div>
+  </div>`}
+</section>`;
+}
+
+async function accioReserva(body) {
+  const out = await apiSend('/api/admin/orders', 'PATCH', body);
+  if (out?.reserva) {
+    const i = state.reserves.findIndex(x => x.id === out.reserva.id);
+    if (i >= 0) state.reserves[i] = out.reserva;
+  }
+  return out;
+}
+
+window.registrarCobrament = async function(id) {
+  const euros = parseFloat(qs('#cob-import').value);
+  if (!(euros >= 0)) { qs('#cob-msg').innerHTML = '<div class="alert alert-danger">Posa l\'import cobrat.</div>'; return; }
+  try {
+    await accioReserva({ accio: 'pagament', id, import_cents: Math.round(euros * 100),
+                         metode: qs('#cob-metode').value, nota: qs('#cob-nota').value.trim() || null });
+    renderReserves();
+  } catch (e) { qs('#cob-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(e))}</div>`; }
+};
+
+window.anularCobrament = async function(id) {
+  const motiu = prompt('Per què s\'anul·la? (queda a l\'auditoria)');
+  if (motiu === null) return;
+  try {
+    await accioReserva({ accio: 'anular_pagament', id, motiu: motiu || null });
+    renderReserves();
+  } catch (e) { qs('#cob-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(e))}</div>`; }
+};
+
+window.generarLink = async function(id) {
+  const euros = parseFloat(qs('#link-import').value);
+  if (!(euros >= 0.5)) { qs('#cob-msg').innerHTML = '<div class="alert alert-danger">L\'import mínim amb targeta és 0,50 €.</div>'; return; }
+  qs('#cob-msg').innerHTML = '<div class="alert alert-info">Generant el link…</div>';
+  try {
+    await accioReserva({ accio: 'link', id, import_cents: Math.round(euros * 100) });
+    renderReserves();
+  } catch (e) { qs('#cob-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(e))}</div>`; }
+};
+
+window.copiarLink = async function() {
+  const inp = qs('#link-url');
+  try { await navigator.clipboard.writeText(inp.value); }
+  catch { inp.select(); document.execCommand?.('copy'); }
+  qs('#cob-msg').innerHTML = '<div class="alert alert-success">Link copiat.</div>';
+};
 
 window.clearFilter = function() {
   state.eventFilter = null;
@@ -915,14 +1116,14 @@ window.clearFilter = function() {
 
 window.changeStatus = async function(id, status) {
   try {
-    await apiSend('/api/admin/orders', 'PATCH', { id, status });
-  } catch (e) { alert('Error: ' + e.message); }
+    await accioReserva({ id, status });
+  } catch (e) { alert('Error: ' + errText(e)); }
 };
 
 /* ── EXPORT CSV ────────────────────────────────────────────── */
 window.exportCSV = function() {
   const evMap = new Map(state.events.map(e => [e.id, e.titol?.ca || e.id]));
-  const cap = ['Ref','Activitat','Data acte','Nom','Telefon','Email','Places','Detall','Total EUR','Pagament','Estat','Creada','Confirmada'];
+  const cap = ['Ref','Activitat','Data acte','Nom','Telefon','Email','Places','Detall','Total EUR','Pagament','Cobrat EUR','Metode','Data cobrament','Estat','Creada','Confirmada'];
   const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const files = state.reserves.map(r => {
     const ev = state.events.find(e => e.id === r.event_id);
@@ -931,6 +1132,8 @@ window.exportCSV = function() {
       r.nom, r.telefon, r.email || '', r.places, resumLinies(r),
       ((r.total_cents || 0) / 100).toFixed(2).replace('.', ','),
       PAGAMENT_ESTAT[r.payment_status] || '',
+      ((r.import_pagat_cents || 0) / 100).toFixed(2).replace('.', ','),
+      METODE_NOM[r.metode_pagament] || '', r.pagat_at || '',
       ESTAT_LABEL[r.status] || r.status,
       r.created_at || '', r.confirmed_at || ''
     ].map(cell).join(';');
@@ -943,6 +1146,132 @@ window.exportCSV = function() {
   a.download = `reserves-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+};
+
+/* ── PASSAR LLISTA ────────────────────────────────────────────
+   Per activitat i per dia: a les mensuals (castellà cada dimarts) es
+   passa llista cada sessió. A les puntuals, marcar el dia de l'activitat
+   també canvia l'estat de la reserva a "Va assistir" / "No va venir". */
+function eventPerDefecte() {
+  const vius = state.events.filter(e => e.estat !== 'arxivat');
+  const futurs = vius.filter(e => (e.data || '') >= avui()).sort((a, b) => a.data.localeCompare(b.data));
+  return (futurs[0] || vius[0])?.id || null;
+}
+
+function dataPerDefecte(ev) {
+  if (!ev) return avui();
+  if ((ev.model || 'puntual') === 'puntual' && ev.data) return ev.data;
+  return avui();
+}
+
+async function carregaLlista() {
+  const L = state.llista;
+  L.error = null;
+  if (!L.eventId || !state.events.some(e => e.id === L.eventId)) {
+    L.eventId = eventPerDefecte();
+    L.data = null;
+  }
+  const ev = state.events.find(e => e.id === L.eventId);
+  if (!L.data) L.data = dataPerDefecte(ev);
+  L.assistencia = {};
+  if (!L.eventId) { state.reserves = []; return; }
+  await loadReserves(L.eventId);
+  try {
+    const d = await apiGet(`/api/admin/orders?llista=${encodeURIComponent(L.eventId)}&data=${L.data}`);
+    for (const a of d?.assistencia || []) L.assistencia[a.reserva_id] = a.present;
+  } catch (e) {
+    if (e instanceof AuthError) throw e;
+    L.error = 'No es pot llegir l\'assistència. Has executat api/schema-v11-control.sql?';
+  }
+}
+
+function renderLlista() {
+  const L = state.llista;
+  const ev = state.events.find(e => e.id === L.eventId);
+  const actius = state.reserves.filter(reservaViva).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
+  const espera = state.reserves.filter(r => r.status === 'waitlist');
+  const marca = r => L.assistencia[r.id];
+  const han = actius.filter(r => marca(r) === true);
+  const no = actius.filter(r => marca(r) === false);
+  const places = rs => rs.reduce((s, r) => s + (r.places || 0), 0);
+
+  const opcions = state.events
+    .filter(e => e.estat !== 'arxivat')
+    .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
+    .map(e => `<option value="${esc(e.id)}" ${e.id === L.eventId ? 'selected' : ''}>${esc(e.data || '—')} · ${esc(e.titol?.ca || e.id)}${e.entitat?.ca ? ' · ' + esc(e.entitat.ca) : ''}</option>`).join('');
+
+  const fila = r => {
+    const m = marca(r);
+    return `
+    <li class="ll-fila${m === true ? ' ll-fila--si' : m === false ? ' ll-fila--no' : ''}">
+      <div class="ll-qui">
+        <strong>${esc(r.nom)}</strong>${r.places > 1 ? ` <span class="ll-places">× ${r.places}</span>` : ''}
+        <div class="muted">${esc(resumLinies(r))} · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a></div>
+        <div class="ll-pag">${pagamentHTML(r)}</div>
+      </div>
+      <div class="ll-botons">
+        <button class="ll-btn ll-btn--si" aria-pressed="${m === true}" onclick="marcaAssistencia('${esc(r.id)}', ${m === true ? 'null' : 'true'})">✔ Ha vingut</button>
+        <button class="ll-btn ll-btn--no" aria-pressed="${m === false}" onclick="marcaAssistencia('${esc(r.id)}', ${m === false ? 'null' : 'false'})">✗ No ha vingut</button>
+      </div>
+      <span class="ll-print-casella" aria-hidden="true"></span>
+    </li>`;
+  };
+
+  app.innerHTML = `
+${tabsHTML()}
+<div class="ll-cap">
+  <h1 style="margin:0">Passar llista</h1>
+  <button class="btn btn-secondary no-print" onclick="window.print()">🖨 Imprimir</button>
+</div>
+<div class="ll-selectors no-print">
+  <label class="ins-camp"><span>Activitat</span>
+    <select class="form-select" onchange="llistaEvent(this.value)">${opcions || '<option>Cap activitat</option>'}</select></label>
+  <label class="ins-camp"><span>Dia</span>
+    <input class="form-input" type="date" value="${esc(L.data || '')}" onchange="llistaData(this.value)"></label>
+</div>
+${L.error ? `<div class="alert alert-warning">${esc(L.error)}</div>` : ''}
+${ev ? `
+<h2 class="ll-titol">${esc(ev.titol?.ca || ev.id)} · ${esc(formatDate(L.data, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</h2>
+<p class="ll-resum">
+  <strong>${actius.length}</strong> reserves (${places(actius)} places) ·
+  <span class="ll-si">${han.length} han vingut</span> ·
+  <span class="ll-no">${no.length} no</span> ·
+  ${actius.length - han.length - no.length} sense marcar
+</p>
+<ul class="ll-llista">${actius.map(fila).join('') || '<li class="muted">Cap reserva activa.</li>'}</ul>
+${espera.length ? `
+  <h3>Llista d'espera (${espera.length})</h3>
+  <ul class="ll-espera">${espera.map(r => `<li>${esc(r.nom)} · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a> · ${r.places} pl.</li>`).join('')}</ul>` : ''}
+` : '<div class="alert alert-info">Cap activitat per passar llista.</div>'}`;
+}
+
+window.obrirLlista = function(eventId) {
+  state.llista = { eventId, data: null, assistencia: {} };
+  setTab('llista');
+};
+window.llistaEvent = function(id) {
+  state.llista = { eventId: id, data: null, assistencia: {} };
+  render();
+};
+window.llistaData = function(d) {
+  if (!d) return;
+  state.llista.data = d;
+  render();
+};
+
+/* Resposta immediata a la pantalla; si el servidor falla, es desfà */
+window.marcaAssistencia = async function(id, present) {
+  const L = state.llista;
+  const abans = L.assistencia[id];
+  if (present === null) delete L.assistencia[id]; else L.assistencia[id] = present;
+  renderLlista();
+  try {
+    await apiSend('/api/admin/orders', 'PATCH', { accio: 'assistencia', id, data: L.data, present });
+  } catch (e) {
+    if (abans === undefined) delete L.assistencia[id]; else L.assistencia[id] = abans;
+    renderLlista();
+    alert('No s\'ha pogut desar: ' + errText(e));
+  }
 };
 
 /* ── AUDITORIA ─────────────────────────────────────────────── */

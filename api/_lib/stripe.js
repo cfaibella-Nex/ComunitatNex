@@ -127,3 +127,33 @@ export async function verificarWebhook(payload, header) {
     return diff === 0;
   });
 }
+
+/* Link de pagament per a una reserva concreta, generat des del panell.
+   L'equip el copia i l'envia per on vulgui (WhatsApp, correu…); la web
+   no envia res a ningú. Una sessió de Checkout viu com a màxim 24 h:
+   si caduca, la reserva NO es cancel·la, només torna a "sense pagar"
+   i se'n pot generar un altre. */
+export const HORES_LINK = 23;   // una mica per sota del màxim de Stripe
+
+export async function crearLinkPagament({ ref, event, importCents, lang, email, successUrl, cancelUrl }) {
+  const body = new URLSearchParams();
+  body.set('mode', 'payment');
+  body.set('success_url', successUrl);
+  body.set('cancel_url', cancelUrl);
+  body.set('client_reference_id', ref);
+  body.set('locale', localeStripe(lang));
+  body.set('expires_at', String(Math.floor(Date.now() / 1000) + HORES_LINK * 3600));
+  if (email) body.set('customer_email', email);
+  body.set('metadata[reserva]', ref);
+  body.set('metadata[event_id]', event.id);
+  body.set('metadata[origen]', 'link');
+  const titol = event.titol?.[lang] || event.titol?.ca || 'Comunitat NexSocial';
+  body.set('payment_intent_data[description]', `${titol} · ${ref}`.slice(0, 200));
+  body.set('payment_intent_data[metadata][reserva]', ref);
+  body.set('line_items[0][quantity]', '1');
+  body.set('line_items[0][price_data][currency]', 'eur');
+  body.set('line_items[0][price_data][unit_amount]', String(importCents));
+  body.set('line_items[0][price_data][product_data][name]', `${titol} · ${ref}`.slice(0, 120));
+  /* Clau única per generació: tornar a generar ha de crear un link nou */
+  return stripeFetch('/checkout/sessions', { body, idempotencyKey: `link_${ref}_${Date.now()}` });
+}

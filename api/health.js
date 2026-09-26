@@ -60,6 +60,9 @@ export default async function handler(req, res) {
     /* Migració v10 (tarifes i pagament) executada? */
     const { error: v10 } = await sb.from('events').select('model, tarifes').limit(1);
     estat.inscripcions_v10 = v10 ? `FALTA: executa api/schema-v10-inscripcions.sql (${v10.message})` : true;
+    /* Migració v11 (cobraments i passar llista) executada? */
+    const { error: v11 } = await sb.from('assistencia').select('id', { head: true, count: 'exact' });
+    estat.control_v11 = v11 ? `FALTA: executa api/schema-v11-control.sql (${v11.message})` : true;
     estat.esquema_ok = Object.values(out).every(v => typeof v === 'number');
     if (!estat.esquema_ok) {
       estat.ok = false;

@@ -47,7 +47,9 @@ export async function POST(request) {
         break;
       case 'checkout.session.expired':
       case 'checkout.session.async_payment_failed':
-        resultat = 'failed';     // la plaça s'allibera de seguida
+        /* Link enviat des del panell: la reserva es manté, només torna a
+           "sense pagar". Pagament de la web: la plaça s'allibera. */
+        resultat = sess.metadata?.origen === 'link' ? 'caducat_link' : 'failed';
         break;
     }
 
@@ -56,7 +58,8 @@ export async function POST(request) {
         p_ref: ref,
         p_resultat: resultat,
         p_payment_ref: sess.payment_intent || sess.id || null,
-        p_import: Number.isFinite(sess.amount_total) ? sess.amount_total : null
+        p_import: Number.isFinite(sess.amount_total) ? sess.amount_total : null,
+        p_session: sess.id || null
       });
       if (error) throw new Error(error.message);
       if (!data?.ok) console.error('webhook stripe:', ref, data);
