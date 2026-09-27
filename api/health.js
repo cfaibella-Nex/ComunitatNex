@@ -67,6 +67,9 @@ export default async function handler(req, res) {
     estat.cartells_v12 = v12 ? `FALTA: executa sql/03-cartells.sql (${v12.message})` : true;
     const { error: v13 } = await sb.from('reserves').select('origen, observacions').limit(1);
     estat.seguiment_v13 = v13 ? `FALTA: executa sql/05-seguiment.sql (${v13.message})` : true;
+    const { error: e6 } = await sb.from('events').select('recurrencia').limit(1);
+    const { error: e6b } = await sb.from('reserves').select('contacte').limit(1);
+    estat.setmanals_contacte = (e6 || e6b) ? `FALTA: executa sql/06-setmanals-contacte.sql i després torna a executar el 07 (${(e6 || e6b).message})` : true;
     const { error: e7 } = await sb.from('reserves').select('informada_at').limit(1);
     estat.proves_rgpd = e7 ? `FALTA: executa sql/07-proves-rgpd.sql (${e7.message})` : true;
     const { error: e9 } = await sb.from('reserves').select('esborrat_at').limit(1);
