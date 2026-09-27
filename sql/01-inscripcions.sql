@@ -390,3 +390,6 @@ revoke all on comunitat.notificacions from anon, authenticated;
 --
 -- I aquestes columnes han d'existir:
 --   select model, pagament, tarifes, extres from comunitat.events limit 1;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

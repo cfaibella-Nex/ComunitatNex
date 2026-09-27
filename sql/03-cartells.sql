@@ -74,3 +74,6 @@ select id, titol->>'ca' as titol, cartell
 from comunitat.events
 where estat <> 'arxivat'
 order by cartell nulls last, data;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

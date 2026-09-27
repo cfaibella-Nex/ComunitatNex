@@ -237,3 +237,6 @@ grant  execute on function comunitat.admin_sessio(text,date,text,text)     to se
 -- ── 8. COMPROVACIÓ ────────────────────────────────────────────
 --   select origen, observacions from comunitat.reserves limit 1;
 --   select sessions_afegides, sessions_tretes from comunitat.events limit 1;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

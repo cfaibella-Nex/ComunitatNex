@@ -266,3 +266,6 @@ revoke all on comunitat.assistencia from anon, authenticated;
 -- ── 9. COMPROVACIÓ ────────────────────────────────────────────
 --   select link_pagament, metode_pagament from comunitat.reserves limit 1;
 --   select count(*) from comunitat.assistencia;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

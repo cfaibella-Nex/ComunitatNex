@@ -193,3 +193,6 @@ grant  execute on function comunitat.admin_esborrar_activitat(text,text) to serv
 select count(*) filter (where esborrat_at is not null) as esborrades,
        count(*) filter (where esborrat_at is null)     as amb_dades
 from comunitat.reserves;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

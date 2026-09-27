@@ -326,3 +326,6 @@ alter table comunitat.usuaris   enable row level security;
 --   select table_name from information_schema.tables where table_schema = 'comunitat';
 --     → auditoria, contingut, events, recursos, reserves, usuaris
 --   select count(*) from comunitat.usuaris;   → 0 (encara no n'hi ha cap)
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

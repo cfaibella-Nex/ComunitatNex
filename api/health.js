@@ -71,6 +71,8 @@ export default async function handler(req, res) {
     estat.proves_rgpd = e7 ? `FALTA: executa sql/07-proves-rgpd.sql (${e7.message})` : true;
     const { error: e9 } = await sb.from('reserves').select('esborrat_at').limit(1);
     estat.baixa_esborrat = e9 ? `FALTA: executa sql/09-baixa-esborrat.sql (${e9.message})` : true;
+    const { error: e10 } = await sb.from('reserves').select('trucada_estat').limit(1);
+    estat.trucades = e10 ? `FALTA: executa sql/10-trucades.sql (${e10.message})` : true;
     estat.esquema_ok = Object.values(out).every(v => typeof v === 'number');
     if (!estat.esquema_ok) {
       estat.ok = false;

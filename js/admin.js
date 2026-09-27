@@ -27,7 +27,7 @@ let state = {
   eventFilter: null,
   eventVista: 'properes',
   stripe: 'off',                 // 'off' | 'test' | 'live' (ho diu l'API)
-  filtreReserves: 'totes',       // totes | cobrar | pagades | espera
+  filtreReserves: 'cobrar',      // cobrar | pagades | totes
   filtreCentre: '',              // Reserves i Seguiment: '' = tots els centres
   cobrant: null,                 // id de la reserva amb el panell de cobrament obert
   llista: { eventId: null, data: null, assistencia: {} },
@@ -438,7 +438,7 @@ function tabsHTML() {
 <div class="filters admin-tabs" style="margin-bottom: var(--sp-4);">
   ${b('events', 'Activitats')}
   ${potFer('reserves') ? b('cerca', '🔍 Cercar') : ''}
-  ${potFer('reserves') ? b('reserves', 'Reserves i cobraments') + b('seguiment', 'Seguiment') + b('llista', 'Passar llista') : ''}
+  ${potFer('reserves') ? b('seguiment', '📋 Seguiment') + b('reserves', '💶 Cobraments') + b('llista', 'Passar llista') : ''}
   ${potFer('auditoria') ? b('auditoria', 'Auditoria') : ''}
   ${potFer('usuaris') && !u.antic ? b('usuaris', 'Usuaris') : ''}
   <span class="admin-qui">${esc(u.nom || '')}${u.antic ? '' : ` · <button class="btn-link" onclick="canviarContrasenya()">Contrasenya</button>`}</span>
@@ -533,8 +533,8 @@ function targetaEvent(ev, ocup) {
         <button class="btn btn-secondary" onclick="editEvent('${esc(ev.id)}')">Editar</button>
         <button class="btn btn-ghost" onclick="duplicarEvent('${esc(ev.id)}')">Duplicar</button>
         ${potFer('reserves') ? `
-        <button class="btn btn-ghost" onclick="viewReserves('${esc(ev.id)}')">Reserves${ocupades ? ` (${ocupades})` : ''}</button>
-        <button class="btn btn-ghost" onclick="obrirSeguiment('${esc(ev.id)}')">Seguiment</button>
+        <button class="btn btn-ghost" onclick="obrirSeguiment('${esc(ev.id)}')">Seguiment${ocupades ? ` (${ocupades})` : ''}</button>
+        ${esActivitatDePagament(ev) ? `<button class="btn btn-ghost" onclick="viewReserves('${esc(ev.id)}')">Cobraments</button>` : ''}
         <button class="btn btn-ghost" onclick="obrirLlista('${esc(ev.id)}')">Passar llista</button>` : ''}
         ${(ev.estat === 'arxivat' || passat) && potFer('reserves') && ambDades(ev.id)
           ? `<button class="btn btn-ghost ev-arxivar" onclick="esborrarActivitat('${esc(ev.id)}')" title="Política de privacitat: les dades s'eliminen quan l'activitat s'acaba">Esborrar dades de les inscripcions (${ambDades(ev.id)})</button>` : ''}
@@ -1152,6 +1152,11 @@ const pendentCobrar = r => reservaViva(r) && !r.pare_id && r.payment_status !== 
 function centreDe(ev) {
   return String(ev?.entitat?.ca || '').replace(/^NexSocial\s*·\s*/i, '').trim() || 'NexSocial';
 }
+/* Activitat de pagament: alguna tarifa o extra amb preu fix o a consultar */
+function esActivitatDePagament(ev) {
+  const items = [...window.NXC.tarifesEvent(ev), ...window.NXC.extresEvent(ev)];
+  return items.some(x => x.preu_mode === 'fix' || x.preu_mode === 'consultar');
+}
 function centresActius() {
   return [...new Set(state.events.filter(e => e.estat !== 'arxivat').map(centreDe))].sort((a, b) => a.localeCompare(b, 'ca'));
 }
@@ -1196,6 +1201,7 @@ function renderReserves() {
   const tallers = state.events
     .filter(e => e.estat !== 'arxivat' || e.id === state.eventFilter)
     .filter(e => !state.filtreCentre || centreDe(e) === state.filtreCentre)
+    .filter(e => esActivitatDePagament(e) || e.id === state.eventFilter)
     .sort((a, b) => String(a.titol?.ca || '').localeCompare(String(b.titol?.ca || ''), 'ca'));
   const filterHTML = `
 <div class="res-filtres">
@@ -1212,55 +1218,52 @@ function renderReserves() {
   ${state.filtreCentre || state.eventFilter ? '<button class="btn btn-ghost" onclick="clearFilter()">Treure filtres</button>' : ''}
 </div>`;
 
-  const FILTRES = {
-    totes:   { nom: 'Totes',              f: () => true },
-    cobrar:  { nom: 'Pendents de cobrar', f: pendentCobrar },
-    pagades: { nom: 'Pagades',            f: r => r.payment_status === 'paid' },
-    espera:  { nom: "Llista d'espera",    f: r => r.status === 'waitlist' }
+  /* Cobraments: NOMÉS activitats de pagament. Per defecte, qui falta per
+     pagar: en quant paga, desapareix d'aquesta vista. L'assistència no
+     és aquí (és al Seguiment i a Passar llista). */
+  const evPer = new Map(state.events.map(e => [e.id, e]));
+  const esDePagament = r => {
+    if (r.pare_id || r.esborrat_at || ['cancelled', 'waitlist'].includes(r.status)) return false;
+    return r.payment_status === 'paid' || aCobrar(r) > 0 || r.consultar;
   };
-  const base = reservesFiltrades();
-  const llista = base.filter(FILTRES[state.filtreReserves]?.f || (() => true));
+  const FILTRES = {
+    cobrar:  { nom: 'Falten per pagar', f: r => r.payment_status !== 'paid' },
+    pagades: { nom: 'Pagades',          f: r => r.payment_status === 'paid' },
+    totes:   { nom: 'Totes',            f: () => true }
+  };
+  if (!FILTRES[state.filtreReserves]) state.filtreReserves = 'cobrar';
+  const base = reservesFiltrades().filter(esDePagament);
+  const llista = base.filter(FILTRES[state.filtreReserves].f)
+    .sort((x, y) => (evMap.get(x.event_id) || '').localeCompare(evMap.get(y.event_id) || '', 'ca') || x.nom.localeCompare(y.nom, 'ca'));
 
   const rows = llista.map(r => `
     <tr${state.cobrant === r.id ? ' class="res-oberta"' : ''}>
-      <td><code>${esc(r.id)}</code></td>
-      <td>${esc(evMap.get(r.event_id) || r.event_id)}</td>
-      <td><strong>${esc(r.nom)}</strong></td>
-      <td><a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? `<br><small class="muted">de ${esc(r.contacte)}</small>` : ''}</td>
-      <td>${r.places}</td>
-      <td class="res-detall">${esc(resumLinies(r))}</td>
-      <td>${eur(r.total_cents)}${r.consultar ? ' <small class="muted">+ a consultar</small>' : ''}</td>
-      <td class="res-pag">${pagamentHTML(r)}
-        ${!r.pare_id && !r.esborrat_at ? `<button class="btn btn-ghost btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${r.payment_status === 'paid' ? 'Veure' : 'Cobrar'}</button>` : ''}
-      </td>
-      <td>
-        <select onchange="changeStatus('${esc(r.id)}', this.value)">
-          ${ESTATS.map(s =>
-            `<option value="${s}" ${r.status===s?'selected':''}>${ESTAT_LABEL[s]}</option>`).join('')}
-        </select>
-      </td>
-      <td>${esc(formatDate(r.created_at, { day: '2-digit', month: '2-digit', year: '2-digit' }))}</td>
+      <td><strong>${esc(r.nom)}</strong><br><a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` <small class="muted">(de ${esc(r.contacte)})</small>` : ''}</td>
+      <td>${esc(evMap.get(r.event_id) || r.event_id)}<br><small class="muted">${esc(centreDe(evPer.get(r.event_id)))} · ${esc(resumLinies(r))}</small></td>
+      <td><span class="pag ${trucadaDe(r) === 'inscrit' ? 'pag--ok' : 'pag--pendent'}">${esc(TRUCADA[trucadaDe(r)].nom)}</span></td>
+      <td class="res-import">${eur(r.payment_status === 'paid' ? r.import_pagat_cents : aCobrar(r))}${r.consultar && !r.import_cobrar_cents && r.payment_status !== 'paid' ? ' <small class="muted">+ a consultar</small>' : ''}</td>
+      <td class="res-pag">${pagamentHTML(r)}</td>
+      <td><button class="btn ${r.payment_status === 'paid' ? 'btn-ghost' : 'btn-primary'} btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${r.payment_status === 'paid' ? 'Veure' : 'Cobrar'}</button></td>
     </tr>`).join('');
 
-  const vives = base.filter(r => ['pending','confirmed','attended'].includes(r.status));
-  const placesVives = vives.reduce((s, r) => s + (r.places || 0), 0);
-  const enEspera = base.filter(r => r.status === 'waitlist').length;
-  const cobrat = base.filter(r => r.payment_status === 'paid').reduce((s, r) => s + (r.import_pagat_cents || 0), 0);
-  const pendents = base.filter(pendentCobrar);
-  const pendent = pendents.reduce((s, r) => s + aCobrar(r), 0);
+  const cobrat = base.filter(r => r.payment_status === 'paid').reduce((t, r) => t + (r.import_pagat_cents || 0), 0);
+  const pendents = base.filter(r => r.payment_status !== 'paid');
+  const pendent = pendents.reduce((t, r) => t + aCobrar(r), 0);
   const ambConsultar = pendents.filter(r => r.consultar && !r.import_cobrar_cents).length;
+  const buit = !base.length
+    ? "Encara no hi ha cap inscripció a activitats de pagament. Les gratuïtes no surten aquí."
+    : state.filtreReserves === 'cobrar' ? 'Tothom ha pagat. 🎉' : 'Cap cobrament en aquesta vista.';
 
   app.innerHTML = `
 ${tabsHTML()}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--sp-3); gap: var(--sp-2); flex-wrap: wrap;">
-  <h1 style="margin:0">Reserves i cobraments</h1>
+  <h1 style="margin:0">Cobraments</h1>
   <button class="btn btn-secondary" onclick="exportCSV()">⬇ Descarregar CSV${state.filtreCentre || state.eventFilter ? ' (filtrat)' : ''}</button>
 </div>
-<p class="muted">${vives.length} reserves actives · ${placesVives} places ocupades · ${enEspera} en llista d'espera</p>
+<p class="muted">Només activitats de pagament. Quan algú paga, desapareix de "Falten per pagar".</p>
 <div class="res-xifres">
-  <div><span>Cobrat</span><strong>${eur(cobrat)}</strong></div>
-  <div><span>Pendent de cobrar</span><strong>${eur(pendent)}</strong>
-    ${ambConsultar ? `<small>+ ${ambConsultar} a consultar</small>` : ''}</div>
+  <div${pendents.length ? ' class="xifra-avis"' : ''}><span>Falten per pagar</span><strong>${pendents.length}</strong><small>${eur(pendent)}${ambConsultar ? ` + ${ambConsultar} a consultar` : ''}</small></div>
+  <div><span>Cobrat</span><strong>${eur(cobrat)}</strong><small>${base.length - pendents.length} pagades</small></div>
   <div><span>Pagament amb targeta</span><strong>${state.stripe === 'off' ? 'No connectat' : state.stripe === 'test' ? 'Mode prova' : 'Actiu'}</strong></div>
 </div>
 ${filterHTML}
@@ -1271,9 +1274,9 @@ ${filterHTML}
 <div id="cobrament"></div>
 <table class="admin-table">
   <thead>
-    <tr><th>Ref</th><th>Event</th><th>Nom</th><th>Telèfon</th><th>Places</th><th>Detall</th><th>Total</th><th>Pagament</th><th>Estat</th><th>Data</th></tr>
+    <tr><th>Persona</th><th>Activitat</th><th>Trucada</th><th>Import</th><th>Pagament</th><th></th></tr>
   </thead>
-  <tbody>${rows || '<tr><td colspan="10" style="text-align:center; padding: var(--sp-4)" class="muted">Cap reserva en aquesta vista.</td></tr>'}</tbody>
+  <tbody>${rows || `<tr><td colspan="6" style="text-align:center; padding: var(--sp-4)" class="muted">${buit}</td></tr>`}</tbody>
 </table>`;
 
   if (state.cobrant) renderCobrament();
@@ -1507,26 +1510,45 @@ window.esborrarActivitat = async function(eventId) {
   } catch (e) { alert('No s\'ha pogut fer: ' + errText(e)); }
 };
 
-/* Protecció de dades: ha estat informada? (art. 13/14 RGPD) */
-function celInformada(r) {
-  if (r.informada_at) {
-    const quan = formatDate(r.informada_at, { day: '2-digit', month: '2-digit', year: '2-digit' });
-    return `<span class="inf-ok" title="${esc(CANAL_INFO[r.info_canal] || '')} · ${esc(r.informada_per || '')} · ${esc(r.info_versio || '')}">✓ ${esc(quan)}</span>`;
-  }
-  return `<select class="sg-sel inf-pendent" onchange="sgInformada('${esc(r.id)}', this.value, this)" aria-label="Protecció de dades de ${esc(r.nom)}">
-    <option value="">⚠ Pendent</option>
-    <option value="telefon">✓ Informada per telèfon</option>
-    <option value="presencial">✓ Informada en persona</option>
+/* ── TRUCADA (seguiment del Raúl) ──────────────────────────
+   Un sol desplegable per persona. Si no s'ha marcat mai, es dedueix:
+   ha vingut o ja està confirmada i informada → Inscrit/a; si no → Pendent.
+   "✓ Inscrit/a" registra també que se li ha llegit la frase de dades
+   del guió de trucada (prova art. 13/14 RGPD, amb nom i hora). */
+const TRUCADA = {
+  pendent:     { nom: '☎ Pendent de trucar', cls: 'tr-pendent' },
+  no_contesta: { nom: '📵 No contesta',      cls: 'tr-nocontesta' },
+  inscrit:     { nom: '✓ Inscrit/a',         cls: 'tr-inscrit' },
+  no_inscriu:  { nom: "✗ No s'hi apunta",    cls: 'tr-no' }
+};
+function trucadaDe(r) {
+  if (r.trucada_estat) return r.trucada_estat;
+  if (['attended', 'no-show'].includes(r.status)) return 'inscrit';
+  if (r.status === 'confirmed' && r.informada_at && r.info_canal !== 'llista_centre') return 'inscrit';
+  return 'pendent';
+}
+function celTrucada(r) {
+  const e = trucadaDe(r);
+  return `<select class="sg-sel sg-trucada ${TRUCADA[e].cls}" onchange="sgTrucada('${esc(r.id)}', this.value, this)"
+    aria-label="Seguiment de ${esc(r.nom)}"${r.trucada_at ? ` title="${esc(r.trucada_per || '')} · ${esc(formatDate(r.trucada_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', year: undefined }))}"` : ''}>
+    ${Object.entries(TRUCADA).map(([k, v]) => `<option value="${k}" ${k === e ? 'selected' : ''}>${v.nom}</option>`).join('')}
   </select>`;
 }
-window.sgInformada = async function(id, canal, sel) {
-  if (!canal) return;
-  const r = state.reserves.find(x => x.id === id);
-  if (!confirm(`Confirmes que has llegit a ${r?.nom || 'aquesta persona'} la clàusula de protecció de dades${canal === 'telefon' ? ' per telèfon' : ' en persona'}?\n\nQuedarà registrat amb el teu nom i l'hora, i no es pot desfer.`)) { sel.value = ''; return; }
-  try { await accioReserva({ accio: 'informada', id, canal }); }
+window.sgTrucada = async function(id, estat, sel) {
+  if (estat === 'no_inscriu') {
+    await baixaPersona(id);          // demana motiu i confirma; si es cancel·la, no fa res
+    render();
+    return;
+  }
+  try { await accioReserva({ accio: 'trucada', id, estat }); }
   catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
   render();
 };
+window.sgNomesPerTrucar = function() { state.seguiment.nomesPendents = !state.seguiment.nomesPendents; renderSeguiment(); };
+const perTrucar = r => ['pendent', 'no_contesta'].includes(trucadaDe(r));
+const AVIS_GUIO = '<p class="form-help no-print sg-avis-guio">En marcar <strong>✓ Inscrit/a</strong> confirmes que li has llegit la frase de protecció de dades del guió de trucada.</p>';
+
+
 const pad2 = n => String(n).padStart(2, '0');
 const isoDia = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const esPuntual = ev => (ev?.model || 'puntual') === 'puntual' && ev?.recurrencia !== 'setmanal';
@@ -1678,18 +1700,18 @@ window.sgNomesPendents = function() { state.seguiment.nomesPendents = !state.seg
 function renderSeguimentTotes() {
   const dt = dadesTotes();
   const { S, evPer, espera, pct, cobra, nivell } = dt;
-  const pendentsInf = dt.persones.filter(r => !r.informada_at).length;
-  const persones = S.nomesPendents ? dt.persones.filter(r => !r.informada_at) : dt.persones;
+  const pendentsTr = dt.persones.filter(perTrucar).length;
+  const persones = S.nomesPendents ? dt.persones.filter(perTrucar) : dt.persones;
   const activitats = new Set(persones.map(r => r.event_id)).size;
   const hanDePagar = persones.filter(cobra);
   const pcts = persones.map(pct).filter(x => x !== null);
   const pctMitja = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : null;
 
   const celPagat = r => {
-    if (!cobra(r)) return `<span class="muted">${r.pare_id ? '—' : 'Gratuït'}</span>`;
+    if (!cobra(r)) return '<span class="muted">—</span>';
     const pagat = r.payment_status === 'paid';
-    return `<select class="sg-sel${pagat ? ' sg-pagat' : ''}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}">
-      <option value="">${r.payment_status === 'pending' ? 'Link enviat' : 'No pagat'}</option>
+    return `<select class="sg-sel${pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}">
+      <option value="">${r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar'}</option>
       ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && r.metode_pagament === k ? 'selected' : ''}>✓ ${v}</option>`).join('')}
     </select>`;
   };
@@ -1706,10 +1728,8 @@ function renderSeguimentTotes() {
     <td class="sg-act"><button class="btn-link" onclick="sgEvent('${esc(r.event_id)}')" title="Obrir el seguiment d'aquesta activitat">${esc(ev?.titol?.ca || r.event_id)}</button>
       ${state.filtreCentre ? '' : `<small class="muted">${esc(centreDe(ev))}</small>`}</td>
     <td class="sg-nivell">${esc(nivell(r))}</td>
-    <td class="sg-check"><input type="checkbox" ${r.status !== 'pending' ? 'checked' : ''} ${['attended', 'no-show'].includes(r.status) ? 'disabled' : ''}
-      onchange="sgAlta('${esc(r.id)}', this.checked)" aria-label="Alta de ${esc(r.nom)}"></td>
+    <td class="sg-truc">${celTrucada(r)}</td>
     <td class="sg-pag">${celPagat(r)}</td>
-    <td class="sg-inf">${celInformada(r)}</td>
     <td class="sg-pct">${p === null ? '—' : p + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
     <td class="no-print"><button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
@@ -1744,16 +1764,19 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
 
 <div class="res-xifres no-print">
   <div><span>Inscripcions</span><strong>${persones.length}</strong><small>${activitats} activitats</small></div>
-  <div><span>Alta confirmada</span><strong>${persones.filter(r => r.status !== 'pending').length} / ${persones.length}</strong></div>
-  <div><span>Pagades</span><strong>${hanDePagar.filter(r => r.payment_status === 'paid').length} / ${hanDePagar.length}</strong></div>
+  <div><span>Inscrits</span><strong>${dt.persones.filter(r => trucadaDe(r) === 'inscrit').length} / ${dt.persones.length}</strong></div>
+  <div${pendentsTr ? ' class="xifra-avis"' : ''}><span>Per trucar</span><strong>${pendentsTr}</strong>
+    <small>${dt.persones.filter(r => trucadaDe(r) === 'no_contesta').length} no contesten</small>
+    ${pendentsTr ? `<button class="btn-link" onclick="sgNomesPerTrucar()">${state.seguiment.nomesPendents ? 'Veure tothom' : 'Veure només aquestes'}</button>` : ''}</div>
+  <div><span>Pendents de pagar</span><strong>${hanDePagar.filter(r => r.payment_status !== 'paid').length}</strong>
+    <small>${hanDePagar.filter(r => r.payment_status === 'paid').length} pagades</small></div>
   <div><span>Assistència del mes</span><strong>${pctMitja === null ? '—' : pctMitja + '%'}</strong></div>
-  <div${pendentsInf ? ' class="xifra-avis"' : ''}><span>Pendents d'informar (dades)</span><strong>${pendentsInf}</strong>
-    ${pendentsInf ? `<button class="btn-link" onclick="sgNomesPendents()">${state.seguiment.nomesPendents ? 'Veure tothom' : 'Veure només aquestes'}</button>` : ''}</div>
 </div>
+${AVIS_GUIO}
 
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
-  <thead><tr><th>#</th><th>Nom</th><th>Telèfon</th><th>Contacte</th><th>Activitat</th><th>Nivell</th><th>Alta</th><th>Pagat</th><th title="Informada de la protecció de dades (art. 13/14 RGPD)">Dades</th><th>Assist.</th><th>Observacions</th></tr></thead>
+  <thead><tr><th>#</th><th>Nom</th><th>Telèfon</th><th>Contacte</th><th>Activitat</th><th>Nivell</th><th>Trucada</th><th>Pagat</th><th>Assist.</th><th>Observacions</th><th class="no-print"></th></tr></thead>
   <tbody>${persones.map(fila).join('') || '<tr><td colspan="11" class="muted" style="text-align:center">Cap inscripció.</td></tr>'}</tbody>
 </table>
 </div>
@@ -1778,10 +1801,10 @@ function renderSeguiment() {
   const pctMitja = persones.length && passades.length ? Math.round(totalSi * 100 / (persones.length * passades.length)) : null;
 
   const celPagat = r => {
-    if (!cobra(r)) return `<span class="muted">${r.pare_id ? '—' : 'Gratuït'}</span>`;
+    if (!cobra(r)) return '<span class="muted">—</span>';
     const pagat = r.payment_status === 'paid';
-    return `<select class="sg-sel${pagat ? ' sg-pagat' : ''}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}">
-      <option value="">${r.payment_status === 'pending' ? 'Link enviat' : 'No pagat'}</option>
+    return `<select class="sg-sel${pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}">
+      <option value="">${r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar'}</option>
       ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && r.metode_pagament === k ? 'selected' : ''}>✓ ${v}</option>`).join('')}
     </select>${pagat ? `<small class="sg-import">${eur(r.import_pagat_cents)}</small>` : aCobrar(r) ? `<small class="sg-import">${eur(aCobrar(r))}</small>` : ''}`;
   };
@@ -1799,13 +1822,8 @@ function renderSeguiment() {
     <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
     <td><input class="sg-in sg-contacte" value="${esc(r.contacte || '')}" placeholder="—" onchange="sgEditar('${esc(r.id)}','contacte',this.value)" aria-label="De qui és el telèfon de ${esc(r.nom)}" title="Si el telèfon és d'un familiar: de qui és"></td>
     <td class="sg-nivell">${esc(nivell(r))}</td>
-    <td><select class="sg-sel sg-origen" onchange="sgEditar('${esc(r.id)}','origen',this.value)" aria-label="Origen">
-      ${Object.entries(ORIGEN_NOM).map(([k, v]) => `<option value="${k}" ${(r.origen || 'web') === k ? 'selected' : ''}>${v}</option>`).join('')}
-    </select></td>
-    <td class="sg-check"><input type="checkbox" ${r.status !== 'pending' ? 'checked' : ''} ${['attended', 'no-show'].includes(r.status) ? 'disabled' : ''}
-      onchange="sgAlta('${esc(r.id)}', this.checked)" aria-label="Alta de ${esc(r.nom)}"></td>
+    <td class="sg-truc">${celTrucada(r)}</td>
     <td class="sg-pag">${celPagat(r)}</td>
-    <td class="sg-inf">${celInformada(r)}</td>
     ${sessions.map(d => celSessio(r, d)).join('')}
     <td class="sg-pct">${pctPersona(r) === null ? '—' : pctPersona(r) + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
@@ -1847,21 +1865,22 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
 
 <div class="res-xifres no-print">
   <div><span>Aforament</span><strong>${places} / ${ev.cupo || '—'}</strong>${ev.cupo ? `<small>${Math.round(places * 100 / ev.cupo)}% ocupat</small>` : ''}</div>
-  <div><span>Alta confirmada</span><strong>${altes} / ${persones.length}</strong></div>
-  <div><span>Pagades</span><strong>${gratuita ? 'Gratuïta' : `${pagades} / ${hanDePagar.length}`}</strong></div>
-  <div${persones.some(r => !r.informada_at) ? ' class="xifra-avis"' : ''}><span>Pendents d'informar (dades)</span><strong>${persones.filter(r => !r.informada_at).length}</strong></div>
+  <div><span>Inscrits</span><strong>${persones.filter(r => trucadaDe(r) === 'inscrit').length} / ${persones.length}</strong></div>
+  <div${persones.some(perTrucar) ? ' class="xifra-avis"' : ''}><span>Per trucar</span><strong>${persones.filter(perTrucar).length}</strong></div>
+  <div><span>Pendents de pagar</span><strong>${gratuita ? 'Gratuïta' : `${hanDePagar.length - pagades}`}</strong>${gratuita ? '' : `<small>${pagades} pagades</small>`}</div>
   <div><span>Assistència ${esPuntual(ev) ? '' : 'del mes'}</span><strong>${pctMitja === null ? '—' : pctMitja + '%'}</strong>
     <small>${passades.length} de ${sessions.length} sessions fetes</small></div>
 </div>
 
+${AVIS_GUIO}
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
   <thead><tr>
-    <th>#</th><th>Nom</th><th>Telèfon</th><th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th>Nivell</th><th>Origen</th><th>Alta</th><th>Pagat</th><th title="Informada de la protecció de dades (art. 13/14 RGPD)">Dades</th>
+    <th>#</th><th>Nom</th><th>Telèfon</th><th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th>Nivell</th><th>Trucada</th><th>Pagat</th>
     ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
     <th>Assist.</th><th>Observacions</th><th class="no-print"></th>
   </tr></thead>
-  <tbody>${persones.map(fila).join('') || `<tr><td colspan="${12 + sessions.length}" class="muted" style="text-align:center">Cap persona apuntada. Fes servir “+ Afegir persona”.</td></tr>`}</tbody>
+  <tbody>${persones.map(fila).join('') || `<tr><td colspan="${10 + sessions.length}" class="muted" style="text-align:center">Cap persona apuntada. Fes servir “+ Afegir persona”.</td></tr>`}</tbody>
 </table>
 </div>
 ${sessions.length ? '' : '<p class="muted no-print">Aquest mes no hi ha cap sessió. Afegeix-ne una amb la data.</p>'}
@@ -1983,7 +2002,7 @@ window.sgObrirAfegir = function() {
       <option value="telefon">Trucada</option><option value="presencial">Presencial al centre</option>
       <option value="llista_centre">Llista enviada pel centre cívic</option><option value="altres">Altres</option></select></label>
     <label class="ins-camp"><span>Observacions</span><input class="form-input" id="af-obs"></label>
-    <label class="ins-camp sg-alta-check"><span>Alta confirmada</span><input type="checkbox" id="af-alta" checked></label>
+    <label class="ins-camp sg-alta-check"><span>Ja ha dit que s'hi apunta</span><input type="checkbox" id="af-alta" checked></label>
     <div class="af-rgpd" id="af-rgpd" style="grid-column: 1 / -1">
       <label><input type="checkbox" id="af-informada">
         <span><strong>Li he llegit la clàusula de protecció de dades</strong> (i al familiar, si el telèfon és seu). Obligatori.</span></label>
@@ -2032,12 +2051,12 @@ window.sgExcel = function() {
   if (state.seguiment.eventId === TOTES) {
     const { S, evPer, persones, espera, pct, cobra, nivell } = dadesTotes();
     const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Activitat', 'Centre', 'Nivell', 'Places',
-                 'Origen', 'Alta', 'Pagat', 'Import', 'Mètode', `Assistència ${nomMesLlarg(S.mes)} %`, 'Observacions', 'Referència',
+                 'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode', `Assistència ${nomMesLlarg(S.mes)} %`, 'Observacions', 'Referència',
                  'Dades: canal', 'Dades: informada el', 'Dades: per'];
     const files = persones.map((r, i) => {
       const e = evPer.get(r.event_id);
       return [i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', e?.titol?.ca || r.event_id, centreDe(e), nivell(r), r.places,
-        ORIGEN_NOM[r.origen] || '', r.status !== 'pending' ? 'Sí' : 'No',
+        ORIGEN_NOM[r.origen] || '', TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
         !cobra(r) ? 'No cal' : r.payment_status === 'paid' ? 'Sí' : 'No',
         r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
         r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '', pct(r), r.observacions || '', r.id,
@@ -2051,11 +2070,11 @@ window.sgExcel = function() {
     return;
   }
   const { S, ev, sessions, persones, espera, marca, cobra, nivell, pctPersona } = dadesSeguiment();
-  const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Nivell', 'Places', 'Origen', 'Alta', 'Pagat', 'Import', 'Mètode',
+  const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Nivell', 'Places', 'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode',
                ...sessions.map(capSessio), 'Assistència %', 'Observacions', 'Referència'];
   const files = persones.map((r, i) => [
     i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', nivell(r), r.places, ORIGEN_NOM[r.origen] || '',
-    r.status !== 'pending' ? 'Sí' : 'No',
+    TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
     !cobra(r) ? 'No cal' : r.payment_status === 'paid' ? 'Sí' : 'No',
     r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
     r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '',
@@ -2148,7 +2167,7 @@ function renderCerca() {
         <div class="cerca-estat">
           <span class="pag ${r.status === 'waitlist' ? 'pag--pendent' : r.status === 'cancelled' ? '' : 'pag--ok'}">${esc(ESTAT_LABEL[r.status] || r.status)}</span>
           ${pagamentHTML(r)}
-          ${r.informada_at ? '' : '<span class="pag pag--pendent">⚠ Dades: pendent d\'informar</span>'}
+          <span class="pag ${trucadaDe(r) === 'inscrit' ? 'pag--ok' : 'pag--pendent'}">${esc(TRUCADA[trucadaDe(r)].nom)}</span>
           ${r.observacions ? `<span class="muted">📝 ${esc(r.observacions)}</span>` : ''}
         </div>
       </div>
@@ -2247,7 +2266,7 @@ function renderLlista() {
       <div class="ll-qui">
         <strong>${esc(r.nom)}</strong>${r.places > 1 ? ` <span class="ll-places">× ${r.places}</span>` : ''}
         <div class="muted">${esc(resumLinies(r))} · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` (${esc(r.contacte)})` : ''}</div>
-        <div class="ll-pag">${pagamentHTML(r)}${r.informada_at ? '' : ' <span class="pag pag--pendent" title="Llegeix-li la clàusula de protecció de dades i marca-ho al Seguiment">⚠ Dades: pendent d\'informar</span>'}</div>
+        <div class="ll-pag">${pagamentHTML(r)}</div>
       </div>
       <div class="ll-botons">
         <button class="ll-btn ll-btn--si" aria-pressed="${m === true}" onclick="marcaAssistencia('${esc(r.id)}', ${m === true ? 'null' : 'true'})">✔ Ha vingut</button>

@@ -20,3 +20,6 @@ on conflict do nothing;
 
 select versio, idioma, left(empremta, 16) || '…' as empremta from comunitat.textos_legals
 where tipus = 'formulari_web' order by versio, idioma;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

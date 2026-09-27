@@ -15,6 +15,7 @@ Executa els fitxers de `sql/` **en ordre de número**. Tots són idempotents: es
 | `07-proves-rgpd.sql` | Registre de proves d'informació (art. 5.2 RGPD) |
 | `08-textos-rgpd-v3.sql` | Text v3 de la informació bàsica |
 | `09-baixa-esborrat.sql` | Baixa amb esborrat de dades personals (també de l'auditoria) |
+| `10-trucades.sql` | Seguiment de trucades (pendent · no contesta · inscrit/a) |
 
 ⚠ Si algun dia tornes a executar un fitxer antic (p. ex. el 05), executa després **tots els següents fins al final**: alguns redefineixen la mateixa funció d'auditoria.
 

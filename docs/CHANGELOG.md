@@ -4,6 +4,24 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v20 · Seguiment de trucades i cobraments simplificats
+
+SQL: `sql/10-trucades.sql`.
+
+Cada pantalla fa una sola cosa:
+- **📋 Seguiment**: amb qui s'ha parlat. Un desplegable **Trucada** per persona: ☎ Pendent de trucar · 📵 No contesta ·
+  ✓ Inscrit/a · ✗ No s'hi apunta (fa la baixa i esborra les dades). Substitueix la casella "Alta" i la
+  columna "Dades". Xifres: inscrits, per trucar (amb el filtre "Veure només aquestes"), pendents de pagar
+  i assistència. La columna "Pagat" només surt a les activitats de pagament ("⏳ Pendent de pagar").
+- **💶 Cobraments**: només activitats de pagament. Per defecte, "Falten per pagar": qui paga desapareix
+  d'aquesta vista. Ja no hi ha l'estat de la reserva, perquè l'assistència és al Seguiment i a Passar llista.
+- La targeta d'activitat té "Seguiment (N)" i, si és de pagament, "Cobraments".
+
+Protecció de dades: marcar "✓ Inscrit/a" registra que se li ha llegit la frase de dades del guió de
+trucada (qui i quan). La prova es manté sense cap columna ni clic de més.
+
+---
+
 ## v19 · Baixa amb esborrat de dades i cercador
 
 SQL: `sql/09-baixa-esborrat.sql`.

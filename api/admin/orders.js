@@ -12,6 +12,7 @@
 //   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen, contacte } }
 //   PATCH { accio: 'sessio', event_id, data, operacio: 'afegir' | 'treure' }
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
+//   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' }
 //   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
 //   PATCH { accio: 'esborrar_activitat', event_id } → esborrat de totes les inscripcions d'una activitat acabada
 //
@@ -209,6 +210,13 @@ export default async function handler(req, res) {
         const canal = ['telefon', 'presencial'].includes(body.canal) ? body.canal : null;
         const out = await rpc('admin_marcar_informada', { p_id: id, p_actor: actor, p_canal: canal });
         if (!out?.ok) return json(res, 409, { error: 'Ja constava com a informada' });
+        return json(res, 200, { reserva: out.reserva });
+      }
+
+      case 'trucada': {
+        /* Seguiment de trucades: pendent · no_contesta · inscrit */
+        const out = await rpc('admin_trucada', { p_id: id, p_estat: String(body.estat || ''), p_actor: actor });
+        if (!out?.ok) return json(res, 409, { error: out?.error === 'estat_no_valid' ? 'Estat no vàlid' : 'Reserva no trobada o cancel·lada' });
         return json(res, 200, { reserva: out.reserva });
       }
 

@@ -192,3 +192,6 @@ select id, titol->>'ca' as titol, recurrencia, data,
 from comunitat.events
 where estat <> 'arxivat'
 order by recurrencia desc, id;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';

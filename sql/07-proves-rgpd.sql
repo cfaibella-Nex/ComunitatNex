@@ -219,3 +219,6 @@ select info_canal, count(*) as reserves, count(informada_at) as informades,
        count(*) - count(informada_at) as pendents_informar
 from comunitat.reserves where status not in ('cancelled')
 group by info_canal order by 1;
+
+-- Que l'API (PostgREST) vegi de seguida les funcions noves
+notify pgrst, 'reload schema';
