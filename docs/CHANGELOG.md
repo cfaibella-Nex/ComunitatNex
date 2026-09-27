@@ -4,6 +4,16 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v24 · Un sol botó per al Casal de Gent Gran Centre
+
+Dades (fora del repo): `14-unificar-casal-centre.sql`.
+- "Casal Centre" i "Casal de Gent Gran Centre (ASJP)" són el mateix equipament i al filtre per centre
+  (web i panell) sortien dos botons. Totes les activitats passen a l'entitat amb el nom oficial,
+  mantenint el "NexSocial · " del davant on hi era.
+- `js/data.js` (dades de reserva si falla l'API): mateix canvi a la Vivioteca.
+
+---
+
 ## v23 · Horaris correctes i cartell nou de castellà
 
 Dades (fora del repo): `13-horaris-setmanals.sql`, segons la taula oficial de tallers.

@@ -32,7 +32,7 @@ const EVENTS_DATA = [
       ca: 'Trobada mensual per compartir vivències, lectures i experiències. Un espai relaxat per parlar, escoltar i teixir vincle.',
       es: 'Encuentro mensual para compartir vivencias, lecturas y experiencias. Un espacio relajado para hablar, escuchar y tejer vínculo.'
     },
-    entitat: { ca: 'NexSocial · Casal Centre', es: 'NexSocial · Casal Centre' },
+    entitat: { ca: 'NexSocial · Casal de Gent Gran Centre (ASJP)', es: 'NexSocial · Casal de Gent Gran Centre (ASJP)' },
     ubicacio: { ca: 'Casal de Gent Gran Centre, Badalona', es: 'Casal de Gent Gran Centre, Badalona' },
     mapa_url: 'https://maps.google.com/?q=Casal+Gent+Gran+Centre+Badalona',
     data: '2026-10-15', hora: '17:00', durada: 90,
