@@ -24,7 +24,7 @@ export async function estatGestor() {
        sense haver executat gestor-schema.sql). */
     const { data, count, error } = await ambTimeout(
       getGestorDb().from('usuaris').select('id', { count: 'exact' }).limit(1), 5000, 'estat');
-    if (error || !Array.isArray(data)) e.error = error?.message || 'Taula usuaris no accessible: executa api/gestor-schema.sql';
+    if (error || !Array.isArray(data)) e.error = error?.message || 'Taula usuaris no accessible: executa sql/04-usuaris-gestor.sql';
     else { e.taules_ok = true; e.usuaris = count || 0; }
   } catch (x) { e.error = String(x.message || x); }
   return e;

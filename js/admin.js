@@ -421,7 +421,7 @@ async function renderTab() {
     } catch (e) {
       if (e instanceof AuthError) throw e;
       app.innerHTML = tabsHTML() + `<div class="alert alert-danger">Error carregant l'auditoria: ${esc(e.message)}</div>
-        <p>Comprova que hagis executat <code>api/schema-v2.sql</code> a Supabase.</p>`;
+        <p>Comprova que hagis executat <code>sql/00-schema-full.sql</code> a Supabase.</p>`;
     }
   }
 }
@@ -1341,7 +1341,7 @@ function renderCobrament() {
     <div class="cob-bloc">
       <h3>Enviar link de pagament</h3>
       ${state.stripe === 'off' ? `
-        <p class="muted">Cal connectar Stripe per generar links (mira <code>STRIPE-SETUP.md</code>). Mentrestant, registra els cobraments a l'esquerra.</p>
+        <p class="muted">Cal connectar Stripe per generar links (mira <code>docs/INSTALLACIO.md (Stripe)</code>). Mentrestant, registra els cobraments a l'esquerra.</p>
       ` : `
         <label class="ins-camp"><span>Import del link (€)</span>
           <input class="form-input" id="link-import" type="number" min="0.5" step="0.01" value="${importLink ? (importLink / 100).toFixed(2) : ''}"></label>
@@ -2078,7 +2078,7 @@ async function carregaLlista() {
     for (const a of d?.assistencia || []) L.assistencia[a.reserva_id] = a.present;
   } catch (e) {
     if (e instanceof AuthError) throw e;
-    L.error = 'No es pot llegir l\'assistència. Has executat api/schema-v11-control.sql?';
+    L.error = 'No es pot llegir l\'assistència. Has executat sql/02-cobraments-llista.sql?';
   }
 }
 

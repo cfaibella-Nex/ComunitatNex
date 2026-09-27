@@ -1,0 +1,4 @@
+# No es publiquen a la web: documentació interna i SQL
+docs/
+sql/
+*.md

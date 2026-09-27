@@ -1819,3 +1819,4 @@ body.cartell-obert { overflow: hidden; }
 .rgpd-botons { display: flex; gap: var(--sp-2); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--sp-3); }
 .rgpd-botons .btn { min-height: var(--touch); }
 @media (max-width: 480px) { .rgpd-botons .btn { flex: 1 1 100%; } }
+.legal-llista li { margin-bottom: var(--sp-2); line-height: 1.6; }

@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         setup_disponible: e.secret && e.taules_ok && e.setup_key && e.usuaris === 0,
         acces_antic: e.acces_antic && e.usuaris === 0,
         usuari: u, rols: ROL_NOM,
-        falta: !e.secret ? 'GESTOR_SECRET' : !e.taules_ok ? 'gestor-schema.sql' : null
+        falta: !e.secret ? 'GESTOR_SECRET' : !e.taules_ok ? 'sql/04-usuaris-gestor.sql' : null
       });
     }
     if (op === 'setup' && req.method === 'POST') return await opSetup(req, res, cos);

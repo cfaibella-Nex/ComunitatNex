@@ -8,7 +8,7 @@
    límit de 4,5 MB de cos i base64 infla un 33 %. Amb la reducció
    prèvia al navegador, una foto de mòbil de 6 MB baixa a ~300 KB.
 
-   Requereix el bucket `comunitat-media`, que crea gestor-schema.sql. */
+   Requereix el bucket `comunitat-media`, que crea sql/04-usuaris-gestor.sql. */
 
 import { json, readBody, methodNotAllowed } from './_lib/http.js';
 import { hasSupabase, supabase } from './_lib/supabase.js';

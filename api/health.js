@@ -59,19 +59,19 @@ export default async function handler(req, res) {
     estat.taules = out;
     /* Migració v10 (tarifes i pagament) executada? */
     const { error: v10 } = await sb.from('events').select('model, tarifes').limit(1);
-    estat.inscripcions_v10 = v10 ? `FALTA: executa api/schema-v10-inscripcions.sql (${v10.message})` : true;
+    estat.inscripcions_v10 = v10 ? `FALTA: executa sql/01-inscripcions.sql (${v10.message})` : true;
     /* Migració v11 (cobraments i passar llista) executada? */
     const { error: v11 } = await sb.from('assistencia').select('id', { head: true, count: 'exact' });
-    estat.control_v11 = v11 ? `FALTA: executa api/schema-v11-control.sql (${v11.message})` : true;
+    estat.control_v11 = v11 ? `FALTA: executa sql/02-cobraments-llista.sql (${v11.message})` : true;
     const { error: v12 } = await sb.from('events').select('cartell').limit(1);
-    estat.cartells_v12 = v12 ? `FALTA: executa api/schema-v12-cartells.sql (${v12.message})` : true;
+    estat.cartells_v12 = v12 ? `FALTA: executa sql/03-cartells.sql (${v12.message})` : true;
     const { error: v13 } = await sb.from('reserves').select('origen, observacions').limit(1);
-    estat.seguiment_v13 = v13 ? `FALTA: executa api/schema-v13-seguiment.sql (${v13.message})` : true;
+    estat.seguiment_v13 = v13 ? `FALTA: executa sql/05-seguiment.sql (${v13.message})` : true;
     estat.esquema_ok = Object.values(out).every(v => typeof v === 'number');
     if (!estat.esquema_ok) {
       estat.ok = false;
       estat.pista = `Si l'error parla de l'esquema, afegeix "${ESQUEMA}" a Supabase → Data API → Exposed schemas. `
-                  + 'Si parla de la taula, executa api/schema-full.sql.';
+                  + 'Si parla de la taula, executa sql/00-schema-full.sql.';
     }
   } catch (e) {
     estat.ok = false;

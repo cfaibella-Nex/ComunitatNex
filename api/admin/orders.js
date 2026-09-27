@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       }
 
       case 'link': {
-        if (!stripeActiu()) return json(res, 409, { error: 'Stripe no està connectat. Mira STRIPE-SETUP.md.' });
+        if (!stripeActiu()) return json(res, 409, { error: 'Stripe no està connectat. Mira docs/INSTALLACIO.md (Stripe).' });
         const imp = enter(body.import_cents);
         if (!(imp >= 50) || imp > 1000000) return json(res, 400, { error: 'L\'import mínim amb targeta és 0,50 €' });
 
