@@ -67,6 +67,10 @@ export default async function handler(req, res) {
     estat.cartells_v12 = v12 ? `FALTA: executa sql/03-cartells.sql (${v12.message})` : true;
     const { error: v13 } = await sb.from('reserves').select('origen, observacions').limit(1);
     estat.seguiment_v13 = v13 ? `FALTA: executa sql/05-seguiment.sql (${v13.message})` : true;
+    const { error: e7 } = await sb.from('reserves').select('informada_at').limit(1);
+    estat.proves_rgpd = e7 ? `FALTA: executa sql/07-proves-rgpd.sql (${e7.message})` : true;
+    const { error: e9 } = await sb.from('reserves').select('esborrat_at').limit(1);
+    estat.baixa_esborrat = e9 ? `FALTA: executa sql/09-baixa-esborrat.sql (${e9.message})` : true;
     estat.esquema_ok = Object.values(out).every(v => typeof v === 'number');
     if (!estat.esquema_ok) {
       estat.ok = false;

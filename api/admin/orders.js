@@ -12,6 +12,8 @@
 //   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen, contacte } }
 //   PATCH { accio: 'sessio', event_id, data, operacio: 'afegir' | 'treure' }
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
+//   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
+//   PATCH { accio: 'esborrar_activitat', event_id } → esborrat de totes les inscripcions d'una activitat acabada
 //
 // Tot passa per RPC: el canvi i el registre d'auditoria (amb qui l'ha
 // fet) van a la mateixa transacció.
@@ -81,7 +83,7 @@ export default async function handler(req, res) {
 
     const body = await readBody(req);
     const { id, accio } = body || {};
-    const senseId = ['afegir_persona', 'sessio'];
+    const senseId = ['afegir_persona', 'sessio', 'esborrar_activitat'];
     if (!id && !senseId.includes(accio)) return json(res, 400, { error: 'Falta id' });
 
     const rpc = async (nom, params) => {
@@ -208,6 +210,21 @@ export default async function handler(req, res) {
         const out = await rpc('admin_marcar_informada', { p_id: id, p_actor: actor, p_canal: canal });
         if (!out?.ok) return json(res, 409, { error: 'Ja constava com a informada' });
         return json(res, 200, { reserva: out.reserva });
+      }
+
+      case 'baixa': {
+        /* Baixa + esborrat de dades personals (RGPD). Irreversible. */
+        const out = await rpc('admin_baixa_esborrar', { p_id: id, p_actor: actor,
+          p_motiu: body.motiu ? String(body.motiu).slice(0, 200) : null });
+        if (!out?.ok) return json(res, 409, { error: out?.error === 'ja_esborrada' ? 'Les dades ja estaven esborrades' : 'Reserva no trobada' });
+        return json(res, 200, out);
+      }
+
+      case 'esborrar_activitat': {
+        const out = await rpc('admin_esborrar_activitat', { p_event_id: String(body.event_id || ''), p_actor: actor });
+        if (!out?.ok) return json(res, 409, { error: out?.error === 'activitat_no_acabada'
+          ? "Només es poden esborrar les dades d'activitats arxivades o ja passades" : 'Activitat no trobada' });
+        return json(res, 200, out);
       }
 
       case 'editar': {

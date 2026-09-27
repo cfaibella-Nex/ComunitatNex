@@ -33,7 +33,8 @@ let state = {
   llista: { eventId: null, data: null, assistencia: {} },
   seguiment: { eventId: null, mes: null, assistencia: {} },   // assistencia[reserva][data] = true/false
   usuari: null,
-  gestor: null
+  gestor: null,
+  cerca: { q: '', cancel: false }
 };
 
 const ESTATS = ['pending','confirmed','waitlist','cancelled','attended','no-show'];
@@ -404,6 +405,10 @@ async function renderTab() {
     if (!(await loadEvents())) return;
     await loadReserves(null);          // totes: els filtres de centre i taller són al navegador
     renderReserves();
+  } else if (state.tab === 'cerca') {
+    if (!(await loadEvents())) return;
+    await loadReserves(null);
+    renderCerca();
   } else if (state.tab === 'usuaris') {
     await renderUsuaris();
   } else if (state.tab === 'seguiment') {
@@ -432,6 +437,7 @@ function tabsHTML() {
   return `
 <div class="filters admin-tabs" style="margin-bottom: var(--sp-4);">
   ${b('events', 'Activitats')}
+  ${potFer('reserves') ? b('cerca', '🔍 Cercar') : ''}
   ${potFer('reserves') ? b('reserves', 'Reserves i cobraments') + b('seguiment', 'Seguiment') + b('llista', 'Passar llista') : ''}
   ${potFer('auditoria') ? b('auditoria', 'Auditoria') : ''}
   ${potFer('usuaris') && !u.antic ? b('usuaris', 'Usuaris') : ''}
@@ -530,6 +536,8 @@ function targetaEvent(ev, ocup) {
         <button class="btn btn-ghost" onclick="viewReserves('${esc(ev.id)}')">Reserves${ocupades ? ` (${ocupades})` : ''}</button>
         <button class="btn btn-ghost" onclick="obrirSeguiment('${esc(ev.id)}')">Seguiment</button>
         <button class="btn btn-ghost" onclick="obrirLlista('${esc(ev.id)}')">Passar llista</button>` : ''}
+        ${(ev.estat === 'arxivat' || passat) && potFer('reserves') && ambDades(ev.id)
+          ? `<button class="btn btn-ghost ev-arxivar" onclick="esborrarActivitat('${esc(ev.id)}')" title="Política de privacitat: les dades s'eliminen quan l'activitat s'acaba">Esborrar dades de les inscripcions (${ambDades(ev.id)})</button>` : ''}
         ${ev.estat !== 'arxivat' && potFer('esborrar')
           ? `<button class="btn btn-ghost ev-arxivar" onclick="deleteEvent('${esc(ev.id)}')">Arxivar</button>` : ''}
       </div>
@@ -1223,7 +1231,7 @@ function renderReserves() {
       <td class="res-detall">${esc(resumLinies(r))}</td>
       <td>${eur(r.total_cents)}${r.consultar ? ' <small class="muted">+ a consultar</small>' : ''}</td>
       <td class="res-pag">${pagamentHTML(r)}
-        ${!r.pare_id && reservaViva(r) ? `<button class="btn btn-ghost btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${r.payment_status === 'paid' ? 'Veure' : 'Cobrar'}</button>` : ''}
+        ${!r.pare_id && !r.esborrat_at ? `<button class="btn btn-ghost btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${r.payment_status === 'paid' ? 'Veure' : 'Cobrar'}</button>` : ''}
       </td>
       <td>
         <select onchange="changeStatus('${esc(r.id)}', this.value)">
@@ -1312,7 +1320,10 @@ function renderCobrament() {
       <p><strong>${esc(r.nom)}</strong> · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` (de ${esc(r.contacte)})` : ''} · ${esc(titol)}</p>
       <p class="muted">${esc(resumLinies(r))} · Total ${eur(r.total_cents)}${r.consultar ? ' + a consultar' : ''}</p>
     </div>
-    <button class="btn btn-ghost" onclick="obrirCobrament('${esc(r.id)}')">Tancar</button>
+    <div style="display:flex; gap: var(--sp-1); flex-wrap: wrap;">
+      <button class="btn btn-ghost ev-arxivar" onclick="baixaPersona('${esc(r.id)}')">Baixa i esborrar dades</button>
+      <button class="btn btn-ghost" onclick="obrirCobrament('${esc(r.id)}')">Tancar</button>
+    </div>
   </div>
   <div id="cob-msg"></div>
 
@@ -1459,6 +1470,42 @@ window.exportCSV = function() {
    "Alta" = confirmada per nosaltres (primer contacte fet). */
 const ORIGEN_NOM = { web: 'Web', telefon: 'Trucada', presencial: 'Presencial', altres: 'Altres' };
 const CANAL_INFO = { web: 'Web (casella)', telefon: 'Trucada', presencial: 'En persona', llista_centre: 'Llista del centre', altres: 'Altres' };
+
+/* ── BAIXA I ESBORRAT DE DADES (RGPD) ──────────────────────
+   Esborra nom, telèfon, correu, contacte i observacions de la reserva
+   i del seu historial d'auditoria. Es conserva l'assistència, sense
+   identificar ningú. Si havia pagat, es conserva el nom i l'import
+   (obligació fiscal). No es pot desfer. */
+const ambDades = (eventId) => state.reserves.filter(r => r.event_id === eventId && !r.esborrat_at && !r.pare_id).length;
+
+window.baixaPersona = async function(id) {
+  const r = state.reserves.find(x => x.id === id);
+  if (!r) return;
+  const motiu = prompt(
+    `Donar de baixa ${r.nom} i ESBORRAR les seves dades?\n\n` +
+    `S'esborren el nom, el telèfon, el contacte i les observacions (també de l'historial). ` +
+    `Es manté l'assistència, sense identificar-la.${r.payment_status === 'paid' ? ' Com que ha pagat, es conserven el nom i l\'import (obligació fiscal).' : ''}\n\n` +
+    `No es pot desfer. Si vols continuar, escriu el motiu (p. ex. "ho demana per telèfon"):`, '');
+  if (motiu === null) return;
+  try {
+    await apiSend('/api/admin/orders', 'PATCH', { accio: 'baixa', id, motiu: motiu || 'baixa' });
+    state.cobrant = null;
+    await render();
+  } catch (e) { alert('No s\'ha pogut fer: ' + errText(e)); }
+};
+
+window.esborrarActivitat = async function(eventId) {
+  const ev = state.events.find(e => e.id === eventId);
+  const n = ambDades(eventId);
+  if (!confirm(`Esborrar les dades personals de les ${n} inscripcions de "${ev?.titol?.ca || eventId}"?\n\n` +
+               `Es mantenen les xifres d'assistència, sense noms. No es pot desfer.`)) return;
+  if (prompt('Per confirmar, escriu ESBORRAR') !== 'ESBORRAR') return;
+  try {
+    const out = await apiSend('/api/admin/orders', 'PATCH', { accio: 'esborrar_activitat', event_id: eventId });
+    alert(`Fet: ${out.esborrades} inscripcions sense dades personals.`);
+    await render();
+  } catch (e) { alert('No s\'ha pogut fer: ' + errText(e)); }
+};
 
 /* Protecció de dades: ha estat informada? (art. 13/14 RGPD) */
 function celInformada(r) {
@@ -1665,6 +1712,7 @@ function renderSeguimentTotes() {
     <td class="sg-inf">${celInformada(r)}</td>
     <td class="sg-pct">${p === null ? '—' : p + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
+    <td class="no-print"><button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
   </tr>`;
   };
 
@@ -1761,6 +1809,7 @@ function renderSeguiment() {
     ${sessions.map(d => celSessio(r, d)).join('')}
     <td class="sg-pct">${pctPersona(r) === null ? '—' : pctPersona(r) + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
+    <td class="no-print"><button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
   </tr>`;
 
   app.innerHTML = `
@@ -1810,9 +1859,9 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
   <thead><tr>
     <th>#</th><th>Nom</th><th>Telèfon</th><th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th>Nivell</th><th>Origen</th><th>Alta</th><th>Pagat</th><th title="Informada de la protecció de dades (art. 13/14 RGPD)">Dades</th>
     ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
-    <th>Assist.</th><th>Observacions</th>
+    <th>Assist.</th><th>Observacions</th><th class="no-print"></th>
   </tr></thead>
-  <tbody>${persones.map(fila).join('') || `<tr><td colspan="${11 + sessions.length}" class="muted" style="text-align:center">Cap persona apuntada. Fes servir “+ Afegir persona”.</td></tr>`}</tbody>
+  <tbody>${persones.map(fila).join('') || `<tr><td colspan="${12 + sessions.length}" class="muted" style="text-align:center">Cap persona apuntada. Fes servir “+ Afegir persona”.</td></tr>`}</tbody>
 </table>
 </div>
 ${sessions.length ? '' : '<p class="muted no-print">Aquest mes no hi ha cap sessió. Afegeix-ne una amb la data.</p>'}
@@ -2044,6 +2093,100 @@ window.sgImprimir = function(blanc) {
   window.addEventListener('afterprint', fi);
   window.print();
 };
+
+/* ── CERCAR PERSONA ───────────────────────────────────────────
+   Per quan truca algú: per nom, telèfon o persona de contacte, a totes
+   les activitats. Accents i espais no compten; el telèfon es busca pels
+   dígits (n'hi ha prou amb 3 o més). */
+const normal = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+function resultatsCerca(q) {
+  const n = normal(q);
+  const digits = q.replace(/\D/g, '');
+  if (n.length < 2 && digits.length < 3) return [];
+  const paraules = n.split(' ').filter(Boolean);
+  return state.reserves.filter(r => {
+    if (r.esborrat_at) return false;
+    if (!state.cerca.cancel && r.status === 'cancelled') return false;
+    if (digits.length >= 3 && String(r.telefon || '').replace(/\D/g, '').includes(digits)) return true;
+    const text = normal(`${r.nom} ${r.contacte || ''} ${r.email || ''}`);
+    return paraules.length && paraules.every(p => text.includes(p));
+  });
+}
+
+function renderCerca() {
+  const q = state.cerca.q || '';
+  const res = resultatsCerca(q);
+  const evPer = new Map(state.events.map(e => [e.id, e]));
+  /* Agrupat per persona (mateix nom i telèfon): on està inscrita */
+  const grups = new Map();
+  for (const r of res) {
+    const k = normal(r.nom) + '|' + String(r.telefon || '').replace(/\D/g, '');
+    if (!grups.has(k)) grups.set(k, []);
+    grups.get(k).push(r);
+  }
+  const fitxa = (rs) => {
+    const p = rs[0];
+    return `
+<article class="cerca-fitxa">
+  <div class="cerca-cap">
+    <div>
+      <h2>${esc(p.nom)}</h2>
+      <p><a href="tel:${esc(p.telefon)}" class="cerca-tel">📞 ${esc(p.telefon || '—')}</a>${p.contacte ? ` <span class="muted">(de ${esc(p.contacte)})</span>` : ''}${p.email ? ` · ${esc(p.email)}` : ''}</p>
+    </div>
+    <span class="muted">${rs.length} ${rs.length === 1 ? 'inscripció' : 'inscripcions'}</span>
+  </div>
+  <ul class="cerca-llista">
+    ${rs.map(r => {
+      const ev = evPer.get(r.event_id);
+      const quan = ev ? (window.NX.esSetmanal(ev) ? `${window.NX.quanText(ev)} · ${window.NX.franjaHoraria(ev)}` : `${ev.data || ''}${ev.hora ? ' · ' + ev.hora : ''}`) : '';
+      return `
+    <li>
+      <div>
+        <strong>${esc(ev?.titol?.ca || r.event_id)}</strong> <span class="muted">· ${esc(centreDe(ev))}</span>
+        <div class="muted">${esc(quan)}${resumLinies(r) ? ' · ' + esc(resumLinies(r)) : ''}</div>
+        <div class="cerca-estat">
+          <span class="pag ${r.status === 'waitlist' ? 'pag--pendent' : r.status === 'cancelled' ? '' : 'pag--ok'}">${esc(ESTAT_LABEL[r.status] || r.status)}</span>
+          ${pagamentHTML(r)}
+          ${r.informada_at ? '' : '<span class="pag pag--pendent">⚠ Dades: pendent d\'informar</span>'}
+          ${r.observacions ? `<span class="muted">📝 ${esc(r.observacions)}</span>` : ''}
+        </div>
+      </div>
+      <div class="cerca-accions">
+        <button class="btn btn-secondary btn-mini" onclick="obrirSeguiment('${esc(r.event_id)}')">Seguiment</button>
+        ${!r.pare_id && reservaViva(r) ? `<button class="btn btn-ghost btn-mini" onclick="state.tab='reserves'; obrirCobrament('${esc(r.id)}')">Cobrar</button>` : ''}
+        ${r.status !== 'cancelled' ? `<button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')">Baixa</button>` : ''}
+      </div>
+    </li>`;
+    }).join('')}
+  </ul>
+</article>`;
+  };
+
+  app.innerHTML = `
+${tabsHTML()}
+<h1>Cercar persona</h1>
+<div class="cerca-barra">
+  <input class="form-input cerca-input" id="cerca-q" type="search" value="${esc(q)}" autocomplete="off"
+         placeholder="Nom, telèfon o persona de contacte" aria-label="Cercar per nom, telèfon o contacte">
+  <label class="cerca-cancel"><input type="checkbox" id="cerca-cancel" ${state.cerca.cancel ? 'checked' : ''}> Incloure cancel·lades</label>
+</div>
+<div id="cerca-res" aria-live="polite">
+  ${(() => {
+    const curt = normal(q).length < 2 && q.replace(/\D/g, '').length < 3;
+    if (!q || curt) return '<p class="muted">Escriu com a mínim 2 lletres o 3 xifres del telèfon.</p>';
+    return res.length ? '' : '<p class="muted">Cap resultat. Prova amb una part del nom o els últims dígits del telèfon.</p>';
+  })()}
+  ${[...grups.values()].map(fitxa).join('')}
+</div>`;
+
+  const inp = qs('#cerca-q');
+  inp.focus();
+  inp.setSelectionRange(inp.value.length, inp.value.length);
+  let t;
+  inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { state.cerca.q = inp.value; renderCerca(); }, 180); });
+  qs('#cerca-cancel').addEventListener('change', e => { state.cerca.cancel = e.target.checked; renderCerca(); });
+}
 
 /* ── PASSAR LLISTA ────────────────────────────────────────────
    Per activitat i per dia: a les mensuals (castellà cada dimarts) es

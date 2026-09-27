@@ -195,6 +195,20 @@
     .sg-obs { min-width: 180px; }
     .sg-contacte { min-width: 130px; font-size: var(--fs-xs); }
     .sg-act { min-width: 150px; }
+    .sg-baixa { color: var(--danger) !important; font-size: var(--fs-xs); }
+    /* Cercador */
+    .cerca-barra { display:flex; gap: var(--sp-2); align-items:center; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+    .cerca-input { flex: 1 1 320px; font-size: var(--fs-lg); min-height: 56px; }
+    .cerca-cancel { font-size: var(--fs-sm); display:flex; gap:6px; align-items:center; }
+    .cerca-fitxa { background: var(--white); border:1px solid rgba(15,45,30,0.12); border-radius: var(--radius-lg); padding: var(--sp-3); margin-bottom: var(--sp-2); }
+    .cerca-cap { display:flex; justify-content:space-between; gap: var(--sp-2); align-items:flex-start; }
+    .cerca-cap h2 { margin: 0 0 4px; }
+    .cerca-cap p { margin: 0; }
+    .cerca-tel { font-size: var(--fs-lg); font-weight: 700; color: var(--forest); }
+    .cerca-llista { list-style:none; padding:0; margin: var(--sp-2) 0 0; display:flex; flex-direction:column; gap: var(--sp-1); }
+    .cerca-llista li { display:flex; justify-content:space-between; gap: var(--sp-2); padding: var(--sp-2); background: var(--cream); border-radius: var(--radius); flex-wrap: wrap; }
+    .cerca-estat { display:flex; gap: 6px; flex-wrap: wrap; align-items:center; margin-top: 4px; }
+    .cerca-accions { display:flex; gap: 6px; align-items:center; }
     .sg-inf { white-space: nowrap; }
     .inf-ok { color: var(--forest); font-weight: 700; font-size: var(--fs-xs); cursor: help; }
     .inf-pendent { border-color: var(--warning); background: #FFF4D6; font-weight: 700; }
@@ -285,6 +299,6 @@
   <script src="/js/main.js?v=48"></script>
   <script src="/js/carret.js?v=48"></script>
   <script src="/js/xlsx-mini.js?v=48"></script>
-  <script src="/js/admin.js?v=48"></script>
+  <script src="/js/admin.js?v=49"></script>
 </body>
 </html>

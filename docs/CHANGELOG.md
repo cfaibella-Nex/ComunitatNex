@@ -4,6 +4,29 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v19 · Baixa amb esborrat de dades i cercador
+
+SQL: `sql/09-baixa-esborrat.sql`.
+
+**Baixa i esborrar dades** (Seguiment → "Baixa", Cobrar → "Baixa i esborrar dades", Cercar → "Baixa")
+- S'esborren el nom, el telèfon, el correu, el contacte, les observacions i les notes de la reserva
+  **i del seu historial d'auditoria**. Si la persona tenia sessions vinculades, també s'hi aplica.
+- Es conserven l'activitat, les places, l'assistència (sense noms) i la prova d'haver-la informat.
+- Si havia pagat, es conserven el nom i l'import per obligació fiscal; la resta s'esborra.
+- Demana el motiu, queda a l'auditoria (qui, quan i per què) i no es pot desfer.
+- L'auditoria continua sent immutable: només les funcions d'esborrat hi poden treure dades personals.
+
+**Activitat acabada** (arxivada, o puntual amb la data passada): botó a la targeta
+"Esborrar dades de les inscripcions (N)", amb doble confirmació (cal escriure ESBORRAR).
+Compleix la política: "quan l'activitat s'acaba, les eliminem".
+
+**🔍 Cercar** (pestanya nova): per nom, telèfon (3 xifres o més, amb o sense espais) o persona de
+contacte, sense tenir en compte els accents. Agrupa per persona i mostra totes les seves
+inscripcions: activitat, centre, horari, estat, pagament i dades pendents d'informar. Té accés
+directe a Seguiment, Cobrar i Baixa.
+
+---
+
 ## v18 · Ordre al repositori
 
 - Les notes de cada patch (`PATCH-v*.md`, `GESTOR-S*.md`…) es fusionen en `docs/`:
