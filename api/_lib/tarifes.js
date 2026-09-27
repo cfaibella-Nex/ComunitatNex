@@ -116,7 +116,15 @@ export function validarConfig(body, { eventIds = [] } = {}) {
         throw new Error(`${etiqueta}: amb "preu fix" cal un import entre 0,01 i 1.000 €. Si no es cobra, tria "Gratuït" o "A consultar".`);
       }
     }
-    return { preu_mode, preu_cents };
+    /* Preu intern: només per a "a consultar". No es mostra a la web
+       (api/events.js el treu); el panell el fa servir per cobrar. */
+    const out = { preu_mode, preu_cents };
+    if (preu_mode === 'consultar' && item.preu_intern_cents != null && item.preu_intern_cents !== '') {
+      const pi = enter(item.preu_intern_cents);
+      if (!(pi >= 0) || pi > 100000) throw new Error(`${etiqueta}: el preu intern ha de ser entre 0 i 1.000 €.`);
+      if (pi > 0) out.preu_intern_cents = pi;
+    }
+    return out;
   };
 
   const nouId = (id, etiqueta) => {

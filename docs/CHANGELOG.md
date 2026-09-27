@@ -4,6 +4,23 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v21 · Preu intern i pagaments mensuals
+
+SQL: `sql/11-pagaments-mensuals.sql`.
+
+- **Preu intern**: una tarifa "A consultar" pot tenir un preu que només veu el panell (ex. anglès 15 €).
+  La web continua dient "A consultar", i `api/events.js` treu aquest preu de les dades públiques.
+  Els inscrits que ja hi havia l'agafen automàticament: l'import es calcula amb la configuració actual.
+- **Activitats mensuals** (Model = Mensual): un pagament per persona i mes (taula `pagaments_mes`, amb
+  un únic registre per mes i tot a l'auditoria).
+  - Cobraments: selector ◀ mes ▶. Surten les persones **✓ Inscrit/a** que no han pagat aquell mes.
+    "Cobrar oct" → import (quota), com i nota. Historial a la fila: set ✓ · oct ⏳. Botó "Anul·lar".
+  - Seguiment: la columna Pagat mostra i cobra el mes que es mira ("⏳ Pendent oct").
+- Cobraments només mostra persones inscrites (✓ Inscrit/a al Seguiment) o que ja han pagat.
+- Avís si hi ha inscripcions d'activitats "a consultar" sense preu intern.
+
+---
+
 ## v20 · Seguiment de trucades i cobraments simplificats
 
 SQL: `sql/10-trucades.sql`.

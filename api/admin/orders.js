@@ -12,6 +12,8 @@
 //   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen, contacte } }
 //   PATCH { accio: 'sessio', event_id, data, operacio: 'afegir' | 'treure' }
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
+//   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }
+//   PATCH { accio: 'anular_pagament_mes', id, mes, motiu }
 //   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' }
 //   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
 //   PATCH { accio: 'esborrar_activitat', event_id } → esborrat de totes les inscripcions d'una activitat acabada
@@ -77,7 +79,12 @@ export default async function handler(req, res) {
       if (eventId) q = q.eq('event_id', eventId);
       const { data, error } = await q;
       if (error) throw error;
-      return json(res, 200, { reserves: data || [], stripe: modeStripe() });
+      /* Pagaments mensuals (activitats amb model "mensual") */
+      let pagaments_mes = [];
+      const { data: pm, error: pmErr } = await sb.from('pagaments_mes')
+        .select('reserva_id, mes, import_cents, metode, nota, pagat_at, per');
+      if (!pmErr) pagaments_mes = pm || [];
+      return json(res, 200, { reserves: data || [], pagaments_mes, stripe: modeStripe() });
     }
 
     if (req.method !== 'PATCH') return methodNotAllowed(res, ['GET', 'PATCH']);
@@ -211,6 +218,25 @@ export default async function handler(req, res) {
         const out = await rpc('admin_marcar_informada', { p_id: id, p_actor: actor, p_canal: canal });
         if (!out?.ok) return json(res, 409, { error: 'Ja constava com a informada' });
         return json(res, 200, { reserva: out.reserva });
+      }
+
+      case 'pagament_mes': {
+        const mes = String(body.mes || '');
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) return json(res, 400, { error: 'Mes no vàlid' });
+        const imp = enter(body.import_cents);
+        if (!(imp >= 0) || imp > 1000000) return json(res, 400, { error: 'Import no vàlid' });
+        if (!METODES.includes(body.metode)) return json(res, 400, { error: 'Mètode no vàlid' });
+        const out = await rpc('admin_pagament_mes', { p_reserva: id, p_mes: mes, p_import: imp, p_metode: body.metode,
+          p_actor: actor, p_nota: body.nota ? String(body.nota).slice(0, 200) : null });
+        if (!out?.ok) return json(res, 409, { error: out?.error === 'ja_pagat' ? 'Aquest mes ja consta com a pagat' : 'No es pot registrar' });
+        return json(res, 200, out);
+      }
+
+      case 'anular_pagament_mes': {
+        const out = await rpc('admin_anular_pagament_mes', { p_reserva: id, p_mes: String(body.mes || ''),
+          p_actor: actor, p_motiu: body.motiu ? String(body.motiu).slice(0, 200) : null });
+        if (!out?.ok) return json(res, 409, { error: 'Aquest mes no constava com a pagat' });
+        return json(res, 200, out);
       }
 
       case 'trucada': {

@@ -16,6 +16,7 @@ Executa els fitxers de `sql/` **en ordre de número**. Tots són idempotents: es
 | `08-textos-rgpd-v3.sql` | Text v3 de la informació bàsica |
 | `09-baixa-esborrat.sql` | Baixa amb esborrat de dades personals (també de l'auditoria) |
 | `10-trucades.sql` | Seguiment de trucades (pendent · no contesta · inscrit/a) |
+| `11-pagaments-mensuals.sql` | Pagaments mes a mes de les activitats mensuals |
 
 ⚠ Si algun dia tornes a executar un fitxer antic (p. ex. el 05), executa després **tots els següents fins al final**: alguns redefineixen la mateixa funció d'auditoria.
 

@@ -38,8 +38,14 @@ export default async function handler(req, res) {
       }
     }
 
+    /* El preu intern (tarifes "a consultar") és només per al panell */
+    const senseIntern = llista => Array.isArray(llista)
+      ? llista.map(({ preu_intern_cents, ...x }) => x) : llista;
+
     const enriched = (events || []).map(ev => ({
       ...ev,
+      tarifes: senseIntern(ev.tarifes),
+      extres: senseIntern(ev.extres),
       reservades: ocupMap.get(ev.id) || 0,
       reservades_tarifa: ocupTarifa.get(ev.id) || {},
       /* Com es cobra de debò ara mateix (depèn de si Stripe està connectat) */

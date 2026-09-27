@@ -172,7 +172,8 @@ function tarifesEvent(ev) {
       preu_mode: PREU_MODES.includes(x.preu_mode) ? x.preu_mode : 'fix',
       preu_cents: Math.max(0, Number(x.preu_cents) || 0),
       places: x.places == null || x.places === '' ? null : Number(x.places),
-      estat: x.estat === 'complet' ? 'complet' : 'disponible'
+      estat: x.estat === 'complet' ? 'complet' : 'disponible',
+      ...(x.preu_intern_cents ? { preu_intern_cents: Number(x.preu_intern_cents) } : {})
     }));
   }
   const preu = Math.max(0, Number(ev?.preu_cents) || 0);
@@ -191,7 +192,8 @@ function extresEvent(ev) {
       nom: x.nom || { ca: '', es: '' }, detall: x.detall || null,
       preu_mode: PREU_MODES.includes(x.preu_mode) ? x.preu_mode : 'fix',
       preu_cents: Math.max(0, Number(x.preu_cents) || 0),
-      event_id: x.tipus === 'sessio' ? x.event_id : null
+      event_id: x.tipus === 'sessio' ? x.event_id : null,
+      ...(x.preu_intern_cents ? { preu_intern_cents: Number(x.preu_intern_cents) } : {})
     }));
 }
 

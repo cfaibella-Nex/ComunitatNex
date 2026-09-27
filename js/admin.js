@@ -34,7 +34,9 @@ let state = {
   seguiment: { eventId: null, mes: null, assistencia: {} },   // assistencia[reserva][data] = true/false
   usuari: null,
   gestor: null,
-  cerca: { q: '', cancel: false }
+  cerca: { q: '', cancel: false },
+  pagamentsMes: new Map(),        // 'reserva|AAAA-MM' → pagament
+  cobMes: null                    // mes que es mira a Cobraments (activitats mensuals)
 };
 
 const ESTATS = ['pending','confirmed','waitlist','cancelled','attended','no-show'];
@@ -374,6 +376,7 @@ async function loadReserves(eventId) {
   const q = eventId ? `?event_id=${encodeURIComponent(eventId)}` : '';
   const d = await apiGet('/api/admin/orders' + q);
   state.reserves = d?.reserves || [];
+  state.pagamentsMes = new Map((d?.pagaments_mes || []).map(p => [`${p.reserva_id}|${p.mes}`, p]));
   if (d?.stripe) state.stripe = d.stripe;
 }
 
@@ -833,7 +836,7 @@ window.editEvent = function(id) {
 const MODEL_NOM = { puntual: 'Puntual', mensual: 'Mensual', trimestral: 'Trimestral' };
 const MODEL_AJUDA = {
   puntual:    "Una o poques sessions amb data. Pots oferir-hi una altra sessió com a extra (ex. autodefensa 13/10 + 10/11): cada sessió és una activitat amb les seves places.",
-  mensual:    "La inscripció cobra el primer mes (si hi ha matrícula, suma-la al preu i explica-ho al detall). Els mesos següents s'afegeixen com a extres.",
+  mensual:    "Es cobra cada mes: a Cobraments i al Seguiment es marca qui ha pagat cada mes, amb el preu de la tarifa (o el preu intern si és \"A consultar\"). Els mesos com a extra només calen si la inscripció web cobra per endavant.",
   trimestral: "Es paga el període sencer d'un cop. Indica el període al detall de la tarifa (ex. \"Octubre – desembre\")."
 };
 const PAGAMENT_NOM = { reserva: 'Només reserva', presencial: 'Pagament presencial', online: 'Pagament online' };
@@ -881,7 +884,10 @@ function preuCamps(llista, i, x) {
     </select>`)}
     ${x.preu_mode === 'fix'
       ? camp('Import (€)', `<input class="form-input" type="number" min="0.01" step="0.01" data-k="preu_eur" data-i="${i}" data-llista="${llista}" value="${((x.preu_cents || 0) / 100).toFixed(2)}">`)
-      : ''}`;
+      : x.preu_mode === 'consultar'
+        ? camp('Preu intern (€)', `<input class="form-input" type="number" min="0" step="0.01" data-k="preu_intern_eur" data-i="${i}" data-llista="${llista}" value="${x.preu_intern_cents ? (x.preu_intern_cents / 100).toFixed(2) : ''}" placeholder="Ex. 15">`,
+               'No es veu a la web (hi surt "A consultar"). El panell el fa servir per cobrar.')
+        : ''}`;
 }
 
 function editorInscripcio(cfg, dataActivitat) {
@@ -973,6 +979,11 @@ function editorInscripcio(cfg, dataActivitat) {
     const item = cfg[llista]?.[Number(i)];
     if (!item) return;
     if (k === 'preu_eur') { item.preu_cents = Math.round((parseFloat(el.value) || 0) * 100); return; }
+    if (k === 'preu_intern_eur') {
+      const v = Math.round((parseFloat(String(el.value).replace(',', '.')) || 0) * 100);
+      if (v > 0) item.preu_intern_cents = v; else delete item.preu_intern_cents;
+      return;
+    }
     if (k === 'places') { item.places = el.value === '' ? null : parseInt(el.value, 10); return; }
     if (k.includes('.')) {
       const [a, b] = k.split('.');
@@ -1142,7 +1153,41 @@ function resumLinies(r) {
 /* Import a cobrar d'una reserva: el que s'hagi fixat al panell o el total */
 /* Imports en euros sempre (formatPrice diu "Gratuït" per a 0) */
 const eur = c => window.NXC.euros(c || 0);
-const aCobrar = r => (r.import_cobrar_cents ?? r.total_cents) || 0;
+/* Quant ha de pagar una inscripció. Parteix de la configuració ACTUAL de
+   l'activitat, així un preu intern posat després s'aplica als ja inscrits.
+   Activitats mensuals: la quota d'un mes (tarifes × places). */
+const evDe = r => state.events.find(e => e.id === r.event_id);
+const esMensual = ev => ev?.model === 'mensual';
+const preuUnitat = t => !t ? 0 : t.preu_mode === 'fix' ? (t.preu_cents || 0) : t.preu_mode === 'consultar' ? (t.preu_intern_cents || 0) : 0;
+function importTarifes(r, ev) {
+  const ts = ev ? window.NXC.tarifesEvent(ev) : [];
+  const ls = (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa');
+  if (!ls.length) return (r.places || 1) * preuUnitat(ts[0]);
+  return ls.reduce((t, l) => t + (l.qty || 1) * preuUnitat(ts.find(x => x.id === l.id) || ts[0]), 0);
+}
+function aCobrar(r) {
+  if (r.pare_id) return 0;
+  if (r.import_cobrar_cents != null) return r.import_cobrar_cents;
+  const ev = evDe(r);
+  const calc = importTarifes(r, ev);
+  if (esMensual(ev)) return calc || r.total_cents || 0;
+  return (r.total_cents || 0) > 0 ? r.total_cents : calc;
+}
+const pagatMes = (r, mes) => state.pagamentsMes.get(`${r.id}|${mes}`);
+const mesCurt = mes => { const [y, m] = mes.split('-').map(Number); return new Intl.DateTimeFormat('ca-ES', { month: 'short' }).format(new Date(y, m - 1, 1, 12)).replace('.', ''); };
+/* Mesos que toca pagar d'una inscripció mensual: de l'inici de l'activitat fins a `fins` */
+function mesosDe(r, fins) {
+  const ev = evDe(r);
+  const inici = String(ev?.data || r.created_at || '').slice(0, 7);
+  if (!inici || inici > fins) return [];
+  const out = [];
+  let [y, m] = inici.split('-').map(Number);
+  while (`${y}-${String(m).padStart(2, '0')}` <= fins && out.length < 24) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    if (++m > 12) { m = 1; y++; }
+  }
+  return out;
+}
 const reservaViva = r => ['pending', 'confirmed', 'attended', 'no-show'].includes(r.status);
 /* Pendent de cobrar: viva, principal (les sessions filles no es cobren
    a part), no pagada i amb import o preu a consultar */
@@ -1218,40 +1263,72 @@ function renderReserves() {
   ${state.filtreCentre || state.eventFilter ? '<button class="btn btn-ghost" onclick="clearFilter()">Treure filtres</button>' : ''}
 </div>`;
 
-  /* Cobraments: NOMÉS activitats de pagament. Per defecte, qui falta per
-     pagar: en quant paga, desapareix d'aquesta vista. L'assistència no
-     és aquí (és al Seguiment i a Passar llista). */
+  /* Cobraments: NOMÉS activitats de pagament i persones inscrites.
+     Activitats mensuals: es mira un mes (◀ ▶) i cada persona paga aquell mes.
+     La resta: un sol pagament. En quant paga, desapareix de "Falten per pagar". */
   const evPer = new Map(state.events.map(e => [e.id, e]));
+  if (!state.cobMes) state.cobMes = avui().slice(0, 7);
+  const M = state.cobMes;
   const esDePagament = r => {
     if (r.pare_id || r.esborrat_at || ['cancelled', 'waitlist'].includes(r.status)) return false;
-    return r.payment_status === 'paid' || aCobrar(r) > 0 || r.consultar;
+    if (!(aCobrar(r) > 0 || r.consultar || r.payment_status === 'paid')) return false;
+    if (trucadaDe(r) !== 'inscrit' && r.payment_status !== 'paid') return false;
+    const ev = evPer.get(r.event_id);
+    if (esMensual(ev)) return mesosDe(r, M).includes(M);
+    return true;
+  };
+  const pagada = r => esMensual(evPer.get(r.event_id)) ? !!pagatMes(r, M) : r.payment_status === 'paid';
+  const importFila = r => {
+    if (esMensual(evPer.get(r.event_id))) return pagatMes(r, M)?.import_cents ?? aCobrar(r);
+    return r.payment_status === 'paid' ? r.import_pagat_cents : aCobrar(r);
   };
   const FILTRES = {
-    cobrar:  { nom: 'Falten per pagar', f: r => r.payment_status !== 'paid' },
-    pagades: { nom: 'Pagades',          f: r => r.payment_status === 'paid' },
+    cobrar:  { nom: 'Falten per pagar', f: r => !pagada(r) },
+    pagades: { nom: 'Pagades',          f: r => pagada(r) },
     totes:   { nom: 'Totes',            f: () => true }
   };
   if (!FILTRES[state.filtreReserves]) state.filtreReserves = 'cobrar';
   const base = reservesFiltrades().filter(esDePagament);
+  const hiHaMensuals = reservesFiltrades().some(r => esMensual(evPer.get(r.event_id)));
   const llista = base.filter(FILTRES[state.filtreReserves].f)
     .sort((x, y) => (evMap.get(x.event_id) || '').localeCompare(evMap.get(y.event_id) || '', 'ca') || x.nom.localeCompare(y.nom, 'ca'));
+
+  const celPagamentFila = r => {
+    const ev = evPer.get(r.event_id);
+    if (!esMensual(ev)) return pagamentHTML(r);
+    const p = pagatMes(r, M);
+    const historial = mesosDe(r, M).slice(-6).map(m => {
+      const ok = pagatMes(r, m);
+      return `<span class="mes-xip ${ok ? 'mes-ok' : 'mes-no'}" title="${esc(nomMesLlarg(m))}: ${ok ? 'pagat (' + (METODE_NOM[ok.metode] || '') + ')' : 'pendent'}">${esc(mesCurt(m))} ${ok ? '✓' : '⏳'}</span>`;
+    }).join('');
+    return `${p ? `<span class="pag pag--ok">✓ ${esc(mesCurt(M))} · ${esc(METODE_NOM[p.metode] || '')}</span>` : `<span class="pag pag--pendent">⏳ Pendent ${esc(mesCurt(M))}</span>`}
+      <div class="mes-historial">${historial}</div>`;
+  };
+  const botoFila = r => {
+    if (esMensual(evPer.get(r.event_id))) {
+      return pagatMes(r, M)
+        ? `<button class="btn btn-ghost btn-mini" onclick="anularMes('${esc(r.id)}','${M}')">Anul·lar</button>`
+        : `<button class="btn btn-primary btn-mini" onclick="obrirCobrament('${esc(r.id)}')">Cobrar ${esc(mesCurt(M))}</button>`;
+    }
+    return `<button class="btn ${r.payment_status === 'paid' ? 'btn-ghost' : 'btn-primary'} btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${r.payment_status === 'paid' ? 'Veure' : 'Cobrar'}</button>`;
+  };
 
   const rows = llista.map(r => `
     <tr${state.cobrant === r.id ? ' class="res-oberta"' : ''}>
       <td><strong>${esc(r.nom)}</strong><br><a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` <small class="muted">(de ${esc(r.contacte)})</small>` : ''}</td>
-      <td>${esc(evMap.get(r.event_id) || r.event_id)}<br><small class="muted">${esc(centreDe(evPer.get(r.event_id)))} · ${esc(resumLinies(r))}</small></td>
-      <td><span class="pag ${trucadaDe(r) === 'inscrit' ? 'pag--ok' : 'pag--pendent'}">${esc(TRUCADA[trucadaDe(r)].nom)}</span></td>
-      <td class="res-import">${eur(r.payment_status === 'paid' ? r.import_pagat_cents : aCobrar(r))}${r.consultar && !r.import_cobrar_cents && r.payment_status !== 'paid' ? ' <small class="muted">+ a consultar</small>' : ''}</td>
-      <td class="res-pag">${pagamentHTML(r)}</td>
-      <td><button class="btn ${r.payment_status === 'paid' ? 'btn-ghost' : 'btn-primary'} btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${r.payment_status === 'paid' ? 'Veure' : 'Cobrar'}</button></td>
+      <td>${esc(evMap.get(r.event_id) || r.event_id)}<br><small class="muted">${esc(centreDe(evPer.get(r.event_id)))} · ${esc(resumLinies(r))}${esMensual(evPer.get(r.event_id)) ? ' · mensual' : ''}</small></td>
+      <td class="res-import">${eur(importFila(r))}${!aCobrar(r) && r.consultar && !pagada(r) ? ' <small class="muted">a consultar</small>' : ''}</td>
+      <td class="res-pag">${celPagamentFila(r)}</td>
+      <td>${botoFila(r)}</td>
     </tr>`).join('');
 
-  const cobrat = base.filter(r => r.payment_status === 'paid').reduce((t, r) => t + (r.import_pagat_cents || 0), 0);
-  const pendents = base.filter(r => r.payment_status !== 'paid');
+  const pendents = base.filter(r => !pagada(r));
+  const pagades = base.filter(pagada);
   const pendent = pendents.reduce((t, r) => t + aCobrar(r), 0);
-  const ambConsultar = pendents.filter(r => r.consultar && !r.import_cobrar_cents).length;
+  const cobrat = pagades.reduce((t, r) => t + (importFila(r) || 0), 0);
+  const senseImport = pendents.filter(r => !aCobrar(r)).length;
   const buit = !base.length
-    ? "Encara no hi ha cap inscripció a activitats de pagament. Les gratuïtes no surten aquí."
+    ? "Cap persona inscrita a activitats de pagament" + (hiHaMensuals ? ' aquest mes' : '') + ". Recorda: surten quan al Seguiment estan com a ✓ Inscrit/a."
     : state.filtreReserves === 'cobrar' ? 'Tothom ha pagat. 🎉' : 'Cap cobrament en aquesta vista.';
 
   app.innerHTML = `
@@ -1260,12 +1337,20 @@ ${tabsHTML()}
   <h1 style="margin:0">Cobraments</h1>
   <button class="btn btn-secondary" onclick="exportCSV()">⬇ Descarregar CSV${state.filtreCentre || state.eventFilter ? ' (filtrat)' : ''}</button>
 </div>
-<p class="muted">Només activitats de pagament. Quan algú paga, desapareix de "Falten per pagar".</p>
+<p class="muted">Persones inscrites a activitats de pagament. Quan algú paga, desapareix de "Falten per pagar".</p>
+${hiHaMensuals ? `
+<div class="cob-mes">
+  <span>Activitats mensuals · mes:</span>
+  <button class="btn btn-ghost" onclick="cobMes(-1)" aria-label="Mes anterior">◀</button>
+  <strong>${esc(nomMesLlarg(M))}</strong>
+  <button class="btn btn-ghost" onclick="cobMes(1)" aria-label="Mes següent">▶</button>
+</div>` : ''}
 <div class="res-xifres">
-  <div${pendents.length ? ' class="xifra-avis"' : ''}><span>Falten per pagar</span><strong>${pendents.length}</strong><small>${eur(pendent)}${ambConsultar ? ` + ${ambConsultar} a consultar` : ''}</small></div>
-  <div><span>Cobrat</span><strong>${eur(cobrat)}</strong><small>${base.length - pendents.length} pagades</small></div>
+  <div${pendents.length ? ' class="xifra-avis"' : ''}><span>Falten per pagar</span><strong>${pendents.length}</strong><small>${eur(pendent)}${senseImport ? ` · ${senseImport} sense preu` : ''}</small></div>
+  <div><span>Cobrat${hiHaMensuals ? ' (' + esc(mesCurt(M)) + ')' : ''}</span><strong>${eur(cobrat)}</strong><small>${pagades.length} pagades</small></div>
   <div><span>Pagament amb targeta</span><strong>${state.stripe === 'off' ? 'No connectat' : state.stripe === 'test' ? 'Mode prova' : 'Actiu'}</strong></div>
 </div>
+${senseImport ? `<div class="alert alert-warning">${senseImport} inscripcions no tenen preu: són d'activitats "a consultar" sense <strong>preu intern</strong>. Posa'l a Activitats → Editar → Inscripció i preus.</div>` : ''}
 ${filterHTML}
 <div class="filters" style="margin-bottom: var(--sp-2);">
   ${Object.entries(FILTRES).map(([k, v]) =>
@@ -1274,13 +1359,36 @@ ${filterHTML}
 <div id="cobrament"></div>
 <table class="admin-table">
   <thead>
-    <tr><th>Persona</th><th>Activitat</th><th>Trucada</th><th>Import</th><th>Pagament</th><th></th></tr>
+    <tr><th>Persona</th><th>Activitat</th><th>Import</th><th>Pagament</th><th></th></tr>
   </thead>
-  <tbody>${rows || `<tr><td colspan="6" style="text-align:center; padding: var(--sp-4)" class="muted">${buit}</td></tr>`}</tbody>
+  <tbody>${rows || `<tr><td colspan="5" style="text-align:center; padding: var(--sp-4)" class="muted">${buit}</td></tr>`}</tbody>
 </table>`;
 
   if (state.cobrant) renderCobrament();
 }
+
+window.cobMes = function(delta) {
+  const [y, m] = state.cobMes.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1, 12);
+  state.cobMes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  state.cobrant = null;
+  renderReserves();
+};
+
+async function registrarMes(id, mes, importCents, metode, nota) {
+  const out = await apiSend('/api/admin/orders', 'PATCH', { accio: 'pagament_mes', id, mes, import_cents: importCents, metode, nota });
+  if (out?.pagament) state.pagamentsMes.set(`${id}|${mes}`, out.pagament);
+}
+window.anularMes = async function(id, mes) {
+  const r = state.reserves.find(x => x.id === id);
+  const motiu = prompt(`Anul·lar el pagament de ${nomMesLlarg(mes)} de ${r?.nom || ''}? Escriu el motiu (queda a l'auditoria):`, '');
+  if (motiu === null) return;
+  try {
+    await apiSend('/api/admin/orders', 'PATCH', { accio: 'anular_pagament_mes', id, mes, motiu: motiu || null });
+    state.pagamentsMes.delete(`${id}|${mes}`);
+  } catch (e) { alert('No s\'ha pogut fer: ' + errText(e)); }
+  render();
+};
 
 window.filtreReserves = function(f) { state.filtreReserves = f; state.cobrant = null; renderReserves(); };
 
@@ -1304,6 +1412,7 @@ function renderCobrament() {
   const r = state.reserves.find(x => x.id === state.cobrant);
   const box = qs('#cobrament');
   if (!r || !box) return;
+  if (esMensual(evDe(r))) return renderCobramentMes(r, box);
   const ev = state.events.find(e => e.id === r.event_id);
   const titol = ev?.titol?.ca || r.event_id;
   const linkViu = r.link_pagament && r.link_caduca && new Date(r.link_caduca) > new Date();
@@ -1377,6 +1486,49 @@ function renderCobrament() {
   </div>`}
 </section>`;
 }
+
+/* Cobrar un mes d'una activitat mensual */
+function renderCobramentMes(r, box) {
+  const M = state.cobMes || avui().slice(0, 7);
+  const ev = evDe(r);
+  const quota = aCobrar(r);
+  box.innerHTML = `
+<section class="cob">
+  <div class="cob-cap">
+    <div>
+      <h2>Cobrar ${esc(nomMesLlarg(M))}</h2>
+      <p><strong>${esc(r.nom)}</strong> · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` (de ${esc(r.contacte)})` : ''} · ${esc(ev?.titol?.ca || r.event_id)}</p>
+      <p class="muted">Quota mensual: ${quota ? eur(quota) : 'sense preu (posa el preu intern a l\'activitat)'}</p>
+    </div>
+    <div style="display:flex; gap: var(--sp-1); flex-wrap: wrap;">
+      <button class="btn btn-ghost ev-arxivar" onclick="baixaPersona('${esc(r.id)}')">Baixa i esborrar dades</button>
+      <button class="btn btn-ghost" onclick="obrirCobrament('${esc(r.id)}')">Tancar</button>
+    </div>
+  </div>
+  <div id="cob-msg"></div>
+  <div class="cob-grid">
+    <div class="cob-bloc">
+      <label class="ins-camp"><span>Import (€)</span>
+        <input class="form-input" id="cobm-import" type="number" min="0" step="0.01" value="${quota ? (quota / 100).toFixed(2) : ''}"></label>
+      <label class="ins-camp"><span>Com</span>
+        <select class="form-select" id="cobm-metode">
+          ${['efectiu', 'bizum', 'transferencia', 'targeta', 'altres'].map(m => `<option value="${m}">${METODE_NOM[m]}${m === 'targeta' ? ' (TPV)' : ''}</option>`).join('')}
+        </select></label>
+      <label class="ins-camp"><span>Nota (opcional)</span><input class="form-input" id="cobm-nota" maxlength="200"></label>
+      <button class="btn btn-primary" onclick="cobrarMesPanell('${esc(r.id)}','${M}')">Registrar el pagament de ${esc(nomMesLlarg(M))}</button>
+    </div>
+  </div>
+</section>`;
+}
+window.cobrarMesPanell = async function(id, mes) {
+  const euros = parseFloat(String(qs('#cobm-import').value).replace(',', '.'));
+  if (!(euros >= 0)) { qs('#cob-msg').innerHTML = '<div class="alert alert-danger">Posa l\'import.</div>'; return; }
+  try {
+    await registrarMes(id, mes, Math.round(euros * 100), qs('#cobm-metode').value, qs('#cobm-nota').value.trim() || null);
+    state.cobrant = null;
+    renderReserves();
+  } catch (e) { qs('#cob-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(e))}</div>`; }
+};
 
 async function accioReserva(body) {
   const out = await apiSend('/api/admin/orders', 'PATCH', body);
@@ -1707,14 +1859,8 @@ function renderSeguimentTotes() {
   const pcts = persones.map(pct).filter(x => x !== null);
   const pctMitja = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : null;
 
-  const celPagat = r => {
-    if (!cobra(r)) return '<span class="muted">—</span>';
-    const pagat = r.payment_status === 'paid';
-    return `<select class="sg-sel${pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}">
-      <option value="">${r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar'}</option>
-      ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && r.metode_pagament === k ? 'selected' : ''}>✓ ${v}</option>`).join('')}
-    </select>`;
-  };
+  const celPagat = r => celPagatSg(r, cobra);
+
 
   const fila = (r, i) => {
     const ev = evPer.get(r.event_id);
@@ -1768,8 +1914,8 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
   <div${pendentsTr ? ' class="xifra-avis"' : ''}><span>Per trucar</span><strong>${pendentsTr}</strong>
     <small>${dt.persones.filter(r => trucadaDe(r) === 'no_contesta').length} no contesten</small>
     ${pendentsTr ? `<button class="btn-link" onclick="sgNomesPerTrucar()">${state.seguiment.nomesPendents ? 'Veure tothom' : 'Veure només aquestes'}</button>` : ''}</div>
-  <div><span>Pendents de pagar</span><strong>${hanDePagar.filter(r => r.payment_status !== 'paid').length}</strong>
-    <small>${hanDePagar.filter(r => r.payment_status === 'paid').length} pagades</small></div>
+  <div><span>Pendents de pagar</span><strong>${hanDePagar.filter(r => !pagatAra(r)).length}</strong>
+    <small>${hanDePagar.filter(pagatAra).length} pagades</small></div>
   <div><span>Assistència del mes</span><strong>${pctMitja === null ? '—' : pctMitja + '%'}</strong></div>
 </div>
 ${AVIS_GUIO}
@@ -1796,18 +1942,12 @@ function renderSeguiment() {
   const places = persones.reduce((t, r) => t + (r.places || 0), 0);
   const altes = persones.filter(r => r.status !== 'pending').length;
   const hanDePagar = persones.filter(cobra);
-  const pagades = hanDePagar.filter(r => r.payment_status === 'paid').length;
+  const pagades = hanDePagar.filter(pagatAra).length;
   const totalSi = persones.reduce((t, r) => t + passades.filter(d => marca(r, d) === true).length, 0);
   const pctMitja = persones.length && passades.length ? Math.round(totalSi * 100 / (persones.length * passades.length)) : null;
 
-  const celPagat = r => {
-    if (!cobra(r)) return '<span class="muted">—</span>';
-    const pagat = r.payment_status === 'paid';
-    return `<select class="sg-sel${pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}">
-      <option value="">${r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar'}</option>
-      ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && r.metode_pagament === k ? 'selected' : ''}>✓ ${v}</option>`).join('')}
-    </select>${pagat ? `<small class="sg-import">${eur(r.import_pagat_cents)}</small>` : aCobrar(r) ? `<small class="sg-import">${eur(aCobrar(r))}</small>` : ''}`;
-  };
+  const celPagat = r => celPagatSg(r, cobra);
+
   const celSessio = (r, d) => {
     const m = marca(r, d);
     const txt = m === true ? '✓' : m === false ? '✗' : '';
@@ -1942,9 +2082,47 @@ window.sgDeEspera = async function(id) {
 };
 
 /* Pagat: triar un mètode registra el cobrament; "No pagat" l'anul·la */
+/* Columna "Pagat" del Seguiment. Activitats mensuals: el mes que es mira. */
+const pagatAra = r => esMensual(evDe(r)) ? !!pagatMes(r, state.seguiment.mes || avui().slice(0, 7)) : r.payment_status === 'paid';
+function celPagatSg(r, cobra) {
+  if (!cobra(r)) return '<span class="muted">—</span>';
+  const mensual = esMensual(evDe(r));
+  const mes = state.seguiment.mes || avui().slice(0, 7);
+  const p = mensual ? pagatMes(r, mes) : null;
+  const pagat = mensual ? !!p : r.payment_status === 'paid';
+  const metode = mensual ? p?.metode : r.metode_pagament;
+  const pendentTxt = mensual ? `⏳ Pendent ${mesCurt(mes)}` : r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar';
+  const imp = mensual ? (p?.import_cents ?? aCobrar(r)) : pagat ? r.import_pagat_cents : aCobrar(r);
+  return `<select class="sg-sel${pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}${mensual ? ' (' + esc(nomMesLlarg(mes)) + ')' : ''}">
+      <option value="">${pendentTxt}</option>
+      ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && metode === k ? 'selected' : ''}>✓ ${v}${mensual ? ' · ' + mesCurt(mes) : ''}</option>`).join('')}
+    </select>${imp ? `<small class="sg-import">${eur(imp)}${mensual ? '/mes' : ''}</small>` : ''}`;
+}
+
 window.sgPagat = async function(id, metode, sel) {
   const r = state.reserves.find(x => x.id === id);
   if (!r) return;
+  if (esMensual(evDe(r))) {
+    const mes = state.seguiment.mes || avui().slice(0, 7);
+    try {
+      if (!metode) {
+        if (!pagatMes(r, mes)) return;
+        if (!confirm(`Anul·lar el pagament de ${nomMesLlarg(mes)} de ${r.nom}?`)) { renderSeguiment(); return; }
+        await apiSend('/api/admin/orders', 'PATCH', { accio: 'anular_pagament_mes', id, mes, motiu: 'desmarcat al seguiment' });
+        state.pagamentsMes.delete(`${id}|${mes}`);
+      } else if (!pagatMes(r, mes)) {
+        let imp = aCobrar(r);
+        if (!(imp > 0)) {
+          const t = prompt(`Import de ${nomMesLlarg(mes)} de ${r.nom} (€):`, '');
+          if (t === null) { renderSeguiment(); return; }
+          imp = Math.round((parseFloat(String(t).replace(',', '.')) || 0) * 100);
+        }
+        await registrarMes(id, mes, imp, metode, 'seguiment');
+      }
+    } catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
+    renderSeguiment();
+    return;
+  }
   try {
     if (!metode) {
       if (r.payment_status !== 'paid') return;
@@ -2057,7 +2235,7 @@ window.sgExcel = function() {
       const e = evPer.get(r.event_id);
       return [i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', e?.titol?.ca || r.event_id, centreDe(e), nivell(r), r.places,
         ORIGEN_NOM[r.origen] || '', TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
-        !cobra(r) ? 'No cal' : r.payment_status === 'paid' ? 'Sí' : 'No',
+        !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
         r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
         r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '', pct(r), r.observacions || '', r.id,
         CANAL_INFO[r.info_canal] || '', r.informada_at ? new Date(r.informada_at).toLocaleString('ca-ES') : 'PENDENT', r.informada_per || ''];
@@ -2075,7 +2253,7 @@ window.sgExcel = function() {
   const files = persones.map((r, i) => [
     i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', nivell(r), r.places, ORIGEN_NOM[r.origen] || '',
     TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
-    !cobra(r) ? 'No cal' : r.payment_status === 'paid' ? 'Sí' : 'No',
+    !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
     r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
     r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '',
     ...sessions.map(d => marca(r, d) === true ? '✓' : marca(r, d) === false ? '✗' : ''),
