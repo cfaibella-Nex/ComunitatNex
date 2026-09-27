@@ -30,15 +30,16 @@ function sortEvents(events) {
     const ea = estatOrder[a.estat] ?? 3;
     const eb = estatOrder[b.estat] ?? 3;
     if (ea !== eb) return ea - eb;
-    return (a.data || '').localeCompare(b.data || '');
+    return window.NX.properaSessio(a).localeCompare(window.NX.properaSessio(b));
   });
 }
 
 /* ═══ Vista 1: Targeta d'event (per grid Reserves) ═══ */
 function eventCardHTML(ev) {
   const places = placesRestants(ev);
-  const label = ev.data_label ? L(ev.data_label) : formatDate(ev.data);
-  const isProximament = ev.data_label && /pr[oò]xi/i.test(L(ev.data_label));
+  const label = window.NX.quanText(ev);
+  const isProximament = !window.NX.esSetmanal(ev) && ev.data_label && /pr[oò]xi/i.test(L(ev.data_label));
+  const hora = window.NX.franjaHoraria(ev);
   const ep = estatPlaces(ev, places);
   const status = ep === 'esgotat'
     ? `<span class="event-badge" style="position:static;background:var(--danger)">${T('ev.esgotat')}</span>`
@@ -57,7 +58,7 @@ function eventCardHTML(ev) {
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
     <div class="event-meta">
       <span class="event-meta-item">📅 ${esc(label)}</span>
-      ${!isProximament && ev.hora ? `<span class="event-meta-item">🕐 ${esc(ev.hora)}</span>` : ''}
+      ${!isProximament && hora ? `<span class="event-meta-item">🕐 ${esc(hora)}</span>` : ''}
     </div>
     <div class="event-meta">
       <span class="event-meta-item">📍 ${esc(L(ev.ubicacio))}</span>
@@ -102,17 +103,24 @@ function eventRowHTML(ev) {
   const ep = estatPlaces(ev, places);
   const esgotat = ep === 'esgotat';
 
-  // Bloc de data: si hi ha data_label, mostrem mes gran o "PRÒX"
-  const dateBlock = label
+  const setmanal = window.NX.esSetmanal(ev);
+  const hora = window.NX.franjaHoraria(ev);
+
+  // Bloc de data: setmanal → dia de la setmana; label → mes o "PRÒX"; si no, dia
+  const dateBlock = setmanal
+    ? `<span class="event-row-day event-row-day-sm">${window.NX.diaCurt(ev)}</span><span class="event-row-month">${esc(T('ev.cada_setmana'))}</span>`
+    : label
     ? (isProximament
         ? `<span class="event-row-day event-row-day-sm">PRÒX</span>`
         : `<span class="event-row-day">${mesLabel}</span>`)
     : `<span class="event-row-day">${dia}</span><span class="event-row-month">${esc(mesLabel)}</span>`;
 
   // Línia meta: si hi ha label, el fem servir; sinó dia setmana + hora
-  const metaText = label
-    ? esc(label) + (isProximament ? '' : ` · ${esc(ev.hora || '')}`)
-    : `${esc(diaSetm)} · ${esc(ev.hora || '')}`;
+  const metaText = setmanal
+    ? `${esc(window.NX.quanText(ev))} · ${esc(hora)}`
+    : label
+    ? esc(label) + (isProximament ? '' : ` · ${esc(hora)}`)
+    : `${esc(diaSetm)} · ${esc(hora)}`;
 
   return `
 <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-row ${esgotat ? 'is-esgotat' : ''}">
@@ -142,14 +150,18 @@ async function renderAgenda() {
   const container = qs('#events-list');
   if (!container) return;
 
+  container.innerHTML = window.NX.carregantHTML();
   const events = sortEvents(await fetchEvents());
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = events.filter(e => (e.data || '') >= today && e.estat !== 'arxivat');
+  const visibles = events.filter(window.NX.visibleWeb);
 
-  if (upcoming.length === 0) {
+  if (visibles.length === 0) {
     container.innerHTML = `<div class="alert alert-info">${T('agenda.empty')}</div>`;
     return;
   }
+
+  /* Les setmanals van a part, a dalt: no tenen "mes" */
+  const setmanals = visibles.filter(window.NX.esSetmanal);
+  const upcoming = visibles.filter(e => !window.NX.esSetmanal(e));
 
   const groups = {};
   const monthNames = {
@@ -175,16 +187,22 @@ async function renderAgenda() {
     </div>`;
   }).join('');
 
-  container.innerHTML = html + phoneBannerHTML();
+  const blocSetmanal = setmanals.length ? `
+    <div class="agenda-month">
+      <h2 class="agenda-month-title">${esc(T('ev.cada_setmana').charAt(0).toUpperCase() + T('ev.cada_setmana').slice(1))}</h2>
+      <div class="events-list-horizontal">${setmanals.map(eventRowHTML).join('')}</div>
+    </div>` : '';
+
+  container.innerHTML = blocSetmanal + html + phoneBannerHTML();
 }
 
 /* ═══ Render POSTERS (per home "Properes activitats") ═══ */
 async function renderGrid() {
   const container = qs('#events-grid-list');
   if (!container) return;
+  container.innerHTML = window.NX.carregantHTML();
   const events = sortEvents(await fetchEvents());
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = events.filter(e => (e.data || '') >= today && e.estat !== 'arxivat').slice(0, 3);
+  const upcoming = events.filter(window.NX.visibleWeb).slice(0, 3);
   if (upcoming.length === 0) {
     container.innerHTML = `<div class="alert alert-info">${T('agenda.empty')}</div>`;
     return;
@@ -203,6 +221,7 @@ async function renderDetail() {
     return;
   }
 
+  container.innerHTML = `<div class="container mt-4">${window.NX.carregantHTML()}</div>`;
   const events = await fetchEvents();
   const ev = events.find(e => e.id === id);
   if (!ev) {
@@ -221,17 +240,19 @@ async function renderDetail() {
 
   document.title = `${L(ev.titol)} · Comunitat NexSocial`;
 
-  // URL de Google Maps embed (sense API key, gratuït)
-  const mapaEmbed = ev.mapa_url
-    ? `https://maps.google.com/maps?q=${encodeURIComponent(L(ev.ubicacio))}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-    : null;
+  /* Mapa: NOMÉS un enllaç que s'obre a Google Maps. Un mapa incrustat
+     posaria cookies de Google i li enviaria la IP del visitant sense
+     consentiment previ (art. 22.2 LSSI). Amb l'enllaç no es carrega res
+     de Google fins que la persona decideix obrir-lo. */
+  const enllacMapa = ev.mapa_url
+    || (L(ev.ubicacio) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(L(ev.ubicacio))}` : null);
 
   container.innerHTML = `
 ${ev.cartell ? `
-<div class="detail-hero detail-hero--cartell">
+<div class="detail-hero detail-hero--cartell" style="--fons:url('${esc(ev.cartell)}')">
   <button type="button" class="detail-cartell-obre" data-cartell="${esc(ev.cartell)}" data-cartell-alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">
     <img src="${esc(ev.cartell)}" alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">
-    <span class="cartell-lupa-text">🔍 ${esc(T('ev.cartell_veure'))}</span>
+    <span class="cartell-lupa-text">${esc(T('ev.cartell_veure'))}</span>
   </button>
 </div>` : `
 <div class="detail-hero">
@@ -249,10 +270,11 @@ ${ev.cartell ? `
       <div class="detail-info">
         <dl>
           <dt>${T('ev.data')}</dt>
-          <dd>${esc(ev.data_label ? L(ev.data_label) : formatDate(ev.data, { weekday: 'long' }))}</dd>
-          ${!(ev.data_label && /pr[oò]xi/i.test(L(ev.data_label))) ? `
+          <dd>${esc(window.NX.quanText(ev, { llarg: true }))}${window.NX.esSetmanal(ev) && String(ev.data) > window.NX.avuiISO()
+            ? ` <span class="muted">· ${esc(T('ev.des_de'))} ${esc(formatDate(ev.data, { day: 'numeric', month: 'long', year: undefined }))}</span>` : ''}</dd>
+          ${!(!window.NX.esSetmanal(ev) && ev.data_label && /pr[oò]xi/i.test(L(ev.data_label))) ? `
             <dt>${T('ev.hora')}</dt>
-            <dd>${esc(ev.hora || '—')}</dd>
+            <dd>${esc(window.NX.franjaHoraria(ev) || '—')}</dd>
             <dt>${T('ev.durada')}</dt>
             <dd>${ev.durada || 90} min</dd>
           ` : ''}
@@ -267,7 +289,7 @@ ${ev.cartell ? `
       <h2 style="font-size:var(--fs-xl); margin-top:var(--sp-4)">${T('ev.desc')}</h2>
       <p style="font-size:var(--fs-md); line-height:1.7">${esc(L(ev.descripcio))}</p>
 
-      <!-- On es fa: foto lloc + mapa embedit -->
+      <!-- On es fa: foto del lloc + enllaç al mapa (sense incrustar) -->
       <h2 style="font-size:var(--fs-xl); margin-top:var(--sp-5)">${T('ev.como_llegar')}</h2>
       <div class="location-block">
         ${ev.imatge_lloc ? `
@@ -277,20 +299,13 @@ ${ev.cartell ? `
         <div class="location-info">
           <div style="font-size:var(--fs-md); font-weight:600; margin-bottom:var(--sp-1)">${esc(L(ev.entitat))}</div>
           <div style="color:var(--text-muted); margin-bottom:var(--sp-3)">📍 ${esc(L(ev.ubicacio))}</div>
-          ${ev.mapa_url ? `
-            <a href="${esc(ev.mapa_url)}" target="_blank" rel="noopener" class="btn btn-secondary">
-              🗺️ ${T('ev.abrir_mapa')}
-            </a>` : ''}
+          ${enllacMapa ? `
+            <a href="${esc(enllacMapa)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              🗺️ ${T('ev.abrir_mapa')} <span aria-hidden="true">↗</span>
+            </a>
+            <div class="form-help" style="margin-top:var(--sp-1)">${T('ev.mapa_extern')}</div>` : ''}
         </div>
       </div>
-      ${mapaEmbed ? `
-        <div class="map-embed">
-          <iframe src="${esc(mapaEmbed)}"
-                  width="100%" height="360" frameborder="0"
-                  style="border:0; border-radius: var(--radius-lg); margin-top: var(--sp-3);"
-                  loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-                  title="${T('ev.como_llegar')}"></iframe>
-        </div>` : ''}
     </div>
 
     <!-- Booking card (PAS 1: selector + Continuar) -->

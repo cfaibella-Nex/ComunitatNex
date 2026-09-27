@@ -258,7 +258,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
     height: 100%;
     max-height: none;
     object-fit: cover;
-    object-position: center 45%;
+    object-position: center 36%;   /* caps i espatlles, no només esquenes */
   }
 }
 @media (min-width: 1400px) {
@@ -1676,22 +1676,35 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   font-size: 20px; line-height: 1; cursor: pointer; box-shadow: var(--shadow-md);
   display: flex; align-items: center; justify-content: center;
 }
+.cartell-lupa svg { width: 22px; height: 22px; }
+.event-row-img .cartell-lupa svg { width: 17px; height: 17px; }
 .event-poster .cartell-lupa { top: var(--sp-2); bottom: auto; }
 .event-row-img .cartell-lupa { width: 36px; height: 36px; font-size: 15px; right: 6px; bottom: 6px; }
 .cartell-lupa:hover { background: var(--forest); }
 .cartell-lupa:focus-visible { outline: 3px solid var(--white); outline-offset: 2px; box-shadow: 0 0 0 6px var(--forest); }
 
 /* Detall: capçalera de mida normal amb el cartell retallat; clic per ampliar */
-.detail-hero--cartell { padding: 0; }
-.detail-cartell-obre {
-  display: block; width: 100%; height: 100%; padding: 0; border: 0; cursor: zoom-in;
-  background: var(--forest-hero); position: relative;
+/* Detall amb cartell: el cartell sencer, centrat, sobre un fons fet
+   amb el mateix cartell difuminat. Clic (o Enter) per ampliar. */
+.detail-hero--cartell { padding: 0; position: relative; overflow: hidden; background: var(--forest-hero); }
+.detail-hero--cartell::before {
+  content: ''; position: absolute; inset: -30px;
+  background: var(--fons) center / cover no-repeat;
+  filter: blur(26px) saturate(1.1); opacity: .55; transform: scale(1.1);
 }
-.detail-cartell-obre img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 5%; }
+.detail-cartell-obre {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; padding: var(--sp-2) 0; border: 0; cursor: zoom-in; background: none;
+}
+.detail-cartell-obre img {
+  width: auto; height: 100%; max-width: 92%; object-fit: contain;
+  border-radius: 6px; box-shadow: 0 10px 30px rgba(15,45,30,0.35); background: var(--white);
+}
 .detail-cartell-obre:focus-visible { outline: 3px solid var(--forest); outline-offset: -3px; }
 .cartell-lupa-text {
-  position: absolute; right: var(--sp-3); bottom: var(--sp-3);
-  background: rgba(15,45,30,0.88); color: var(--white); font-weight: 700; font-size: var(--fs-sm);
+  position: absolute; right: var(--sp-3); bottom: var(--sp-3); z-index: 2;
+  background: rgba(15,45,30,0.92); color: var(--white); font-weight: 700; font-size: var(--fs-sm);
   padding: 10px 18px; border-radius: var(--radius-pill); box-shadow: var(--shadow-md);
 }
 
@@ -1722,3 +1735,69 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 }
 .cartell-tanca:focus-visible { outline: 3px solid var(--white); outline-offset: 3px; }
 body.cartell-obert { overflow: hidden; }
+
+/* ── Sprint v14 ───────────────────────────────────────────────── */
+
+/* Portada: l'etiqueta fa l'amplada del text, no de la targeta */
+.event-poster-overlay .event-badge { align-self: flex-start; width: auto; }
+/* Cartell a la portada: franja inferior més opaca perquè el títol no
+   es barregi amb el text imprès del cartell */
+.event-poster--cartell .event-poster-overlay {
+  background: linear-gradient(to top, rgba(15,45,30,0.97) 0%, rgba(15,45,30,0.92) 38%, rgba(15,45,30,0) 62%);
+}
+
+/* Mentre es carreguen les activitats */
+.carregant {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-4) 0; color: var(--text-muted); font-size: var(--fs-base);
+}
+.carregant-punt {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid var(--forest-hero); border-top-color: var(--forest);
+  animation: gir 0.9s linear infinite;
+}
+@keyframes gir { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .carregant-punt { animation: none; } }
+
+/* Reserves: filtre per centre */
+.filtre-centre {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1);
+  margin: 0 0 var(--sp-3);
+}
+.filtre-centre-etiqueta { font-weight: 600; color: var(--ink); margin-right: 4px; }
+.filtre-centre-btn {
+  min-height: var(--touch); padding: 0 18px; border-radius: var(--radius-pill);
+  border: 2px solid rgba(45,107,72,0.35); background: var(--white); color: var(--ink);
+  font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+}
+.filtre-centre-btn:hover { border-color: var(--forest); }
+.filtre-centre-btn[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color: var(--white); }
+.filtre-centre-btn:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; }
+
+/* Agenda: bloc "DT · cada setmana" */
+.event-row-date .event-row-month { text-align: center; line-height: 1.1; }
+/* Detall amb cartell al mòbil: una mica més alt perquè el cartell es llegeixi */
+@media (max-width: 599px) { .detail-hero--cartell { height: 340px; } }
+
+/* ── Protecció de dades al formulari ─────────────────────────── */
+.rgpd-capa {
+  background: var(--cream-green, #EEF6EA); border: 1px solid rgba(45,107,72,0.2);
+  border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); margin: var(--sp-2) 0;
+  font-size: var(--fs-sm); color: var(--ink);
+}
+.rgpd-capa p { margin: 0 0 var(--sp-1); }
+.rgpd-capa ul { margin: 0 0 var(--sp-1); padding-left: 1.2em; }
+.rgpd-capa li { margin-bottom: 4px; }
+.rgpd-check label { display: flex; gap: var(--sp-2); align-items: flex-start; cursor: pointer; font-size: var(--fs-base); }
+.rgpd-check input { width: 26px; height: 26px; flex: none; margin-top: 2px; accent-color: var(--forest); }
+.rgpd-check.error label { color: var(--danger); }
+.rgpd-check.error input { outline: 3px solid var(--danger); outline-offset: 2px; }
+.rgpd-check a { color: var(--forest); font-weight: 600; }
+
+/* Pàgina legal */
+.legal h3 { margin-top: var(--sp-4); font-size: var(--fs-lg); }
+.legal-index { margin: 0 0 var(--sp-4); font-weight: 600; }
+.legal-index a { color: var(--forest); }
+.legal-taula { width: 100%; border-collapse: collapse; margin: var(--sp-2) 0 var(--sp-3); font-size: var(--fs-sm); display: block; overflow-x: auto; }
+.legal-taula th, .legal-taula td { border: 1px solid rgba(15,45,30,0.15); padding: 8px 10px; vertical-align: top; text-align: left; }
+.legal-taula th { background: var(--forest-hero); }

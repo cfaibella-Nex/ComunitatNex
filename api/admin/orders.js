@@ -9,8 +9,9 @@
 //   PATCH { accio: 'assistencia', id, data, present } → true / false / null
 //   GET   ?llista=<event_id>&des=…&fins=…   → assistència d'un període (seguiment)
 //   PATCH { accio: 'afegir_persona', event_id, nom, telefon, email, tarifa_id, places, origen, alta, observacions }
-//   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen } }
+//   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen, contacte } }
 //   PATCH { accio: 'sessio', event_id, data, operacio: 'afegir' | 'treure' }
+//   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
 //
 // Tot passa per RPC: el canvi i el registre d'auditoria (amb qui l'ha
 // fet) van a la mateixa transacció.
@@ -41,6 +42,16 @@ export default async function handler(req, res) {
     const sb = supabase();
 
     if (req.method === 'GET') {
+      /* Assistència de totes les activitats en un període (seguiment "Totes") */
+      if (req.query?.assistencia_totes) {
+        const des = String(req.query?.des || ''), fins = String(req.query?.fins || '');
+        if (!DATA_RE.test(des) || !DATA_RE.test(fins)) return json(res, 400, { error: 'Data no vàlida' });
+        const { data: as, error } = await sb.from('assistencia')
+          .select('reserva_id, data, present').gte('data', des).lte('data', fins);
+        if (error) throw error;
+        return json(res, 200, { assistencia: as || [] });
+      }
+
       const llista = req.query?.llista;
       if (llista) {
         /* Un dia (?data=) o un període (?des=&fins=) */
@@ -153,7 +164,16 @@ export default async function handler(req, res) {
         const telefon = String(body.telefon || '').replace(/[\s\-()]/g, '').slice(0, 20);
         if (telefon && !/^\+?\d{9,15}$/.test(telefon)) return json(res, 400, { error: 'Telèfon no vàlid' });
         const email = body.email ? String(body.email).trim().slice(0, 160) : null;
-        const origen = ['telefon', 'presencial', 'web', 'altres'].includes(body.origen) ? body.origen : 'telefon';
+        /* "llista_centre" no és un origen de la inscripció sinó un canal
+           d'informació: la persona s'ha apuntat al centre i ens ho passen */
+        const deLlista = body.origen === 'llista_centre';
+        const origen = deLlista ? 'presencial'
+          : ['telefon', 'presencial', 'web', 'altres'].includes(body.origen) ? body.origen : 'telefon';
+        /* Art. 13 RGPD: si ens dona les dades directament (telèfon, en
+           persona), se li ha d'haver llegit la clàusula. Obligatori. */
+        if (!deLlista && body.informada !== true) {
+          return json(res, 400, { error: "Marca que li has llegit la clàusula de protecció de dades (és obligatori quan s'apunta per telèfon o en persona)." });
+        }
         const tarifa = String(body.tarifa_id || tarifesEvent(ev)[0].id);
         const places = Math.max(1, Math.min(10, parseInt(body.places, 10) || 1));
         let calc;
@@ -167,15 +187,27 @@ export default async function handler(req, res) {
             p_ref: ref(), p_event_id: ev.id, p_nom: nom, p_telefon: telefon, p_email: email,
             p_linies: calc.detall, p_places: calc.places, p_total_cents: calc.totalCents, p_consultar: calc.consultar,
             p_origen: origen, p_alta: body.alta !== false,
-            p_observacions: body.observacions ? String(body.observacions).slice(0, 500) : null, p_actor: actor
+            p_observacions: body.observacions ? String(body.observacions).slice(0, 500) : null, p_actor: actor,
+            p_contacte: body.contacte ? String(body.contacte).trim().slice(0, 120) : null,
+            p_informada: !deLlista && body.informada === true,
+            p_info_canal: deLlista ? 'llista_centre' : origen
           });
           if (out?.error !== 'ref_collision') break;
         }
         if (!out?.ok) {
-          const m = { duplicate: 'Aquest telèfon ja té una reserva en aquesta activitat', event_unavailable: 'Activitat no disponible' };
+          const m = { duplicate: 'Aquesta persona (mateix nom i telèfon) ja està apuntada a aquesta activitat', event_unavailable: 'Activitat no disponible' };
           return json(res, 409, { error: m[out?.error] || 'No s\'ha pogut afegir' });
         }
         return json(res, 201, { reserva: out.reserva, espera: out.reserva?.status === 'waitlist' });
+      }
+
+      case 'informada': {
+        /* Llistes dels centres i altes antigues: l'equip marca que ja li
+           ha llegit la clàusula (art. 14 RGPD). Queda qui i quan. No es desfà. */
+        const canal = ['telefon', 'presencial'].includes(body.canal) ? body.canal : null;
+        const out = await rpc('admin_marcar_informada', { p_id: id, p_actor: actor, p_canal: canal });
+        if (!out?.ok) return json(res, 409, { error: 'Ja constava com a informada' });
+        return json(res, 200, { reserva: out.reserva });
       }
 
       case 'editar': {
@@ -189,6 +221,7 @@ export default async function handler(req, res) {
         }
         if ('email' in c) camps.email = String(c.email || '').trim().slice(0, 160);
         if ('observacions' in c) camps.observacions = String(c.observacions || '').slice(0, 500);
+        if ('contacte' in c) camps.contacte = String(c.contacte || '').trim().slice(0, 120);
         if ('origen' in c) { if (!['telefon', 'presencial', 'web', 'altres'].includes(c.origen)) return json(res, 400, { error: 'Origen no vàlid' }); camps.origen = c.origen; }
         const out = await rpc('admin_editar_persona', { p_id: id, p_camps: camps, p_actor: actor });
         if (!out?.ok) return json(res, 404, { error: 'Reserva no trobada' });

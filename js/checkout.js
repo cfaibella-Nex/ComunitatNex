@@ -57,9 +57,11 @@ async function renderCheckout() {
              : cents > 0 && mode === 'online_aviat' ? 'chk.online_aviat'
              : cents > 0 && mode === 'presencial' ? 'chk.presencial'
              : null;
-  const tornar = NXC.extresVisibles(ev, events).length ? 'extres' : 'detall';
-  const dataTxt = ev.data_label ? L(ev.data_label) : formatDate(ev.data, { weekday: 'long' });
-  const ambHora = !(ev.data_label && /pr[oò]xi/i.test(L(ev.data_label))) && ev.hora;
+  const ambExtres = NXC.extresVisibles(ev, events).length > 0;
+  const tornar = ambExtres ? 'extres' : 'detall';
+  const dataTxt = window.NX.quanText(ev, { llarg: true });
+  const ambHora = !(!window.NX.esSetmanal(ev) && ev.data_label && /pr[oò]xi/i.test(L(ev.data_label))) && ev.hora;
+  const horaTxt = window.NX.franjaHoraria(ev);
 
   document.title = `${T('checkout.title')} · Comunitat NexSocial`;
 
@@ -68,7 +70,7 @@ async function renderCheckout() {
   <a href="/${tornar}.html?id=${encodeURIComponent(ev.id)}" class="detail-back">${T('checkout.back')}</a>
 
   <div class="checkout-heading">
-    <span class="checkout-eyebrow">${esc(NXC.t('chk.eyebrow'))}</span>
+    <span class="checkout-eyebrow">${esc(NXC.t(ambExtres ? 'chk.eyebrow' : 'chk.eyebrow2'))}</span>
     <h1 style="margin-top: var(--sp-1)">${T('checkout.title')}</h1>
   </div>
 
@@ -100,7 +102,24 @@ async function renderCheckout() {
         </label>
       </div>
 
-      <p class="form-help">${T('form.legal')}</p>
+      <!-- Protecció de dades: informació bàsica (1a capa, art. 11 LOPDGDD)
+           + casella obligatòria i NO marcada per acreditar que s'ha llegit -->
+      <div class="rgpd-capa" id="rgpd-info">
+        <p><strong>${esc(NXC.t('rgpd.titol'))}</strong></p>
+        <ul>
+          <li><strong>${esc(NXC.t('rgpd.resp_k'))}:</strong> NexSocial SCCL.</li>
+          <li><strong>${esc(NXC.t('rgpd.fin_k'))}:</strong> ${esc(NXC.t('rgpd.fin_v'))}</li>
+          <li><strong>${esc(NXC.t('rgpd.dest_k'))}:</strong> ${esc(NXC.t('rgpd.dest_v'))}</li>
+          <li><strong>${esc(NXC.t('rgpd.drets_k'))}:</strong> ${esc(NXC.t('rgpd.drets_v'))}</li>
+        </ul>
+        <p>${esc(NXC.t('rgpd.tercers'))}</p>
+      </div>
+      <div class="form-group rgpd-check">
+        <label for="consent">
+          <input type="checkbox" id="consent" name="consent" required aria-describedby="rgpd-info">
+          <span>${NXC.t('rgpd.check')}<span class="form-required">*</span></span>
+        </label>
+      </div>
       <div id="form-msg" aria-live="polite" aria-atomic="true"></div>
     </form>
 
@@ -110,7 +129,7 @@ async function renderCheckout() {
       <div class="summary-body">
         <h3 style="margin: 0 0 var(--sp-2)">${T('checkout.resum')}</h3>
         <div class="summary-title">${esc(L(ev.titol))}</div>
-        <div class="summary-line muted">${esc(dataTxt)}${ambHora ? ' · ' + esc(ev.hora) : ''}</div>
+        <div class="summary-line muted">${esc(dataTxt)}${ambHora ? ' · ' + esc(horaTxt) : ''}</div>
         <div class="summary-line muted">${esc(L(ev.entitat))}</div>
 
         ${linies.map((l, i) => `
@@ -154,6 +173,13 @@ async function renderCheckout() {
     if (nom.length < 2) errors.push('nom');
     if (!validaTelefon(tel)) errors.push('tel');
     if (!validaEmail(email)) errors.push('email');
+    const llegit = qs('#consent')?.checked === true;
+    qs('.rgpd-check')?.classList.toggle('error', !llegit);
+    if (!errors.length && !llegit) {
+      msg.innerHTML = `<div class="alert alert-danger">${esc(NXC.t('rgpd.falta'))}</div>`;
+      qs('#consent').focus();
+      return;
+    }
     errors.forEach(k => {
       const el = qs('#' + k);
       if (el) { el.classList.add('error'); el.setAttribute('aria-invalid', 'true'); }
@@ -179,6 +205,7 @@ async function renderCheckout() {
           extres: cart.extres,
           nom, telefon: tel, email: email || null, notes: notes || null,
           web: qs('#hp-web')?.value || '',
+          consentiment: qs('#consent')?.checked === true,
           lang: window.NX.getLang()
         })
       });
@@ -231,8 +258,8 @@ async function renderCheckout() {
       const detall = linies.map(l => `• ${l.qty} × ${l.nom} — ${l.importTxt}`).join('\n');
       const total = NXC.totalTxt(ev, cart);
       const txt = lang === 'ca'
-        ? `Hola! Vull fer una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataTxt}${ambHora ? ' · ' + ev.hora : ''}\n📍 ${L(ev.entitat)}\n\n${detall}\nTotal: ${total}\n\nDades:\nNom: ${nom}\nTelèfon: ${tel}${email ? '\nCorreu: ' + email : ''}${notes ? '\nNotes: ' + notes : ''}`
-        : `¡Hola! Quiero hacer una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataTxt}${ambHora ? ' · ' + ev.hora : ''}\n📍 ${L(ev.entitat)}\n\n${detall}\nTotal: ${total}\n\nDatos:\nNombre: ${nom}\nTeléfono: ${tel}${email ? '\nCorreo: ' + email : ''}${notes ? '\nNotas: ' + notes : ''}`;
+        ? `Hola! Vull fer una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataTxt}${ambHora ? ' · ' + horaTxt : ''}\n📍 ${L(ev.entitat)}\n\n${detall}\nTotal: ${total}\n\nDades:\nNom: ${nom}\nTelèfon: ${tel}${email ? '\nCorreu: ' + email : ''}${notes ? '\nNotes: ' + notes : ''}`
+        : `¡Hola! Quiero hacer una reserva:\n\n*${L(ev.titol)}*\n📅 ${dataTxt}${ambHora ? ' · ' + horaTxt : ''}\n📍 ${L(ev.entitat)}\n\n${detall}\nTotal: ${total}\n\nDatos:\nNombre: ${nom}\nTeléfono: ${tel}${email ? '\nCorreo: ' + email : ''}${notes ? '\nNotas: ' + notes : ''}`;
 
       msg.innerHTML = `<div class="alert alert-warning">${T('form.error_srv')}</div>`;
       btn.disabled = false;

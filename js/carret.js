@@ -52,7 +52,19 @@ const TXT = {
     'ext.saltar':        'Continuar sense afegir res',
     'ext.continuar':     'Continuar',
     'ext.tornar':        '← Tornar a triar places',
+    'rgpd.titol':  'Protecció de dades — informació bàsica',
+    'rgpd.resp_k': 'Responsable',
+    'rgpd.fin_k':  'Finalitat',
+    'rgpd.fin_v':  "gestionar la teva inscripció, contactar-te sobre l'activitat i fer el seguiment d'assistència. No enviem publicitat.",
+    'rgpd.dest_k': 'Destinataris',
+    'rgpd.dest_v': "no cedim les dades a ningú, tret d'obligació legal. Proveïdors tècnics (allotjament i base de dades) amb contracte de tractament.",
+    'rgpd.drets_k':'Drets',
+    'rgpd.drets_v':"accés, rectificació, supressió, oposició, limitació i portabilitat a infonex@nexsocial.org.",
+    'rgpd.tercers':"Si ens dones dades d'una altra persona (per exemple, el telèfon d'un familiar), confirmes que l'has informada i que hi està d'acord.",
+    'rgpd.check':  'He llegit la informació bàsica i la <a href="/legal.html#privacitat" target="_blank" rel="noopener">política de privacitat</a>.',
+    'rgpd.falta':  'Per continuar, marca la casella de protecció de dades.',
     'chk.eyebrow':       'PAS 3 DE 3',
+    'chk.eyebrow2':      'PAS 2 DE 2',
     'chk.pagar':         'Pagar amb targeta',
     'chk.obrint':        'Obrint el pagament…',
     'chk.online':        'Pagaràs amb targeta a la pàgina segura de Stripe. La plaça queda guardada 30 minuts mentre pagues.',
@@ -103,7 +115,19 @@ const TXT = {
     'ext.saltar':        'Continuar sin añadir nada',
     'ext.continuar':     'Continuar',
     'ext.tornar':        '← Volver a elegir plazas',
+    'rgpd.titol':  'Protección de datos — información básica',
+    'rgpd.resp_k': 'Responsable',
+    'rgpd.fin_k':  'Finalidad',
+    'rgpd.fin_v':  'gestionar tu inscripción, contactarte sobre la actividad y hacer el seguimiento de asistencia. No enviamos publicidad.',
+    'rgpd.dest_k': 'Destinatarios',
+    'rgpd.dest_v': 'no cedemos los datos a nadie, salvo obligación legal. Proveedores técnicos (alojamiento y base de datos) con contrato de tratamiento.',
+    'rgpd.drets_k':'Derechos',
+    'rgpd.drets_v':'acceso, rectificación, supresión, oposición, limitación y portabilidad en infonex@nexsocial.org.',
+    'rgpd.tercers':'Si nos das datos de otra persona (por ejemplo, el teléfono de un familiar), confirmas que la has informado y que está de acuerdo.',
+    'rgpd.check':  'He leído la información básica y la <a href="/legal.html#privacitat" target="_blank" rel="noopener">política de privacidad</a>.',
+    'rgpd.falta':  'Para continuar, marca la casilla de protección de datos.',
     'chk.eyebrow':       'PASO 3 DE 3',
+    'chk.eyebrow2':      'PASO 2 DE 2',
     'chk.pagar':         'Pagar con tarjeta',
     'chk.obrint':        'Abriendo el pago…',
     'chk.online':        'Pagarás con tarjeta en la página segura de Stripe. La plaza queda guardada 30 minutos mientras pagas.',
@@ -234,7 +258,7 @@ const avui = () => new Date().toISOString().slice(0, 10);
 
 function sessioDisponible(target) {
   if (!target || target.estat === 'arxivat') return false;
-  if (target.data && String(target.data) < avui()) return false;
+  if (target.data && String(target.data) < avui() && target.recurrencia !== 'setmanal') return false;
   return restantsEvent(target) > 0;
 }
 

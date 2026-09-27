@@ -6,7 +6,7 @@
   <title>Admin · Comunitat NexSocial</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/styles.css?v=42">
+  <link rel="stylesheet" href="/css/styles.css?v=46">
 
   <style>
     /* ── Escala del panell ───────────────────────────────────
@@ -180,7 +180,7 @@
     /* Seguiment: full editable */
     .sg-cap { display:flex; justify-content:space-between; align-items:center; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-2); }
     .sg-accions { display:flex; gap: var(--sp-1); flex-wrap: wrap; }
-    .sg-selectors { display:grid; grid-template-columns: 2fr 1.2fr 1.2fr; gap: var(--sp-2); margin-bottom: var(--sp-2); align-items:end; }
+    .sg-selectors { display:grid; grid-template-columns: 1.2fr 2fr 1.2fr 1.2fr; gap: var(--sp-2); margin-bottom: var(--sp-2); align-items:end; }
     .sg-mes { display:flex; align-items:center; gap: var(--sp-1); }
     .sg-taula-wrap { overflow-x: auto; border:1px solid rgba(15,45,30,0.10); border-radius: var(--radius); background: var(--white); }
     .sg-taula { margin: 0; min-width: 100%; }
@@ -193,6 +193,21 @@
     .sg-nom { min-width: 170px; font-weight: 600; }
     .sg-tel { min-width: 110px; }
     .sg-obs { min-width: 180px; }
+    .sg-contacte { min-width: 130px; font-size: var(--fs-xs); }
+    .sg-act { min-width: 150px; }
+    .sg-inf { white-space: nowrap; }
+    .inf-ok { color: var(--forest); font-weight: 700; font-size: var(--fs-xs); cursor: help; }
+    .inf-pendent { border-color: var(--warning); background: #FFF4D6; font-weight: 700; }
+    .xifra-avis { border-color: var(--warning) !important; background: #FFF9E8 !important; }
+    .af-rgpd { background: var(--cream); border: 2px solid var(--forest); border-radius: var(--radius); padding: var(--sp-2); }
+    .af-rgpd label { display:flex; gap: var(--sp-1); align-items:flex-start; cursor:pointer; }
+    .af-rgpd input[type=checkbox] { width: 22px; height: 22px; flex:none; accent-color: var(--forest); }
+    .af-rgpd details { margin-top: var(--sp-1); font-size: var(--fs-sm); }
+    .af-rgpd details p { margin: 6px 0; }
+    .sg-act .btn-link { font-weight: 600; text-align: left; }
+    .sg-act small { display:block; }
+    .res-filtres { display:grid; grid-template-columns: 1fr 1.4fr auto; gap: var(--sp-2); align-items:end; margin-bottom: var(--sp-2); }
+    @media (max-width: 760px) { .res-filtres { grid-template-columns: 1fr; } }
     .sg-nivell { font-size: var(--fs-xs); color: var(--text-muted); max-width: 140px; }
     .sg-sel { font-size: var(--fs-xs); padding: 3px 4px; border:1px solid rgba(15,45,30,0.2); border-radius: 6px; background: var(--white); }
     .sg-pagat { background: var(--forest-hero); border-color: var(--forest); color: var(--forest); font-weight: 700; }
@@ -267,9 +282,9 @@
     <div id="admin-app"></div>
   </main>
 
-  <script src="/js/main.js?v=42"></script>
-  <script src="/js/carret.js?v=38"></script>
-  <script src="/js/xlsx-mini.js?v=38"></script>
-  <script src="/js/admin.js?v=41"></script>
+  <script src="/js/main.js?v=46"></script>
+  <script src="/js/carret.js?v=46"></script>
+  <script src="/js/xlsx-mini.js?v=46"></script>
+  <script src="/js/admin.js?v=46"></script>
 </body>
 </html>

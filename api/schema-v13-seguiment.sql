@@ -117,10 +117,13 @@ begin
     return jsonb_build_object('ok', false, 'error', 'event_unavailable');
   end if;
 
-  if coalesce(p_telefon, '') <> '' and exists (
+  -- Duplicat = mateix telèfon I mateix nom (famílies que comparteixen telèfon)
+  if exists (
     select 1 from comunitat.reserves
-    where event_id = p_event_id and telefon = p_telefon
+    where event_id = p_event_id
       and status in ('pending','confirmed','waitlist','attended')
+      and lower(trim(nom)) = lower(trim(p_nom))
+      and coalesce(telefon, '') = coalesce(p_telefon, '')
   ) then
     return jsonb_build_object('ok', false, 'error', 'duplicate');
   end if;

@@ -25,10 +25,16 @@ async function fetchEventsReserves() {
 }
 
 function sortReservesEvents(events) {
-  const today = new Date().toISOString().slice(0, 10);
+  const { visibleWeb, properaSessio } = window.NX;
   return [...events]
-    .filter(e => (e.data || '') >= today && e.estat !== 'arxivat')
-    .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+    .filter(visibleWeb)
+    .sort((a, b) => properaSessio(a).localeCompare(properaSessio(b)));
+}
+
+/* Centre on es fa: el nom de l'entitat, sense el "NexSocial · " del davant */
+function centreDe(ev) {
+  const nom = window.NX.L(ev.entitat) || '';
+  return nom.replace(/^NexSocial\s*·\s*/i, '').trim() || 'NexSocial';
 }
 
 async function renderReserves() {
@@ -36,7 +42,14 @@ async function renderReserves() {
   const app = qs('#reserves-app');
   if (!app) return;
 
-  const events = sortReservesEvents(await fetchEventsReserves());
+  app.innerHTML = window.NX.carregantHTML();
+  const totes = sortReservesEvents(await fetchEventsReserves());
+
+  /* Filtre per centre: cada persona troba de seguida les del seu */
+  const params0 = new URLSearchParams(location.search);
+  const centres = [...new Set(totes.map(centreDe))].sort((a, b) => a.localeCompare(b, 'ca'));
+  let centre = centres.includes(params0.get('centre')) ? params0.get('centre') : '';
+  const events = centre ? totes.filter(e => centreDe(e) === centre) : totes;
   const counts = {
     esdeveniment: events.filter(e => e.tipo === 'esdeveniment').length,
     taller:       events.filter(e => e.tipo === 'taller').length,
@@ -75,7 +88,25 @@ async function renderReserves() {
       </div>`;
   }).join('');
 
-  app.innerHTML = tabsHTML + panelsHTML + window.NX.phoneBannerHTML();
+  const esc = window.NX.esc;
+  const filtreHTML = centres.length > 1 ? `
+    <div class="filtre-centre" role="group" aria-label="${esc(T('filtre.centre'))}">
+      <span class="filtre-centre-etiqueta">${esc(T('filtre.centre'))}:</span>
+      <button type="button" class="filtre-centre-btn" data-centre="" aria-pressed="${!centre}">${esc(T('filtre.tots'))}</button>
+      ${centres.map(c => `<button type="button" class="filtre-centre-btn" data-centre="${esc(c)}" aria-pressed="${centre === c}">${esc(c)}</button>`).join('')}
+    </div>` : '';
+
+  app.innerHTML = filtreHTML + tabsHTML + panelsHTML + window.NX.phoneBannerHTML();
+
+  qsa('.filtre-centre-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = new URL(location.href);
+      if (btn.dataset.centre) url.searchParams.set('centre', btn.dataset.centre);
+      else url.searchParams.delete('centre');
+      history.replaceState(null, '', url);
+      renderReserves().then(() => qs(`.filtre-centre-btn[data-centre="${CSS.escape(btn.dataset.centre)}"]`)?.focus());
+    });
+  });
 
   // Bind tabs
   qsa('.tab').forEach(btn => {
@@ -100,8 +131,9 @@ if (typeof window.eventCardHTML !== 'function') {
   window.eventCardHTML = function(ev) {
     const { T, L, esc, formatDate, tipoLabel, tipoBadgeClass, placesRestants } = window.NX;
     const places = placesRestants(ev);
-    const label = ev.data_label ? L(ev.data_label) : formatDate(ev.data);
-    const isProximament = ev.data_label && /pr[oò]xi/i.test(L(ev.data_label));
+    const label = window.NX.quanText(ev);
+    const isProximament = !window.NX.esSetmanal(ev) && ev.data_label && /pr[oò]xi/i.test(L(ev.data_label));
+    const hora = window.NX.franjaHoraria(ev);
     const status = ev.estat === 'esgotat' || places === 0
       ? `<span class="event-badge" style="position:static;background:var(--danger)">${T('ev.esgotat')}</span>`
       : places <= 3 && places > 0
@@ -119,7 +151,7 @@ if (typeof window.eventCardHTML !== 'function') {
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
     <div class="event-meta">
       <span class="event-meta-item">📅 ${esc(label)}</span>
-      ${!isProximament && ev.hora ? `<span class="event-meta-item">🕐 ${esc(ev.hora)}</span>` : ''}
+      ${!isProximament && hora ? `<span class="event-meta-item">🕐 ${esc(hora)}</span>` : ''}
     </div>
     <div class="event-meta">
       <span class="event-meta-item">📍 ${esc(L(ev.ubicacio))}</span>

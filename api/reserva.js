@@ -11,8 +11,10 @@ import { hasSupabase, supabase } from './_lib/supabase.js';
 import { calcularInscripcio, tarifesEvent } from './_lib/tarifes.js';
 import { cobramentEvent, crearCheckoutSession } from './_lib/stripe.js';
 
-// Versió del text legal mostrat al formulari. Canviar-la quan canviï el text.
-const CONSENT_VERSIO = 'form-legal-v1';
+// Versió del text de protecció de dades mostrat al formulari. Es desa amb
+// la data a cada reserva (acreditació art. 5.2 i 7.1 RGPD).
+// CANVIAR-LA sempre que canviï el text de la casella o de la política.
+const CONSENT_VERSIO = 'privacitat-v2-2026-09';
 const REF_RE = /^NX-[A-Z0-9]{6}$/;
 const MINIM_STRIPE = 50;   // Stripe no cobra menys de 0,50 €
 
@@ -26,7 +28,8 @@ const netejaTelefon = t => String(t || '').replace(/[\s\-()]/g, '');
 const validaTelefon = t => /^(\+?\d{9,15})$/.test(netejaTelefon(t));
 const validaEmail   = e => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const avui = () => new Date().toISOString().slice(0, 10);
-const passat = ev => Boolean(ev.data) && String(ev.data) < avui();
+/* Puntuals: tanquen el dia. Setmanals: mentre no s'arxivin (com a la web) */
+const passat = ev => ev.recurrencia !== 'setmanal' && Boolean(ev.data) && String(ev.data) < avui();
 
 function urlBase(req) {
   const env = (process.env.SITE_URL || '').trim().replace(/\/$/, '');
@@ -67,6 +70,11 @@ export default async function handler(req, res) {
   if (body.web) return json(res, 400, { error: 'Sol·licitud no vàlida' });
 
   const { event_id, nom, telefon, email, notes, lang } = body;
+  /* Casella de protecció de dades: obligatòria. Les pàgines antigues en
+     memòria cau no l'envien → es demana recarregar. */
+  if (body.consentiment !== true) {
+    return json(res, 400, { error: 'Cal marcar la casella de protecció de dades. Recarrega la pàgina si no la veus.', codi: 'sense_consentiment' });
+  }
   if (!event_id) return json(res, 400, { error: 'Falta event_id' });
   if (!nom || String(nom).trim().length < 2) return json(res, 400, { error: 'Nom no vàlid' });
   if (!validaTelefon(telefon)) return json(res, 400, { error: 'Telèfon no vàlid' });
@@ -102,7 +110,7 @@ export default async function handler(req, res) {
     // Les sessions vinculades han d'existir i no haver passat
     if (calc.sessions.length) {
       const ids = calc.sessions.map(s => s.event_id);
-      const { data: sev, error } = await sb.from('events').select('id, data, estat').in('id', ids);
+      const { data: sev, error } = await sb.from('events').select('id, data, estat, recurrencia').in('id', ids);
       if (error) throw error;
       const ok = ids.every(id => {
         const s = (sev || []).find(x => x.id === id);

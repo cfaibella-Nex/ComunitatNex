@@ -41,6 +41,12 @@ const i18n = {
     'ev.veure':        'Veure detalls',
     'ev.gratis':       'Gratuït',
     'ev.cartell_alt':  'Cartell oficial',
+    'ev.carregant':    'Carregant activitats…',
+    'ev.mapa_extern':  "S'obre a Google Maps, fora d'aquesta web.",
+    'ev.des_de':       'des del',
+    'ev.cada_setmana': 'cada setmana',
+    'filtre.centre':   'Centre',
+    'filtre.tots':     'Tots',
     'ev.cartell_veure': 'Veure el cartell',
     'ev.places':       'places disponibles',
     'ev.ultimes':      'Últimes places!',
@@ -68,7 +74,7 @@ const i18n = {
     'form.places':     'Nombre de places',
     'form.places_single': 'plaça',
     'form.notes':      'Vols dir-nos alguna cosa? (opcional)',
-    'form.legal':      'En reservar acceptes que et contactem per confirmar la plaça. Consulta la <a href="/legal.html" style="color:var(--forest)">política de privacitat</a>.',
+    'form.legal':      'Consulta la <a href="/legal.html#privacitat" style="color:var(--forest)">política de privacitat</a>.',
     'form.enviar':     'Confirmar la reserva',
     'form.enviant':    'Enviant…',
     'form.total':      'Total:',
@@ -94,7 +100,7 @@ const i18n = {
     'checkout.pay_card': 'Pagar amb targeta',
     'checkout.reserve_wa': 'Reservar per WhatsApp',
     'checkout.stripe_soon': "El pagament amb targeta estarà disponible molt aviat. Mentrestant, completa la reserva per WhatsApp i te la confirmarem al moment.",
-    'checkout.legal_note': "En continuar acceptes les condicions. Et trucarem per confirmar la placa.",
+    'checkout.legal_note': "Et trucarem per confirmar la plaça.",
     'checkout.expired':  "La selecció ha caducat. Torna a triar les places.",
 
     'recursos.title':  'Recursos i consells',
@@ -182,6 +188,8 @@ const i18n = {
     'footer.enllaços': 'Enllaços',
     'footer.contacte': 'Contacte',
     'footer.privacy':  'Privacitat',
+    'footer.avis':     'Avís legal',
+    'footer.cookies':  'Cookies',
     'footer.legal':    'Avís legal',
     'footer.accessibilitat': 'Accessibilitat',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
@@ -225,6 +233,12 @@ const i18n = {
     'ev.veure':        'Ver detalles',
     'ev.gratis':       'Gratuito',
     'ev.cartell_alt':  'Cartel oficial',
+    'ev.carregant':    'Cargando actividades…',
+    'ev.mapa_extern':  'Se abre en Google Maps, fuera de esta web.',
+    'ev.des_de':       'desde el',
+    'ev.cada_setmana': 'cada semana',
+    'filtre.centre':   'Centro',
+    'filtre.tots':     'Todos',
     'ev.cartell_veure': 'Ver el cartel',
     'ev.places':       'plazas disponibles',
     'ev.ultimes':      '¡Últimas plazas!',
@@ -252,7 +266,7 @@ const i18n = {
     'form.places':     'Número de plazas',
     'form.places_single': 'plaza',
     'form.notes':      '¿Quieres decirnos algo? (opcional)',
-    'form.legal':      'Al reservar aceptas que te contactemos para confirmar la plaza. Consulta la <a href="/legal.html" style="color:var(--forest)">política de privacidad</a>.',
+    'form.legal':      'Consulta la <a href="/legal.html#privacitat" style="color:var(--forest)">política de privacidad</a>.',
     'form.enviar':     'Confirmar la reserva',
     'form.enviant':    'Enviando…',
     'form.total':      'Total:',
@@ -278,7 +292,7 @@ const i18n = {
     'checkout.pay_card': 'Pagar con tarjeta',
     'checkout.reserve_wa': 'Reservar por WhatsApp',
     'checkout.stripe_soon': 'El pago con tarjeta estará disponible muy pronto. Mientras tanto, completa la reserva por WhatsApp y te la confirmamos al momento.',
-    'checkout.legal_note': 'Al continuar aceptas las condiciones. Te llamaremos para confirmar la plaza.',
+    'checkout.legal_note': 'Te llamaremos para confirmar la plaza.',
     'checkout.expired':  'La selección ha caducado. Vuelve a elegir las plazas.',
 
     'recursos.title':  'Recursos y consejos',
@@ -366,6 +380,8 @@ const i18n = {
     'footer.enllaços': 'Enlaces',
     'footer.contacte': 'Contacto',
     'footer.privacy':  'Privacidad',
+    'footer.avis':     'Aviso legal',
+    'footer.cookies':  'Cookies',
     'footer.legal':    'Aviso legal',
     'footer.accessibilitat': 'Accesibilidad',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
@@ -447,7 +463,9 @@ function buildFooter() {
       <h4>${T('footer.contacte')}</h4>
       <a href="tel:${PHONE_TEL}">📞 ${PHONE}</a>
       <a href="mailto:infonex@nexsocial.org">✉️ infonex@nexsocial.org</a>
-      <a href="/legal.html">${T('footer.privacy')}</a>
+      <a href="/legal.html#avis">${T('footer.avis')}</a>
+      <a href="/legal.html#privacitat">${T('footer.privacy')}</a>
+      <a href="/legal.html#cookies">${T('footer.cookies')}</a>
       <a href="/accessibilitat.html">${T('footer.accessibilitat')}</a>
     </div>
     <div class="footer-brands">
@@ -538,6 +556,72 @@ function estatPlaces(ev, restants) {
   return 'lliure';
 }
 
+/* ── Quan es fa una activitat ──────────────────────────────
+   Setmanal (recurrencia = 'setmanal'): "Cada dimarts · 16:30–17:30",
+   calculat del dia de la setmana de la data i de la durada. Continua
+   visible encara que la data d'inici hagi passat, fins que s'arxivi.
+   La resta: la data (o l'etiqueta, p. ex. "Pròximament"). */
+const DIES = {
+  ca: { llarg: ['diumenge','dilluns','dimarts','dimecres','dijous','divendres','dissabte'],
+        curt:  ['DG','DL','DT','DC','DJ','DV','DS'], cada: 'Cada' },
+  es: { llarg: ['domingos','lunes','martes','miércoles','jueves','viernes','sábados'],
+        curt:  ['DO','LU','MA','MI','JU','VI','SA'], cada: 'Todos los' }
+};
+function carregantHTML() {
+  return `<div class="carregant" role="status" aria-live="polite"><span class="carregant-punt" aria-hidden="true"></span>${T('ev.carregant')}</div>`;
+}
+const avuiISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+function esSetmanal(ev) { return ev?.recurrencia === 'setmanal' && Boolean(ev?.data); }
+function dataLocal(iso) { return new Date(String(iso).slice(0, 10) + 'T12:00:00'); }
+function isoDe(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+
+/* "16:30–17:30" (o només "16:30" si no hi ha durada) */
+function franjaHoraria(ev) {
+  if (!ev?.hora) return '';
+  const [h, m] = String(ev.hora).split(':').map(Number);
+  const dur = Number(ev.durada) || 0;
+  if (!dur || Number.isNaN(h)) return ev.hora;
+  const fi = h * 60 + (m || 0) + dur;
+  return `${ev.hora}–${String(Math.floor(fi / 60) % 24).padStart(2, '0')}:${String(fi % 60).padStart(2, '0')}`;
+}
+
+/* Propera sessió (ISO). Setmanals: el proper dia de la setmana a partir
+   d'avui, saltant les sessions tretes al panell. */
+function properaSessio(ev) {
+  if (!esSetmanal(ev)) return ev?.data ? String(ev.data).slice(0, 10) : '';
+  const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
+  const inici = String(ev.data).slice(0, 10);
+  const d = dataLocal(inici > avuiISO() ? inici : avuiISO());
+  const dow = dataLocal(inici).getDay();
+  for (let i = 0; i < 70; i++) {
+    if (d.getDay() === dow && !tretes.has(isoDe(d))) return isoDe(d);
+    d.setDate(d.getDate() + 1);
+  }
+  return inici;
+}
+
+/* Es mostra a la web? Puntuals: fins al dia. Setmanals: fins que s'arxiven. */
+function visibleWeb(ev) {
+  if (!ev || ev.estat === 'arxivat') return false;
+  if (esSetmanal(ev)) return true;
+  return (ev.data || '') >= avuiISO();
+}
+
+/* Text del "quan": "Cada dimarts" · "Pròximament" · "dimarts, 13 d'octubre" */
+function quanText(ev, opts = {}) {
+  const D = DIES[getLang()] || DIES.ca;
+  if (esSetmanal(ev)) {
+    const dia = D.llarg[dataLocal(ev.data).getDay()];
+    return `${D.cada} ${dia}`;
+  }
+  if (ev?.data_label && L(ev.data_label)) return L(ev.data_label);
+  return formatDate(ev?.data, opts.llarg ? { weekday: 'long' } : {});
+}
+function diaCurt(ev) {
+  const D = DIES[getLang()] || DIES.ca;
+  return D.curt[dataLocal(ev.data).getDay()];
+}
+
 /* Dues imatges per activitat (com BookingFEB):
    · cartell → cartell oficial del centre cívic: és el que es veu a la web
    · imatge  → la de NexSocial: es veu al final de la reserva
@@ -551,11 +635,13 @@ function imatgePublica(ev) {
    d'imatges (es veu la part de dalt: títol i il·lustració). La lupa
    l'obre sencer, a pantalla completa. Es tanca amb ×, Esc o clicant
    fora, i el focus torna al botó que l'ha obert. */
+const ICONA_LUPA = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="M10.5 7.5v6M7.5 10.5h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+
 function botoCartell(ev) {
   if (!ev?.cartell) return '';
   const alt = `${T('ev.cartell_alt')}: ${L(ev.titol)}`;
   return `<button type="button" class="cartell-lupa" data-cartell="${esc(ev.cartell)}" data-cartell-alt="${esc(alt)}"
-    aria-label="${esc(T('ev.cartell_veure'))}: ${esc(L(ev.titol))}">🔍</button>`;
+    aria-label="${esc(T('ev.cartell_veure'))}: ${esc(L(ev.titol))}">${ICONA_LUPA}</button>`;
 }
 
 function obrirCartell(src, alt, origen) {
@@ -620,7 +706,7 @@ document.addEventListener('load', e => {
       b.dataset.cartell = img.currentSrc || img.src;
       b.dataset.cartellAlt = `${T('ev.cartell_alt')}${titol ? ': ' + titol : ''}`;
       b.setAttribute('aria-label', `${T('ev.cartell_veure')}${titol ? ': ' + titol : ''}`);
-      b.textContent = '🔍';
+      b.innerHTML = ICONA_LUPA;
       caixa.appendChild(b);
     }
     /* Detall: capçalera amb foto vertical → clic per ampliar */
@@ -679,6 +765,7 @@ window.NX = {
   esc, formatDate, formatPrice,
   tipoLabel, tipoBadgeClass, placesRestants, estatPlaces, LLINDAR_ULTIMES,
   phoneBannerHTML, imatgePublica, botoCartell, obrirCartell,
+  esSetmanal, franjaHoraria, properaSessio, visibleWeb, quanText, diaCurt, avuiISO, carregantHTML,
   PHONE, PHONE_TEL, WHATSAPP,
   qs, qsa
 };
