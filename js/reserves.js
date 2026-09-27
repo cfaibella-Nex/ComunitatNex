@@ -91,13 +91,26 @@ async function renderReserves() {
   const esc = window.NX.esc;
   const filtreHTML = centres.length > 1 ? `
     <div class="filtre-centre" role="group" aria-label="${esc(T('filtre.centre'))}">
-      <span class="filtre-centre-etiqueta">${esc(T('filtre.centre'))}:</span>
-      <button type="button" class="filtre-centre-btn" data-centre="" aria-pressed="${!centre}">${esc(T('filtre.tots'))}</button>
-      ${centres.map(c => `<button type="button" class="filtre-centre-btn" data-centre="${esc(c)}" aria-pressed="${centre === c}">${esc(c)}</button>`).join('')}
+      <label class="filtre-centre-etiqueta" for="filtre-centre-sel">${esc(T('filtre.centre'))}:</label>
+      <span class="filtre-centre-btns">
+        <button type="button" class="filtre-centre-btn" data-centre="" aria-pressed="${!centre}">${esc(T('filtre.tots'))}</button>
+        ${centres.map(c => `<button type="button" class="filtre-centre-btn" data-centre="${esc(c)}" aria-pressed="${centre === c}">${esc(c)}</button>`).join('')}
+      </span>
+      <select id="filtre-centre-sel" class="form-select filtre-centre-select">
+        <option value="">${esc(T('filtre.tots'))}</option>
+        ${centres.map(c => `<option value="${esc(c)}" ${centre === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+      </select>
     </div>` : '';
 
   app.innerHTML = filtreHTML + tabsHTML + panelsHTML + window.NX.phoneBannerHTML();
 
+  const triaCentre = (c) => {
+    const url = new URL(location.href);
+    if (c) url.searchParams.set('centre', c); else url.searchParams.delete('centre');
+    history.replaceState(null, '', url);
+    return renderReserves();
+  };
+  qs('#filtre-centre-sel')?.addEventListener('change', e => triaCentre(e.target.value).then(() => qs('#filtre-centre-sel')?.focus()));
   qsa('.filtre-centre-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const url = new URL(location.href);

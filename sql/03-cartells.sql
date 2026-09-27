@@ -1,4 +1,4 @@
--- ═══════════════════════════════════════════════════════════════
+-- ------------------------------------------------------------
 -- Comunitat NexSocial · MIGRACIÓ v12 — cartell oficial per activitat
 --
 -- Dues imatges per activitat, com a BookingFEB:
@@ -8,11 +8,10 @@
 --             (resum del pas de dades). Sense cartell, es veu a tot arreu.
 --
 -- Requereix v10. És idempotent.
--- ═══════════════════════════════════════════════════════════════
-
+-- ------------------------------------------------------------
 alter table comunitat.events add column if not exists cartell text;
 
--- ── Alta/edició amb el camp nou ───────────────────────────────
+-- -- Alta/edició amb el camp nou─────────────────────────────
 create or replace function comunitat.admin_upsert_event(
   p_event jsonb,
   p_actor text default 'admin'
@@ -55,21 +54,21 @@ end $$;
 revoke execute on function comunitat.admin_upsert_event(jsonb,text) from public, anon, authenticated;
 grant  execute on function comunitat.admin_upsert_event(jsonb,text) to service_role;
 
--- ── Cartells per a les activitats que ja existeixen ───────────
+-- -- Cartells per a les activitats que ja existeixen─────────
 -- Només omple les que no en tenen: no trepitja res posat des del panell.
 -- Si algun id no existeix, simplement no fa res.
 update comunitat.events set cartell = '/assets/cartells/ccstroc-mobil.jpg'
  where id = 'taller-mobil-santroc'        and cartell is null;
 update comunitat.events set cartell = '/assets/cartells/ccstroc-autodefensa.jpg'
  where id = 'taller-autodefensa-santroc'  and cartell is null;
-update comunitat.events set cartell = '/assets/cartells/ccstroc-castella.jpg'
+update comunitat.events set cartell = '/assets/cartells/ccstroc-castella-v2.jpg'
  where id = 'taller-castellano-santroc'   and cartell is null;
 update comunitat.events set cartell = '/assets/cartells/csbcanpepus-autodefensa.jpg'
  where id = 'taller-autodefensa-canpepus' and cartell is null;
 update comunitat.events set cartell = '/assets/cartells/csbcanpepus-conversaenangles.jpg'
  where id = 'taller-angles-canpepus'      and cartell is null;
 
--- ── Comprovació: quines activitats tenen cartell ──────────────
+-- -- Comprovació: quines activitats tenen cartell────────────
 select id, titol->>'ca' as titol, cartell
 from comunitat.events
 where estat <> 'arxivat'

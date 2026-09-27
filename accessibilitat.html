@@ -8,7 +8,7 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon-96.png">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="/css/styles.css?v=48">
+  <link rel="stylesheet" href="/css/styles.css?v=54">
   <meta property="og:title" content="Accessibilitat · Comunitat NexSocial">
   <meta property="og:description" content="Declaració d'accessibilitat de la web Comunitat NexSocial: compliment WCAG 2.2 AA i normativa europea (EN 301 549, EAA).">
   <meta property="og:image" content="https://comunitat.nexsocial.org/assets/og-comunitat.jpg">
@@ -27,50 +27,68 @@
 <body>
   <div id="nav-placeholder"></div>
   <main id="main">
-    <section class="section" style="max-width: 800px;">
-      <h1>Declaració d'accessibilitat</h1>
-      <p class="lead">Aquesta web s'ha dissenyat per ser utilitzable per totes les persones, especialment persones grans i persones amb discapacitats visuals, motores o cognitives.</p>
+    <section class="section legal" style="max-width: 800px;">
+      <div data-idioma="ca">
+      <h1>Accessibilitat</h1>
+      <p class="lead">Volem que aquesta web la pugui fer servir tothom, i especialment les persones grans i les persones amb dificultats visuals, motores o cognitives.</p>
 
-      <h2>Compliment normatiu</h2>
-      <p>La web <strong>comunitat.nexsocial.org</strong> s'ha desenvolupat seguint els criteris de:</p>
-      <ul>
-        <li><strong>WCAG 2.2 nivell AA</strong> — Web Content Accessibility Guidelines del W3C</li>
-        <li><strong>EN 301 549</strong> — Norma europea de requisits d'accessibilitat per a productes i serveis TIC</li>
-        <li><strong>European Accessibility Act</strong> — Directiva (UE) 2019/882, transposada a Espanya pel Reial Decret Legislatiu 1/2013</li>
+      <h2>Criteris que seguim</h2>
+      <p>La web s'ha dissenyat inspirant-se en les pautes <strong>WCAG 2.2 nivell AA</strong> del W3C i en la norma europea <strong>EN 301 549</strong> d'accessibilitat dels productes i serveis digitals. Les revisem cada vegada que afegim continguts o funcions noves.</p>
+
+      <h2>Què hi trobaràs</h2>
+      <ul class="legal-llista">
+        <li><strong>Lletra gran</strong> de base i botons <strong>A− / A+</strong> a dalt de tot per fer-la encara més gran. La web recorda la mida que triïs.</li>
+        <li><strong>Colors amb bon contrast</strong> entre el text i el fons.</li>
+        <li><strong>Botons grans</strong>, fàcils de tocar amb el dit.</li>
+        <li>Es pot navegar amb el <strong>teclat</strong>, i sempre es veu on és el cursor.</li>
+        <li>Les imatges tenen <strong>descripció</strong> per a lectors de pantalla. Els cartells es poden ampliar a pantalla completa.</li>
+        <li>Si tens configurat el dispositiu per <strong>reduir les animacions</strong>, la web ho respecta.</li>
+        <li>Per apuntar-te <strong>no cal crear cap compte</strong>: només el nom i el telèfon.</li>
+        <li>Sempre tens el <strong>telèfon</strong> a la vista, per si prefereixes apuntar-te trucant.</li>
+        <li>La web està en <strong>català i castellà</strong>.</li>
       </ul>
 
-      <h2>Mesures aplicades</h2>
-      <ul>
-        <li>Mida de text base de <strong>20 px</strong> (per sobre del mínim recomanat de 16 px)</li>
-        <li>Contrast de color <strong>AA i AAA</strong> per a tot el text (verificat: 5.03:1 a 14:1)</li>
-        <li>Botons i elements interactius amb àrea tàctil mínima de <strong>48 × 48 px</strong> (criteri reforçat WCAG 2.5.5)</li>
-        <li>Navegació amb teclat en tots els controls; focus visible amb contorn verd</li>
-        <li>Etiquetes semàntiques HTML5 (<code>header</code>, <code>nav</code>, <code>main</code>, <code>footer</code>) i rols ARIA on cal</li>
-        <li>Text alternatiu (<code>alt</code>) a les imatges informatives</li>
-        <li>Respecte per <code>prefers-reduced-motion</code>: animacions desactivables des del sistema operatiu</li>
-        <li>Formulari de reserva <strong>sense compte ni contrasenya</strong>: només nom i telèfon</li>
-        <li>Alternativa telefònica visible a totes les pàgines per a qui no vol o no pot usar el formulari</li>
-        <li>Bilingüe català/castellà amb toggle accessible i marcatge <code>lang</code> correcte</li>
-        <li>Zero cookies de seguiment, zero publicitat, zero pop-ups</li>
+      <h2>Si alguna cosa no et funciona</h2>
+      <p>Si trobes cap dificultat, digues-nos-ho i t'ajudarem per una altra via: escriu a <a href="mailto:infonex@nexsocial.org">infonex@nexsocial.org</a> o truca al <a href="tel:+34660435871">660 435 871</a>.</p>
+
+      <p class="muted" style="margin-top: var(--sp-4);">Última revisió: 27 de setembre de 2026.</p>
+      </div>
+
+      <div data-idioma="es" hidden>
+      <h1>Accesibilidad</h1>
+      <p class="lead">Queremos que esta web la pueda usar todo el mundo, y especialmente las personas mayores y las personas con dificultades visuales, motoras o cognitivas.</p>
+
+      <h2>Criterios que seguimos</h2>
+      <p>La web se ha diseñado inspirándose en las pautas <strong>WCAG 2.2 nivel AA</strong> del W3C y en la norma europea <strong>EN 301 549</strong> de accesibilidad de los productos y servicios digitales. Las revisamos cada vez que añadimos contenidos o funciones nuevas.</p>
+
+      <h2>Qué encontrarás</h2>
+      <ul class="legal-llista">
+        <li><strong>Letra grande</strong> de base y botones <strong>A− / A+</strong> arriba del todo para hacerla aún más grande. La web recuerda el tamaño que elijas.</li>
+        <li><strong>Colores con buen contraste</strong> entre el texto y el fondo.</li>
+        <li><strong>Botones grandes</strong>, fáciles de pulsar con el dedo.</li>
+        <li>Se puede navegar con el <strong>teclado</strong>, y siempre se ve dónde está el cursor.</li>
+        <li>Las imágenes tienen <strong>descripción</strong> para lectores de pantalla. Los carteles se pueden ampliar a pantalla completa.</li>
+        <li>Si tienes configurado el dispositivo para <strong>reducir las animaciones</strong>, la web lo respeta.</li>
+        <li>Para apuntarte <strong>no hace falta crear ninguna cuenta</strong>: solo el nombre y el teléfono.</li>
+        <li>Siempre tienes el <strong>teléfono</strong> a la vista, por si prefieres apuntarte llamando.</li>
+        <li>La web está en <strong>catalán y castellano</strong>.</li>
       </ul>
 
-      <h2>Estat actual</h2>
-      <p>Aquesta web és <strong>parcialment conforme</strong> amb WCAG 2.2 AA en la seva primera versió (Fase 1). Els punts a millorar es documenten i es prioritzen mensualment.</p>
-      <p>Aspectes que estem treballant per a properes actualitzacions:</p>
-      <ul>
-        <li>Transcripcions completes dels vídeos de la secció Recursos (quan es publiquin)</li>
-        <li>Test amb persones usuàries grans reals com a part del projecte CreixESS</li>
-        <li>Auditoria externa amb Lighthouse i axe-core dins de la Fase 2</li>
-      </ul>
+      <h2>Si algo no te funciona</h2>
+      <p>Si encuentras alguna dificultad, dínoslo y te ayudaremos por otra vía: escribe a <a href="mailto:infonex@nexsocial.org">infonex@nexsocial.org</a> o llama al <a href="tel:+34660435871">660 435 871</a>.</p>
 
-      <h2>Contacte per problemes d'accessibilitat</h2>
-      <p>Si trobes qualsevol dificultat per utilitzar aquesta web, escriu-nos a <a href="mailto:infonex@nexsocial.org">infonex@nexsocial.org</a> o truca al <a href="tel:900000000">900 000 000</a>. Contestarem en un termini màxim de 15 dies laborables.</p>
-
-      <p class="muted" style="margin-top: var(--sp-4);">Última actualització: 29 d'agost de 2026.</p>
+      <p class="muted" style="margin-top: var(--sp-4);">Última revisión: 27 de septiembre de 2026.</p>
+      </div>
     </section>
   </main>
   <div id="footer-placeholder"></div>
-  <script src="/js/main.js?v=48"></script>
+  <script src="/js/main.js?v=54"></script>
+  <script>
+    (function () {
+      var es = (window.NX && window.NX.getLang && window.NX.getLang()) === 'es';
+      document.querySelectorAll('[data-idioma]').forEach(function (el) { el.hidden = el.dataset.idioma !== (es ? 'es' : 'ca'); });
+    })();
+  </script>
   <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "4633e2458bba49eab9dc7c8eb543bb30"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

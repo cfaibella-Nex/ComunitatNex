@@ -42,6 +42,12 @@ const i18n = {
     'ev.gratis':       'Gratuït',
     'ev.cartell_alt':  'Cartell oficial',
     'ev.carregant':    'Carregant activitats…',
+    'lletra.grup':     'Mida de la lletra',
+    'lletra.mes':      'Lletra més gran',
+    'lletra.menys':    'Lletra més petita',
+    'lletra.estat0':   'Mida de lletra normal',
+    'lletra.estat1':   'Lletra gran',
+    'lletra.estat2':   'Lletra molt gran',
     'ev.mapa_extern':  "S'obre a Google Maps, fora d'aquesta web.",
     'ev.des_de':       'des del',
     'ev.cada_setmana': 'cada setmana',
@@ -234,6 +240,12 @@ const i18n = {
     'ev.gratis':       'Gratuito',
     'ev.cartell_alt':  'Cartel oficial',
     'ev.carregant':    'Cargando actividades…',
+    'lletra.grup':     'Tamaño de la letra',
+    'lletra.mes':      'Letra más grande',
+    'lletra.menys':    'Letra más pequeña',
+    'lletra.estat0':   'Tamaño de letra normal',
+    'lletra.estat1':   'Letra grande',
+    'lletra.estat2':   'Letra muy grande',
     'ev.mapa_extern':  'Se abre en Google Maps, fuera de esta web.',
     'ev.des_de':       'desde el',
     'ev.cada_setmana': 'cada semana',
@@ -432,6 +444,11 @@ function buildNav() {
       <a class="nav-link ${isActive('/recursos.html')}" href="/recursos.html"${isActive('/recursos.html') ? ' aria-current="page"' : ''}>${T('nav.recursos')}</a>
       <a class="nav-link ${isActive('/passatemps.html')}" href="/passatemps.html"${isActive('/passatemps.html') ? ' aria-current="page"' : ''}>${T('nav.passatemps')}</a>
     </div>
+    <div class="lletra-sw" role="group" aria-label="${T('lletra.grup')}">
+      <button type="button" class="lletra-btn" data-l="-" aria-label="${T('lletra.menys')}" ${getLletra() === 0 ? 'disabled' : ''}><span class="petita" aria-hidden="true">A−</span></button>
+      <button type="button" class="lletra-btn" data-l="+" aria-label="${T('lletra.mes')}" ${getLletra() === LLETRA_MAX ? 'disabled' : ''}><span class="gran" aria-hidden="true">A+</span></button>
+      <span id="lletra-estat" class="sr-only" aria-live="polite"></span>
+    </div>
     <div class="lang-sw" role="group" aria-label="Idioma">
       <button class="lang-btn ${lang==='ca'?'active':''}" data-lang="ca" aria-label="Català">CA</button>
       <button class="lang-btn ${lang==='es'?'active':''}" data-lang="es" aria-label="Castellano">ES</button>
@@ -452,7 +469,7 @@ function buildFooter() {
       <p>${T('footer.desc')}</p>
     </div>
     <div>
-      <h4>${T('footer.enllaços')}</h4>
+      <h2 class="footer-title">${T('footer.enllaços')}</h2>
       <a href="/agenda.html">${T('nav.agenda')}</a>
       <a href="/reserves.html">${T('nav.reserves')}</a>
       <a href="/recursos.html">${T('nav.recursos')}</a>
@@ -460,7 +477,7 @@ function buildFooter() {
       <a href="${MAIN_SITE}">${T('nav.web')}</a>
     </div>
     <div>
-      <h4>${T('footer.contacte')}</h4>
+      <h2 class="footer-title">${T('footer.contacte')}</h2>
       <a href="tel:${PHONE_TEL}">📞 ${PHONE}</a>
       <a href="mailto:infonex@nexsocial.org">✉️ infonex@nexsocial.org</a>
       <a href="/legal.html#avis">${T('footer.avis')}</a>
@@ -723,6 +740,28 @@ document.addEventListener('load', e => {
   }
 }, true);
 
+/* ── Mida de la lletra ────────────────────────────────────── */
+const LLETRA_MAX = 2;
+function getLletra() {
+  try { return Math.min(LLETRA_MAX, Math.max(0, parseInt(localStorage.getItem('nx-lletra'), 10) || 0)); } catch { return 0; }
+}
+function aplicaLletra(n) {
+  const h = document.documentElement;
+  h.classList.remove('lletra-1', 'lletra-2');
+  if (n > 0) h.classList.add('lletra-' + n);
+}
+function setLletra(n) {
+  n = Math.min(LLETRA_MAX, Math.max(0, n));
+  try { n ? localStorage.setItem('nx-lletra', String(n)) : localStorage.removeItem('nx-lletra'); } catch { /* res */ }
+  aplicaLletra(n);
+  const menys = qs('.lletra-btn[data-l="-"]'), mes = qs('.lletra-btn[data-l="+"]');
+  if (menys) menys.disabled = n === 0;
+  if (mes) mes.disabled = n === LLETRA_MAX;
+  const avis = qs('#lletra-estat');
+  if (avis) avis.textContent = T('lletra.estat' + n);
+}
+aplicaLletra(getLletra());
+
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
 
@@ -730,6 +769,9 @@ function qsa(sel) { return document.querySelectorAll(sel); }
 function bindLangSwitcher() {
   qsa('.lang-btn').forEach(btn => {
     btn.addEventListener('click', () => setLang(btn.dataset.lang));
+  });
+  qsa('.lletra-btn').forEach(btn => {
+    btn.addEventListener('click', () => setLletra(getLletra() + (btn.dataset.l === '+' ? 1 : -1)));
   });
 }
 

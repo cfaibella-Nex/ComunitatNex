@@ -4,6 +4,56 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v23 · Horaris correctes i cartell nou de castellà
+
+Dades (fora del repo): `13-horaris-setmanals.sql`, segons la taula oficial de tallers.
+- Setmanals amb dia i hora bons: Can Pepus (anglès dimarts 16:30, memòria dijous 10:00, mòbil dijous 11:00),
+  Casal Centre (benestar emocional dimarts 18:00), Sant Roc (castellà dijous 16:30, mòbil dimarts 11:00).
+- Nova: Memòria al Casal Centre, dimecres 11:00–12:00.
+- L'autodefensa no es toca (horaris per concretar).
+- Cartell de castellà corregit (dijous): `assets/cartells/ccstroc-castella-v2.jpg` (nom nou perquè els
+  navegadors no mostrin el vell de memòria cau). S'esborra `ccstroc-castella.jpg`.
+- Els cartells de Memòria i Mòbil de Can Pepus tenen l'hora intercanviada: l'SQL porta una línia opcional
+  per amagar-los fins que arribin els bons.
+
+---
+
+## v22 · Auditoria d'accessibilitat, mida de lletra i hero
+
+Sense SQL.
+
+**Auditoria** (navegador, 8 pàgines, contrast mesurat sobre el DOM real) i correccions:
+- Botó d'idioma inactiu (ES) a 3,75:1 → sense opacitat, a 5,17:1.
+- Etiquetes TALLER / ESDEVENIMENT / ACTIVITAT MENSUAL: d'11 a 13 px en negreta; ESDEVENIMENT (4,19:1) i
+  MENSUAL (3,06:1) ara són de 5,61:1 i 7,17:1.
+- Comptadors de les pestanyes de Reserves (3,37:1) → sense opacitat.
+- Passatemps "Una mica més" (4,28:1) → 5,76:1.
+- Peu de pàgina: els títols passen d'`h4` a `h2` perquè no se salti cap nivell de títol.
+- Sense problemes: imatges sense `alt`, camps sense etiqueta, botons buits, idioma de la pàgina, enllaç "anar al contingut".
+
+**Botons A− / A+** al menú de totes les pàgines: tres mides de lletra (normal, gran, molt gran), que es
+recorden al navegador (`nx-lletra`, afegit a la política de cookies). Anuncia el canvi als lectors de pantalla.
+
+**Foto de portada**: més baixa (420 → 340 px; 480 → 380 px en pantalles grans; 260 px al mòbil). Corregit un
+error: el `<picture>` no ocupava l'alçada i l'`object-position` no feia res, per això es veia el mig de la
+foto (esquenes). Ara es veuen els caps i l'abraçada.
+
+**Revisió al mòbil** (simulació a 390 px de portada, agenda, reserves, detall i reserva):
+- Capçalera: el botó A− trepitjava el logo → logo, A−/A+ i CA/ES en una fila compacta.
+- Reserves: el filtre de centre (7 botons, mitja pantalla) és un desplegable al mòbil.
+- Reserva: al mòbil, el botó de reservar quedava a dalt, abans dels camps → ara primer les dades i després
+  el resum amb el botó; la foto del resum és més baixa.
+- Finestra de protecció de dades: al mòbil surt des de baix, més compacta, amb els botons sempre visibles.
+
+**Eficiència**: `/api/events` feia tres consultes una darrere l'altra (1,75 s en fred) → ara en paral·lel i
+amb memòria cau a la CDN (20 s; la reserva sempre comprova l'aforament real).
+
+**Declaració d'accessibilitat** reescrita (CA/ES): "inspirada en" WCAG 2.2 AA i EN 301 549, sense declarar
+conformitat total. Treu la llista de coses pendents, el telèfon provisional 900 000 000 i la referència legal
+incorrecta.
+
+---
+
 ## v21 · Preu intern i pagaments mensuals
 
 SQL: `sql/11-pagaments-mensuals.sql`.

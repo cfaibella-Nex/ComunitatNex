@@ -150,7 +150,7 @@ const EVENTS_DATA = [
   },
   {
     id: 'taller-castellano-santroc', tipo: 'taller',
-    cartell: '/assets/cartells/ccstroc-castella.jpg',
+    cartell: '/assets/cartells/ccstroc-castella-v2.jpg',
     titol: { ca: 'Taller de castellà bàsic', es: 'Taller de castellano básico' },
     descripcio: {
       ca: "Espai per practicar castellà i guanyar autonomia al dia a dia. Adaptat i sense pressa.",

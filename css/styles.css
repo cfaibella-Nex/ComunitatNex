@@ -215,10 +215,10 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   background: transparent; border: 2px solid transparent;
   padding: 8px 12px; min-width: 44px; min-height: 44px;
   border-radius: 8px; font-weight: 600; cursor: pointer;
-  color: var(--ink); opacity: 0.6;
+  color: var(--text-muted);
 }
-.lang-btn.active { border-color: var(--forest); opacity: 1; background: var(--forest-hero); }
-.lang-btn:hover { opacity: 1; }
+.lang-btn.active { border-color: var(--forest); background: var(--forest-hero); color: var(--ink); }
+.lang-btn:hover { color: var(--ink); }
 
 @media (max-width: 720px) {
   .nav-inner { flex-wrap: wrap; }
@@ -237,18 +237,18 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   overflow: hidden;
   background: var(--ink);
 }
+.hero picture { display: block; width: 100%; height: 100%; }
 .hero-img {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: 380px;
+  height: 260px;
   object-fit: cover;
-  object-position: center 60%;
+  object-position: center 30%;   /* caps i abraçada */
 }
 /* En pantalles amples, retallem alçada per no ocupar-ho tot */
 @media (min-width: 900px) {
   .hero {
-    height: 420px;
+    height: 340px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -258,11 +258,11 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
     height: 100%;
     max-height: none;
     object-fit: cover;
-    object-position: center 36%;   /* caps i espatlles, no només esquenes */
+    object-position: center 38%;   /* caps i abraçada */
   }
 }
 @media (min-width: 1400px) {
-  .hero { height: 480px; }
+  .hero { height: 380px; }
 }
 
 /* Bloc textual sota la foto (respirant, no encimant)
@@ -644,12 +644,12 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   position: absolute; top: var(--sp-2); left: var(--sp-2);
   background: var(--forest); color: var(--white);
   padding: 6px 14px; border-radius: var(--radius-pill);
-  font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.15em;
+  font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
 }
 .event-badge.badge-taller  { background: var(--forest); }
-.event-badge.badge-esdev   { background: var(--green-mid); }
-.event-badge.badge-mensual { background: var(--green-pale); color: var(--forest); }
+.event-badge.badge-esdev   { background: #2F7453; }
+.event-badge.badge-mensual { background: var(--green-pale); color: var(--ink); }
 
 /* ── Tabs (Reserves) ────────────────────────────────────── */
 .tabs {
@@ -667,8 +667,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   padding: 16px 24px;
   font-size: var(--fs-md);
   font-weight: 600;
-  color: var(--ink);
-  opacity: 0.55;
+  color: var(--text-muted);
   cursor: pointer;
   min-height: var(--touch);
   border-bottom: 4px solid transparent;
@@ -676,9 +675,8 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   white-space: nowrap;
   transition: opacity 0.15s, color 0.15s;
 }
-.tab:hover { opacity: 0.85; }
+.tab:hover { color: var(--ink); }
 .tab[aria-selected="true"] {
-  opacity: 1;
   color: var(--forest);
   border-bottom-color: var(--forest);
 }
@@ -974,7 +972,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   margin-left: auto;
 }
 .level-suau  { background: var(--white); color: var(--forest); }
-.level-mitja { background: #FCEFCB; color: #8A6D1F; }
+.level-mitja { background: #FCEFCB; color: #74591A; }
 .level-repte { background: #F6DCDC; color: #A03030; }
 
 .pastime-question {
@@ -1184,7 +1182,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   grid-template-columns: 2fr 1fr 1fr;
   gap: var(--sp-4);
 }
-.footer h4 {
+.footer h4, .footer-title {
   color: var(--forest);
   font-family: var(--font-body);
   font-size: var(--fs-xs);
@@ -1505,7 +1503,10 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 }
 @media (max-width: 900px) {
   .checkout-layout { grid-template-columns: 1fr; }
-  .checkout-summary { order: -1; }  /* Mòbil: resum abans que formulari */
+  /* Mòbil: primer les dades i després el resum amb el total i el botó,
+     perquè el botó de reservar quedi després dels camps (abans quedava a dalt) */
+  .checkout-summary { position: static; }
+  .summary-poster { aspect-ratio: 16 / 9; max-height: 170px; }
 }
 
 /* Sidebar de resum amb poster */
@@ -1820,3 +1821,42 @@ body.cartell-obert { overflow: hidden; }
 .rgpd-botons .btn { min-height: var(--touch); }
 @media (max-width: 480px) { .rgpd-botons .btn { flex: 1 1 100%; } }
 .legal-llista li { margin-bottom: var(--sp-2); line-height: 1.6; }
+
+/* ── Mida de la lletra (botons A− / A+ del menú) ─────────────
+   Escala els tokens de text: el disseny no es trenca i la preferència
+   es recorda al navegador (nx-lletra). */
+html.lletra-1 { --fs-xs: 18px; --fs-sm: 20px; --fs-base: 23px; --fs-md: 25px; --fs-lg: 29px; --fs-xl: 35px; --fs-2xl: 44px; }
+html.lletra-2 { --fs-xs: 20px; --fs-sm: 23px; --fs-base: 26px; --fs-md: 28px; --fs-lg: 32px; --fs-xl: 38px; --fs-2xl: 48px; }
+.lletra-sw { display: flex; gap: 4px; }
+.lletra-btn {
+  background: transparent; border: 2px solid rgba(45,107,72,0.35); border-radius: 8px;
+  min-width: 44px; min-height: 44px; padding: 0 8px; cursor: pointer;
+  font-weight: 700; color: var(--ink); line-height: 1;
+}
+.lletra-btn:hover { border-color: var(--forest); background: var(--forest-hero); }
+.lletra-btn:disabled { color: var(--text-muted); border-color: rgba(15,45,30,0.12); cursor: default; background: transparent; }
+.lletra-btn .petita { font-size: 15px; }
+.lletra-btn .gran { font-size: 21px; }
+@media (max-width: 720px) {
+  .lletra-btn { min-width: 44px; padding: 0 6px; }
+}
+
+.filtre-centre-btns { display: contents; }
+.filtre-centre-select { display: none; width: 100%; min-height: var(--touch); font-size: var(--fs-base); }
+/* ── Mòbil (revisió v22) ─────────────────────────────────────── */
+@media (max-width: 720px) {
+  /* Capçalera: logo, A− A+ i CA ES en una sola fila sense trepitjar-se */
+  .nav-inner { gap: 6px; padding: 10px 12px; }
+  .nav-logo-img { height: 36px; max-width: 130px; }
+  .lang-btn { padding: 8px 10px; }
+  /* Filtre per centre: desplegable en lloc de 7 botons que ocupaven mitja pantalla */
+  .filtre-centre-btns { display: none; }
+  .filtre-centre-select { display: block; }
+}
+/* Finestra de protecció de dades al mòbil: més compacta i els botons sempre a la vista */
+@media (max-width: 600px) {
+  .rgpd-capa-modal { align-items: flex-end; padding: 0; }
+  .rgpd-dialeg { border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: var(--sp-3) var(--sp-3) 0; font-size: var(--fs-sm); max-height: 88vh; }
+  .rgpd-dialeg h2 { font-size: var(--fs-md); }
+  .rgpd-botons { position: sticky; bottom: 0; background: var(--white); padding: var(--sp-2) 0 var(--sp-3); margin-top: var(--sp-2); }
+}
