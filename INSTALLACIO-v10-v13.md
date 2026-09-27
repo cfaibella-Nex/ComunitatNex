@@ -14,6 +14,7 @@ es queden igual. Els cartells nous van a una carpeta a part: `assets/cartells/`.
    5. `api/schema-v13-seguiment.sql`
    6. `api/schema-v14-recurrencia-contacte.sql`
    7. `api/schema-v15-proves-rgpd.sql`
+   8. `api/schema-v16-textos-v3.sql`
 2. **Vercel → Environment Variables**: `GESTOR_SECRET` (48 caràcters) i `GESTOR_SETUP_KEY` (20+). Diferents.
 3. **Descomprimir sobre el repo i push** (sobreescriure quan ho demani).
 4. `/api/health` → `inscripcions_v10`, `control_v11`, `cartells_v12`, `seguiment_v13`: tots `true`.

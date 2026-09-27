@@ -102,24 +102,6 @@ async function renderCheckout() {
         </label>
       </div>
 
-      <!-- Protecció de dades: informació bàsica (1a capa, art. 11 LOPDGDD)
-           + casella obligatòria i NO marcada per acreditar que s'ha llegit -->
-      <div class="rgpd-capa" id="rgpd-info">
-        <p><strong>${esc(NXC.t('rgpd.titol'))}</strong></p>
-        <ul>
-          <li><strong>${esc(NXC.t('rgpd.resp_k'))}:</strong> NexSocial SCCL.</li>
-          <li><strong>${esc(NXC.t('rgpd.fin_k'))}:</strong> ${esc(NXC.t('rgpd.fin_v'))}</li>
-          <li><strong>${esc(NXC.t('rgpd.dest_k'))}:</strong> ${esc(NXC.t('rgpd.dest_v'))}</li>
-          <li><strong>${esc(NXC.t('rgpd.drets_k'))}:</strong> ${esc(NXC.t('rgpd.drets_v'))}</li>
-        </ul>
-        <p>${esc(NXC.t('rgpd.tercers'))}</p>
-      </div>
-      <div class="form-group rgpd-check">
-        <label for="consent">
-          <input type="checkbox" id="consent" name="consent" required aria-describedby="rgpd-info">
-          <span>${NXC.t('rgpd.check')}<span class="form-required">*</span></span>
-        </label>
-      </div>
       <div id="form-msg" aria-live="polite" aria-atomic="true"></div>
     </form>
 
@@ -173,13 +155,6 @@ async function renderCheckout() {
     if (nom.length < 2) errors.push('nom');
     if (!validaTelefon(tel)) errors.push('tel');
     if (!validaEmail(email)) errors.push('email');
-    const llegit = qs('#consent')?.checked === true;
-    qs('.rgpd-check')?.classList.toggle('error', !llegit);
-    if (!errors.length && !llegit) {
-      msg.innerHTML = `<div class="alert alert-danger">${esc(NXC.t('rgpd.falta'))}</div>`;
-      qs('#consent').focus();
-      return;
-    }
     errors.forEach(k => {
       const el = qs('#' + k);
       if (el) { el.classList.add('error'); el.setAttribute('aria-invalid', 'true'); }
@@ -189,6 +164,12 @@ async function renderCheckout() {
       qs('#' + errors[0])?.focus();
       return;
     }
+
+    /* Protecció de dades: la informació bàsica (1a capa, art. 11 LOPDGDD)
+       es mostra en el moment de guardar. "D'acord" és l'acte afirmatiu
+       que queda registrat (versió + data) com a prova d'haver informat. */
+    const acceptat = await informacioDades(pagaAra);
+    if (!acceptat) { qs('#btn-reservar').focus(); return; }
 
     const btn = qs('#btn-reservar');
     btn.disabled = true;
@@ -205,7 +186,7 @@ async function renderCheckout() {
           extres: cart.extres,
           nom, telefon: tel, email: email || null, notes: notes || null,
           web: qs('#hp-web')?.value || '',
-          consentiment: qs('#consent')?.checked === true,
+          consentiment: acceptat === true,
           lang: window.NX.getLang()
         })
       });
@@ -266,6 +247,56 @@ async function renderCheckout() {
       btn.innerHTML = btnOrig;
       window.open(`https://wa.me/${window.NX.WHATSAPP}?text=${encodeURIComponent(txt)}`, '_blank');
     }
+  });
+}
+
+/* Finestra d'informació de protecció de dades. Torna true si la persona
+   prem "D'acord", false si torna enrere (botó, Esc o clic a fora). */
+function informacioDades(pagaAra) {
+  return new Promise(resolve => {
+    const capa = document.createElement('div');
+    capa.className = 'rgpd-capa-modal';
+    capa.innerHTML = `
+<div class="rgpd-dialeg" role="dialog" aria-modal="true" aria-labelledby="rgpd-titol">
+  <h2 id="rgpd-titol">${esc(NXC.t('rgpd.titol'))}</h2>
+  <ul>
+    <li><strong>${esc(NXC.t('rgpd.resp_k'))}:</strong> NexSocial SCCL.</li>
+    <li><strong>${esc(NXC.t('rgpd.fin_k'))}:</strong> ${esc(NXC.t('rgpd.fin_v'))}</li>
+    <li><strong>${esc(NXC.t('rgpd.dest_k'))}:</strong> ${esc(NXC.t('rgpd.dest_v'))}</li>
+    <li><strong>${esc(NXC.t('rgpd.drets_k'))}:</strong> ${esc(NXC.t('rgpd.drets_v'))}</li>
+  </ul>
+  <p>${esc(NXC.t('rgpd.tercers'))}</p>
+  <p class="rgpd-mes">${NXC.t('rgpd.mes')}</p>
+  <div class="rgpd-botons">
+    <button type="button" class="btn btn-secondary" data-r="no">${esc(NXC.t('rgpd.tornar'))}</button>
+    <button type="button" class="btn btn-primary" data-r="si">${esc(NXC.t(pagaAra ? 'rgpd.acceptar_pagar' : 'rgpd.acceptar'))}</button>
+  </div>
+</div>`;
+    document.body.appendChild(capa);
+    document.body.classList.add('cartell-obert');
+    const botons = capa.querySelectorAll('button');
+    const tanca = (v) => {
+      document.removeEventListener('keydown', tecla, true);
+      capa.remove();
+      document.body.classList.remove('cartell-obert');
+      resolve(v);
+    };
+    const tecla = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); tanca(false); }
+      if (e.key === 'Tab') {                         // focus atrapat dins la finestra
+        const f = [...capa.querySelectorAll('a, button')];
+        const i = f.indexOf(document.activeElement);
+        e.preventDefault();
+        f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+      }
+    };
+    document.addEventListener('keydown', tecla, true);
+    capa.addEventListener('click', e => {
+      const b = e.target.closest('[data-r]');
+      if (b) tanca(b.dataset.r === 'si');
+      else if (e.target === capa) tanca(false);
+    });
+    botons[1].focus();
   });
 }
 

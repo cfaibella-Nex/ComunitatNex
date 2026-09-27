@@ -14,7 +14,7 @@ import { cobramentEvent, crearCheckoutSession } from './_lib/stripe.js';
 // Versió del text de protecció de dades mostrat al formulari. Es desa amb
 // la data a cada reserva (acreditació art. 5.2 i 7.1 RGPD).
 // CANVIAR-LA sempre que canviï el text de la casella o de la política.
-const CONSENT_VERSIO = 'privacitat-v2-2026-09';
+const CONSENT_VERSIO = 'privacitat-v3-2026-09';
 const REF_RE = /^NX-[A-Z0-9]{6}$/;
 const MINIM_STRIPE = 50;   // Stripe no cobra menys de 0,50 €
 
@@ -70,10 +70,10 @@ export default async function handler(req, res) {
   if (body.web) return json(res, 400, { error: 'Sol·licitud no vàlida' });
 
   const { event_id, nom, telefon, email, notes, lang } = body;
-  /* Casella de protecció de dades: obligatòria. Les pàgines antigues en
-     memòria cau no l'envien → es demana recarregar. */
+  /* Protecció de dades: la persona ha d'haver premut "D'acord" a la
+     informació bàsica. Les pàgines antigues en memòria cau no ho envien. */
   if (body.consentiment !== true) {
-    return json(res, 400, { error: 'Cal marcar la casella de protecció de dades. Recarrega la pàgina si no la veus.', codi: 'sense_consentiment' });
+    return json(res, 400, { error: 'Cal acceptar la informació de protecció de dades. Recarrega la pàgina i torna-ho a provar.', codi: 'sense_consentiment' });
   }
   if (!event_id) return json(res, 400, { error: 'Falta event_id' });
   if (!nom || String(nom).trim().length < 2) return json(res, 400, { error: 'Nom no vàlid' });

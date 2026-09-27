@@ -1801,3 +1801,21 @@ body.cartell-obert { overflow: hidden; }
 .legal-taula { width: 100%; border-collapse: collapse; margin: var(--sp-2) 0 var(--sp-3); font-size: var(--fs-sm); display: block; overflow-x: auto; }
 .legal-taula th, .legal-taula td { border: 1px solid rgba(15,45,30,0.15); padding: 8px 10px; vertical-align: top; text-align: left; }
 .legal-taula th { background: var(--forest-hero); }
+
+/* Protecció de dades: finestra en guardar la reserva */
+.rgpd-capa-modal {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(10,25,17,0.7);
+  display: flex; align-items: center; justify-content: center; padding: var(--sp-2);
+}
+.rgpd-dialeg {
+  background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; padding: var(--sp-4);
+  font-size: var(--fs-base); color: var(--ink);
+}
+.rgpd-dialeg h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-lg); }
+.rgpd-dialeg ul { padding-left: 1.2em; margin: 0 0 var(--sp-2); }
+.rgpd-dialeg li { margin-bottom: 6px; }
+.rgpd-mes a { color: var(--forest); font-weight: 600; }
+.rgpd-botons { display: flex; gap: var(--sp-2); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--sp-3); }
+.rgpd-botons .btn { min-height: var(--touch); }
+@media (max-width: 480px) { .rgpd-botons .btn { flex: 1 1 100%; } }

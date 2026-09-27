@@ -1,7 +1,7 @@
 # Patch v17 · Registre de proves de protecció de dades
 
 ## Instal·lació
-1. Supabase → `api/schema-v15-proves-rgpd.sql` → Run (després de la v14).
+1. Supabase → `api/schema-v15-proves-rgpd.sql` i després `api/schema-v16-textos-v3.sql` → Run (després de la v14).
    Al final mostra els textos legals desats (amb empremta) i quantes inscripcions hi ha
    pendents d'informar per canal.
 2. Push i Ctrl+Shift+R.
@@ -9,7 +9,7 @@
 ## Què queda registrat, per a cada inscripció
 | Canal | Com | Qui consta |
 |---|---|---|
-| Web | Casella obligatòria no marcada. El servidor no accepta la inscripció sense | "la mateixa persona (formulari web)" |
+| Web | En prémer Reservar s'obre una finestra amb la informació bàsica. Només es guarda si prem "D'acord, reservar" (el servidor no l'accepta sense) | "la mateixa persona (formulari web)" |
 | Trucada / presencial | Casella obligatòria al panell: "Li he llegit la clàusula" | L'usuari del panell que la dona d'alta |
 | Llista del centre cívic | Entra PENDENT. Es marca al Seguiment (columna "Dades") quan se li llegeix | L'usuari del panell que ho marca |
 
@@ -36,3 +36,8 @@ registrar-ne un seria tractar dades sense necessitat. La política ho explica.
 Alineat amb l'avís legal de nexsocial.org: denominació, forma jurídica, domicili social, registre,
 web, clàusula de responsabilitat i AEPD. Hi consta Supabase a Frankfurt (UE) i un apartat nou,
 "Com acreditem que t'hem informat".
+
+## v3 del text (finestra en guardar)
+La informació bàsica ja no és al formulari: surt en una finestra en prémer Reservar, amb els botons
+"Tornar" i "D'acord, reservar". A "Destinataris" ja no hi ha la frase dels proveïdors tècnics: consta a la
+política completa (segona capa). Versió `privacitat-v3-2026-09`, desada a `textos_legals`.
