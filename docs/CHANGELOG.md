@@ -4,6 +4,17 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v25 · Fora els cartells dels centres cívics
+
+Els centres cívics no permeten fer servir els seus cartells a la web. Tornen les fotos de NexSocial.
+Dades (fora del repo): `15-treure-cartells.sql` — buida `cartell` a totes les activitats; les que no
+tenien foto pròpia (o tenien el placeholder) reben la de NexSocial segons el taller.
+- `js/data.js` (dades de reserva si falla l'API): fora els 5 cartells.
+- S'esborra la carpeta `assets/cartells/` sencera (8 fitxers).
+- El camp "Cartell" del panell es manté, buit.
+
+---
+
 ## v24 · Un sol botó per al Casal de Gent Gran Centre
 
 Dades (fora del repo): `14-unificar-casal-centre.sql`.
