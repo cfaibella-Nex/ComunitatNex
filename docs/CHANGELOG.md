@@ -4,6 +4,17 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v26 · Avís d'imatges generades amb IA (art. 50 Reglament d'IA)
+
+- `js/main.js` + `css/styles.css`: línia discreta al peu de totes les pàgines (CA/ES):
+  "Fotografies generades amb IA amb finalitat il·lustrativa. No representen persones reals."
+- `legal.html`: paràgraf "Imatges generades amb IA" a l'avís legal (CA/ES) i fora la frase dels cartells
+  dels centres cívics (ja no se'n mostren des de la v25).
+- `accessibilitat.html`: fora la frase d'ampliar cartells.
+- Segell de caché de tots els HTML: `?v=54` → `?v=55`.
+
+---
+
 ## v25 · Fora els cartells dels centres cívics
 
 Els centres cívics no permeten fer servir els seus cartells a la web. Tornen les fotos de NexSocial.
