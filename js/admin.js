@@ -752,7 +752,7 @@ window.editEvent = function(id) {
     <div class="form-group">
       <label class="form-label">Etiqueta de data CA</label>
       <input class="form-input" name="datalabel_ca" value="${esc(ev.data_label?.ca)}">
-      <div class="form-help">Ex: "Octubre 2026", "Cada setmana". Buit = es mostra la data.</div>
+      <div class="form-help">Deixa-ho <strong>buit</strong> si l'activitat té dia: la data i l'hora ja surten soles i es posa al calendari. Només per a "Octubre 2026" o "Pròximament" (sense dia fix).</div>
     </div>
     <div class="form-group">
       <label class="form-label">Etiqueta de data ES</label>

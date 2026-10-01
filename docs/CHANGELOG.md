@@ -4,6 +4,24 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v32 · Peu: logo de NexSocial més gran i correu en una línia
+
+- `js/main.js` + `css/styles.css`: la columna de logos passa de 170 a 240 px; el de NexSocial
+  ocupa tota l'amplada (240 px) i l'Aquí sí! fins a 200 px. A Contacte, la icona i el telèfon o
+  el correu van a la mateixa línia (el correu saltava sota la icona).
+- Inclou la v31 (no publicada per separat). Segell `?v=59`.
+
+---
+
+## v31 · Calendari: les activitats amb dia a l'etiqueta hi surten
+
+- `js/agenda.js`: una activitat només queda fora de la graella si l'etiqueta és "Pròximament" o no
+  porta número de dia ("Octubre 2026"). Amb "23/10/2026" o "Dissabte 24" va al calendari.
+- `js/admin.js`: ajuda del camp "Etiqueta de data": deixar-lo buit si l'activitat té dia.
+- Segell de caché de tots els HTML: `?v=58` → `?v=59`.
+
+---
+
 ## v30 · Seguiment: filtres i ordre per columna
 
 - `js/admin.js` + `admin.html`: barra de filtres a sobre de la taula (vista d'una activitat i

@@ -162,7 +162,15 @@ const MESOS_ENDAVANT = 12;
 const majuscula = t => t.charAt(0).toUpperCase() + t.slice(1);
 const pla = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const teEtiqueta = ev => !window.NX.esSetmanal(ev) && Boolean(ev.data_label && L(ev.data_label));
+/* Sense dia fix = etiqueta "Pròximament" o etiqueta sense número de dia
+   ("Octubre 2026"). Una etiqueta amb el dia ("23/10/2026", "Dissabte 24")
+   no treu l'activitat de la graella. */
+const teEtiqueta = ev => {
+  if (window.NX.esSetmanal(ev)) return false;
+  const et = ev.data_label ? L(ev.data_label) : '';
+  if (!et) return false;
+  return /pr[oò]xim/i.test(et) || !/(^|\D)\d{1,2}(?!\d)/.test(et);
+};
 
 function passaFiltres(ev, f) {
   if (f.tipus && ev.tipo !== f.tipus) return false;
