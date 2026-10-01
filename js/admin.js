@@ -32,6 +32,7 @@ let state = {
   cobrant: null,                 // id de la reserva amb el panell de cobrament obert
   llista: { eventId: null, data: null, assistencia: {} },
   seguiment: { eventId: null, mes: null, assistencia: {} },   // assistencia[reserva][data] = true/false
+  sgFiltre: { q: '', trucada: '', pagat: '', col: '', dir: 1 }, // Seguiment: es manté en canviar d'activitat o de mes
   usuari: null,
   gestor: null,
   cerca: { q: '', cancel: false },
@@ -1737,7 +1738,10 @@ function botoRefrescar() {
   return `<button class="btn btn-secondary" onclick="sgRefrescar()" title="Torna a llegir els canvis fets per altres persones">⟳ Actualitzar</button>
     ${hora ? `<small class="muted sg-hora">Dades de les ${hora}</small>` : ''}`;
 }
-window.sgNomesPerTrucar = function() { state.seguiment.nomesPendents = !state.seguiment.nomesPendents; renderSeguiment(); };
+window.sgNomesPerTrucar = function() {
+  state.sgFiltre.trucada = state.sgFiltre.trucada === 'per_trucar' ? '' : 'per_trucar';
+  renderSeguiment();
+};
 const perTrucar = r => ['pendent', 'no_contesta'].includes(trucadaDe(r));
 const AVIS_GUIO = '<p class="form-help no-print sg-avis-guio">En marcar <strong>✓ Inscrit/a</strong> confirmes que li has llegit la frase de protecció de dades del guió de trucada.</p>';
 
@@ -1891,13 +1895,107 @@ function dadesTotes() {
   return { S, evPer, persones, espera, noApunten, pct, cobra, nivell };
 }
 
-window.sgNomesPendents = function() { state.seguiment.nomesPendents = !state.seguiment.nomesPendents; renderSeguiment(); };
+/* ── Filtres i ordre de la taula del Seguiment ─────────────
+   Cerca (nom, telèfon, contacte), estat de trucada, pagat i ordre per
+   columna. S'apliquen a la taula, a la impressió i a l'Excel; les xifres
+   de dalt sempre compten tothom. */
+const ORDRE_TRUCADA = { pendent: 0, no_contesta: 1, inscrit: 2, no_inscriu: 3 };
+const plaSg = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const nomesXifres = t => String(t || '').replace(/\D/g, '');
+const hiHaFiltres = () => { const f = state.sgFiltre; return Boolean(f.q || f.trucada || f.pagat); };
+
+function filtraSg(llista, { cobra, pct, evPer }) {
+  const f = state.sgFiltre;
+  const q = plaSg(f.q.trim());
+  const qNum = nomesXifres(f.q);
+  let out = llista.filter(r => {
+    if (q) {
+      const text = plaSg([r.nom, r.contacte, evPer ? evPer.get(r.event_id)?.titol?.ca : ''].join(' '));
+      const tel = qNum.length >= 3 && nomesXifres(r.telefon).includes(qNum);
+      if (!text.includes(q) && !tel) return false;
+    }
+    if (f.trucada === 'per_trucar' && !perTrucar(r)) return false;
+    if (f.trucada && f.trucada !== 'per_trucar' && trucadaDe(r) !== f.trucada) return false;
+    if (f.pagat === 'pendent' && !(cobra(r) && !pagatAra(r))) return false;
+    if (f.pagat === 'pagat' && !(cobra(r) && pagatAra(r))) return false;
+    if (f.pagat === 'no_cal' && cobra(r)) return false;
+    return true;
+  });
+  if (f.col) {
+    const val = {
+      nom:      r => plaSg(r.nom),
+      telefon:  r => nomesXifres(r.telefon),
+      activitat:r => plaSg(evPer?.get(r.event_id)?.titol?.ca) + ' ' + plaSg(r.nom),
+      trucada:  r => ORDRE_TRUCADA[trucadaDe(r)] ?? 9,
+      pagat:    r => !cobra(r) ? 2 : pagatAra(r) ? 1 : 0,          // pendents primer
+      assist:   r => { const p = pct(r); return p === null ? -1 : p; }
+    }[f.col];
+    if (val) out = [...out].sort((a, b) => {
+      const x = val(a), y = val(b);
+      const c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'ca');
+      return c * f.dir || plaSg(a.nom).localeCompare(plaSg(b.nom), 'ca');
+    });
+  }
+  return out;
+}
+
+function filtresSgHTML(total, visibles) {
+  const f = state.sgFiltre;
+  const opt = (v, t, act) => `<option value="${v}" ${act === v ? 'selected' : ''}>${t}</option>`;
+  return `
+<div class="sg-filtres no-print" role="search">
+  <label class="ins-camp sg-filtre-q"><span>Cerca</span>
+    <input class="form-input" type="search" id="sg-q" value="${esc(f.q)}" placeholder="Nom o telèfon" autocomplete="off"
+      oninput="sgFiltre('q', this.value)"></label>
+  <label class="ins-camp"><span>Trucada</span>
+    <select class="form-select" onchange="sgFiltre('trucada', this.value)">
+      ${opt('', 'Totes', f.trucada)}${opt('per_trucar', 'Per trucar (pendent + no contesta)', f.trucada)}
+      ${Object.entries(TRUCADA).filter(([k]) => k !== 'no_inscriu').map(([k, v]) => opt(k, v.nom, f.trucada)).join('')}
+    </select></label>
+  <label class="ins-camp"><span>Pagat</span>
+    <select class="form-select" onchange="sgFiltre('pagat', this.value)">
+      ${opt('', 'Tots', f.pagat)}${opt('pendent', '⏳ Pendents de pagar', f.pagat)}${opt('pagat', '✓ Pagats', f.pagat)}${opt('no_cal', '— No han de pagar', f.pagat)}
+    </select></label>
+  <div class="sg-filtre-res" aria-live="polite">
+    ${hiHaFiltres() ? `<strong>${visibles} de ${total}</strong> <button class="btn-link" onclick="sgTreureFiltres()">Treure filtres</button>` : `${total} persones`}
+  </div>
+</div>`;
+}
+
+/* Capçalera ordenable: clic = ascendent, segon clic = descendent */
+function thOrd(col, label, extra = '') {
+  const f = state.sgFiltre;
+  const act = f.col === col;
+  const fletxa = act ? (f.dir === 1 ? '▲' : '▼') : '↕';
+  return `<th ${extra} aria-sort="${act ? (f.dir === 1 ? 'ascending' : 'descending') : 'none'}">
+    <button class="sg-ord${act ? ' actiu' : ''}" onclick="sgOrdre('${col}')">${label} <span aria-hidden="true">${fletxa}</span></button></th>`;
+}
+
+window.sgFiltre = function(camp, valor) {
+  state.sgFiltre[camp] = valor;
+  renderSeguiment();
+  if (camp === 'q') {                       // repintar fa perdre el focus del cercador
+    const i = qs('#sg-q');
+    if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+  }
+};
+window.sgOrdre = function(col) {
+  const f = state.sgFiltre;
+  if (f.col === col) f.dir = -f.dir; else { f.col = col; f.dir = 1; }
+  renderSeguiment();
+  qs(`.sg-ord[onclick="sgOrdre('${col}')"]`)?.focus();
+};
+window.sgTreureFiltres = function() {
+  Object.assign(state.sgFiltre, { q: '', trucada: '', pagat: '' });
+  renderSeguiment();
+};
 
 function renderSeguimentTotes() {
   const dt = dadesTotes();
   const { S, evPer, espera, pct, cobra, nivell } = dt;
   const pendentsTr = dt.persones.filter(perTrucar).length;
-  const persones = S.nomesPendents ? dt.persones.filter(perTrucar) : dt.persones;
+  const persones = dt.persones;
+  const vistes = filtraSg(persones, { cobra, pct, evPer });
   const activitats = new Set(persones.map(r => r.event_id)).size;
   const hanDePagar = persones.filter(cobra);
   const pcts = persones.map(pct).filter(x => x !== null);
@@ -1958,17 +2056,18 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
   <div><span>Inscrits</span><strong>${dt.persones.filter(r => trucadaDe(r) === 'inscrit').length} / ${dt.persones.length}</strong></div>
   <div${pendentsTr ? ' class="xifra-avis"' : ''}><span>Per trucar</span><strong>${pendentsTr}</strong>
     <small>${dt.persones.filter(r => trucadaDe(r) === 'no_contesta').length} no contesten</small>
-    ${pendentsTr ? `<button class="btn-link" onclick="sgNomesPerTrucar()">${state.seguiment.nomesPendents ? 'Veure tothom' : 'Veure només aquestes'}</button>` : ''}</div>
+    ${pendentsTr ? `<button class="btn-link" onclick="sgNomesPerTrucar()">${state.sgFiltre.trucada === 'per_trucar' ? 'Veure tothom' : 'Veure només aquestes'}</button>` : ''}</div>
   <div><span>Pendents de pagar</span><strong>${hanDePagar.filter(r => !pagatAra(r)).length}</strong>
     <small>${hanDePagar.filter(pagatAra).length} pagades</small></div>
   <div><span>Assistència del mes</span><strong>${pctMitja === null ? '—' : pctMitja + '%'}</strong></div>
 </div>
+${filtresSgHTML(persones.length, vistes.length)}
 ${AVIS_GUIO}
 
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
-  <thead><tr><th>#</th><th>Nom</th><th>Telèfon</th><th>Contacte</th><th>Activitat</th><th>Nivell</th><th>Trucada</th><th>Pagat</th><th>Assist.</th><th>Observacions</th><th class="no-print"></th></tr></thead>
-  <tbody>${persones.map(fila).join('') || '<tr><td colspan="11" class="muted" style="text-align:center">Cap inscripció.</td></tr>'}</tbody>
+  <thead><tr><th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th>Contacte</th>${thOrd('activitat', 'Activitat')}<th>Nivell</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"></th></tr></thead>
+  <tbody>${vistes.map(fila).join('') || `<tr><td colspan="11" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap inscripció.'}</td></tr>`}</tbody>
 </table>
 </div>
 ${espera.length ? `
@@ -1993,6 +2092,7 @@ function renderSeguiment() {
   const pctMitja = persones.length && passades.length ? Math.round(totalSi * 100 / (persones.length * passades.length)) : null;
 
   const celPagat = r => celPagatSg(r, cobra);
+  const vistes = filtraSg(persones, { cobra, pct: pctPersona, evPer: null });
 
   const celSessio = (r, d) => {
     const m = marca(r, d);
@@ -2059,15 +2159,16 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
     <small>${passades.length} de ${sessions.length} sessions fetes</small></div>
 </div>
 
+${filtresSgHTML(persones.length, vistes.length)}
 ${AVIS_GUIO}
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
   <thead><tr>
-    <th>#</th><th>Nom</th><th>Telèfon</th><th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th>Nivell</th><th>Trucada</th><th>Pagat</th>
+    <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th>Nivell</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}
     ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
-    <th>Assist.</th><th>Observacions</th><th class="no-print"></th>
+    ${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"></th>
   </tr></thead>
-  <tbody>${persones.map(fila).join('') || `<tr><td colspan="${10 + sessions.length}" class="muted" style="text-align:center">Cap persona apuntada. Fes servir “+ Afegir persona”.</td></tr>`}</tbody>
+  <tbody>${vistes.map(fila).join('') || `<tr><td colspan="${10 + sessions.length}" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap persona apuntada. Fes servir “+ Afegir persona”.'}</td></tr>`}</tbody>
 </table>
 </div>
 ${sessions.length ? '' : '<p class="muted no-print">Aquest mes no hi ha cap sessió. Afegeix-ne una amb la data.</p>'}
@@ -2275,7 +2376,9 @@ window.sgObrirAfegir = function() {
 /* Excel amb les mateixes columnes que la pantalla */
 window.sgExcel = function() {
   if (state.seguiment.eventId === TOTES) {
-    const { S, evPer, persones, espera, pct, cobra, nivell } = dadesTotes();
+    const dtx = dadesTotes();
+    const { S, evPer, espera, pct, cobra, nivell } = dtx;
+    const persones = filtraSg(dtx.persones, { cobra, pct, evPer });
     const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Activitat', 'Centre', 'Nivell', 'Places',
                  'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode', `Assistència ${nomMesLlarg(S.mes)} %`, 'Observacions', 'Referència',
                  'Dades: canal', 'Dades: informada el', 'Dades: per'];
@@ -2295,7 +2398,9 @@ window.sgExcel = function() {
     ]);
     return;
   }
-  const { S, ev, sessions, persones, espera, marca, cobra, nivell, pctPersona } = dadesSeguiment();
+  const dsx = dadesSeguiment();
+  const { S, ev, sessions, espera, marca, cobra, nivell, pctPersona } = dsx;
+  const persones = filtraSg(dsx.persones, { cobra, pct: pctPersona, evPer: null });
   const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Nivell', 'Places', 'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode',
                ...sessions.map(capSessio), 'Assistència %', 'Observacions', 'Referència'];
   const files = persones.map((r, i) => [

@@ -4,6 +4,21 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v30 · Seguiment: filtres i ordre per columna
+
+- `js/admin.js` + `admin.html`: barra de filtres a sobre de la taula (vista d'una activitat i
+  "Totes"): cerca per nom, contacte o telèfon (des de 3 xifres, sense espais ni accents), estat de
+  trucada (inclou "Per trucar" = pendent + no contesta) i pagat (pendents, pagats, no han de pagar).
+  Comptador "X de Y" i "Treure filtres".
+- Capçaleres ordenables amb clic (Nom, Telèfon, Activitat, Trucada, Pagat, Assist.): segon clic
+  inverteix l'ordre. `aria-sort` per a lectors de pantalla.
+- Els filtres es mantenen en canviar d'activitat o de mes. S'apliquen a la taula, a la impressió i
+  a l'Excel; les xifres de dalt continuen comptant tothom.
+- "Veure només aquestes" (per trucar) ara fa servir el mateix filtre de trucada.
+- Segell de caché de tots els HTML: `?v=57` → `?v=58`.
+
+---
+
 ## v29 · Seguiment: "No s'hi apunta" sense esborrar, botó Actualitzar i més velocitat
 
 Dades: **executar `sql/16-no-sapunta.sql`** a Supabase abans de publicar.

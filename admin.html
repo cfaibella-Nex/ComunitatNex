@@ -6,7 +6,7 @@
   <title>Admin · Comunitat NexSocial</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/styles.css?v=57">
+  <link rel="stylesheet" href="/css/styles.css?v=58">
 
   <style>
     /* ── Escala del panell ───────────────────────────────────
@@ -205,6 +205,14 @@
     .sg-hora { align-self: center; white-space: nowrap; }
     .sg-noapunten-titol { margin-top: var(--sp-4); }
     .sg-noapunten { background: #FBFAF8; }
+    .sg-filtres { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: flex-end; margin: var(--sp-2) 0; }
+    .sg-filtres .ins-camp { min-width: 200px; }
+    .sg-filtre-q { flex: 1 1 260px; }
+    .sg-filtre-res { padding-bottom: 12px; font-size: var(--fs-sm); }
+    .sg-ord { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: inherit; cursor: pointer; white-space: nowrap; }
+    .sg-ord span { color: var(--text-muted); font-size: 0.85em; }
+    .sg-ord.actiu span { color: var(--forest); }
+    .sg-ord:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; border-radius: 4px; }
     .sg-perpagar { background: #FFF4D6; border-color: var(--warning); font-weight: 700; }
     .sg-avis-guio { margin: 0 0 var(--sp-1); }
     .res-import { font-weight: 700; white-space: nowrap; }
@@ -313,9 +321,9 @@
     <div id="admin-app"></div>
   </main>
 
-  <script src="/js/main.js?v=57"></script>
-  <script src="/js/carret.js?v=57"></script>
-  <script src="/js/xlsx-mini.js?v=57"></script>
-  <script src="/js/admin.js?v=57"></script>
+  <script src="/js/main.js?v=58"></script>
+  <script src="/js/carret.js?v=58"></script>
+  <script src="/js/xlsx-mini.js?v=58"></script>
+  <script src="/js/admin.js?v=58"></script>
 </body>
 </html>
