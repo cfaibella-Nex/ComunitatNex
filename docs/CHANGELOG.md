@@ -4,6 +4,25 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v29 · Seguiment: "No s'hi apunta" sense esborrar, botó Actualitzar i més velocitat
+
+Dades: **executar `sql/16-no-sapunta.sql`** a Supabase abans de publicar.
+- "✗ No s'hi apunta" ja no fa la baixa ni esborra res: allibera la plaça (`cancelled`) i la
+  persona passa a un bloc "No s'hi apunten" sota la taula, amb qui i quan l'ha marcat. Es pot
+  desfer canviant l'estat (torna a pendent o inscrita). Esborrar dades continua sent "Baixa".
+- Botó "⟳ Actualitzar" al Seguiment (activitat i totes), amb l'hora de les dades, per veure el
+  que ha fet una altra persona.
+- Velocitat:
+  · `vercel.json`: funcions a `fra1` (Frankfurt), al costat de Supabase. Abans anaven als EUA i
+    cada consulta creuava l'Atlàntic.
+  · `api/admin/orders.js`: reserves i pagaments mensuals en paral·lel.
+  · `js/admin.js`: activitats reaprofitades 60 s entre pestanyes (qualsevol canvi d'activitat o
+    "Actualitzar" les torna a llegir); reserves i assistència en paral·lel; canviar l'estat de
+    trucada ja no recarrega tot el panell.
+- Segell de caché de tots els HTML: `?v=56` → `?v=57`.
+
+---
+
 ## v28 · Calendari mensual a l'Agenda
 
 - `agenda.html` + `js/agenda.js`: a dalt, filtres (cerca per nom, lloc o entitat, sense accents

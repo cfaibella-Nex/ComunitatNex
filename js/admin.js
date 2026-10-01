@@ -79,6 +79,7 @@ async function apiGet(path) {
 }
 
 async function apiSend(path, method, body) {
+  if (path.startsWith('/api/admin/events')) state.eventsAt = 0;
   const r = await fetch(path, {
     method,
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -354,10 +355,15 @@ window.usuariAccio = async function(id, accio, rol) {
   } catch (err) { alert(err.message); renderUsuaris(); }
 };
 
-async function loadEvents() {
+/* Les activitats canvien poc: es reaprofiten 60 s entre pestanyes i accions.
+   Qualsevol canvi a /api/admin/events i el botó "Actualitzar" les tornen a llegir. */
+const EVENTS_TTL = 60000;
+async function loadEvents(force = false) {
+  if (!force && state.events.length && Date.now() - (state.eventsAt || 0) < EVENTS_TTL) return true;
   try {
     const d = await apiGet('/api/admin/events');
     state.events = d?.events || [];
+    state.eventsAt = Date.now();
   } catch (e) {
     if (e instanceof AuthError) throw e;
     app.innerHTML = `<div class="alert alert-danger">Error carregant events: ${esc(e.message)}</div>
@@ -1687,15 +1693,50 @@ function celTrucada(r) {
   </select>`;
 }
 window.sgTrucada = async function(id, estat, sel) {
-  if (estat === 'no_inscriu') {
-    await baixaPersona(id);          // demana motiu i confirma; si es cancel·la, no fa res
-    render();
-    return;
-  }
+  if (sel) sel.disabled = true;
   try { await accioReserva({ accio: 'trucada', id, estat }); }
   catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
-  render();
+  renderSeguiment();                 // ja tenim la reserva actualitzada: no cal tornar-ho a llegir tot
 };
+/* "✗ No s'hi apunta": plaça alliberada però dades conservades (SQL 16).
+   No surten a la taula principal sinó en un bloc a part, on es pot desfer
+   o fer la baixa amb esborrat de dades. */
+const noSApunta = r => r.status === 'cancelled' && r.trucada_estat === 'no_inscriu' && !r.esborrat_at;
+function blocNoApunten(llista, evPer) {
+  if (!llista.length) return '';
+  const quan = r => r.trucada_at ? formatDate(r.trucada_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', year: undefined }) : '';
+  return `
+<h3 class="sg-noapunten-titol">✗ No s'hi apunten (${llista.length})</h3>
+<p class="form-help no-print">No ocupen plaça. Si canvien d'opinió, canvia'ls l'estat. "Baixa" esborra les seves dades.</p>
+<div class="sg-taula-wrap sg-noapunten">
+<table class="admin-table sg-taula">
+  <thead><tr><th>Nom</th><th>Telèfon</th><th>Contacte</th>${evPer ? '<th>Activitat</th>' : ''}<th>Trucada</th><th>Qui i quan</th><th>Observacions</th><th class="no-print"></th></tr></thead>
+  <tbody>${llista.map(r => `
+  <tr>
+    <td>${esc(r.nom)}</td>
+    <td>${esc(r.telefon || '—')}</td>
+    <td>${esc(r.contacte || '—')}</td>
+    ${evPer ? `<td>${esc(evPer.get(r.event_id)?.titol?.ca || r.event_id)}</td>` : ''}
+    <td class="sg-truc">${celTrucada(r)}</td>
+    <td class="muted">${esc((r.trucada_per || '').replace(/\s*<.*>$/, ''))}${r.trucada_at ? ' · ' + esc(quan(r)) : ''}</td>
+    <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
+    <td class="no-print"><button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
+  </tr>`).join('')}</tbody>
+</table>
+</div>`;
+}
+/* Botó "Actualitzar": torna a llegir-ho tot (també les activitats) per veure
+   el que ha fet una altra persona del panell. */
+window.sgRefrescar = async function() {
+  state.eventsAt = 0;
+  await render();
+};
+function botoRefrescar() {
+  const t = state.seguiment.carregatAt;
+  const hora = t ? `${pad2(t.getHours())}:${pad2(t.getMinutes())}` : '';
+  return `<button class="btn btn-secondary" onclick="sgRefrescar()" title="Torna a llegir els canvis fets per altres persones">⟳ Actualitzar</button>
+    ${hora ? `<small class="muted sg-hora">Dades de les ${hora}</small>` : ''}`;
+}
 window.sgNomesPerTrucar = function() { state.seguiment.nomesPendents = !state.seguiment.nomesPendents; renderSeguiment(); };
 const perTrucar = r => ['pendent', 'no_contesta'].includes(trucadaDe(r));
 const AVIS_GUIO = '<p class="form-help no-print sg-avis-guio">En marcar <strong>✓ Inscrit/a</strong> confirmes que li has llegit la frase de protecció de dades del guió de trucada.</p>';
@@ -1751,14 +1792,13 @@ async function carregaSeguiment() {
   if (S.eventId === TOTES) {
     if (!S.mes) S.mes = avui().slice(0, 7);
     S.assistencia = {};
-    await loadReserves(null);
-    try {
-      const d = await apiGet(`/api/admin/orders?assistencia_totes=1&des=${S.mes}-01&fins=${ultimDia(S.mes)}`);
-      for (const a of d?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = a.present;
-    } catch (e) {
-      if (e instanceof AuthError) throw e;
-      S.error = 'No es pot llegir l\'assistència.';
-    }
+    const [, ass] = await Promise.all([
+      loadReserves(null),
+      apiGet(`/api/admin/orders?assistencia_totes=1&des=${S.mes}-01&fins=${ultimDia(S.mes)}`)
+        .catch(e => { if (e instanceof AuthError) throw e; S.error = 'No es pot llegir l\'assistència.'; return null; })
+    ]);
+    for (const a of ass?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = a.present;
+    S.carregatAt = new Date();
     return;
   }
   if (!S.eventId || !state.events.some(e => e.id === S.eventId)) { S.eventId = TOTES; S.mes = null; return carregaSeguiment(); }
@@ -1766,16 +1806,16 @@ async function carregaSeguiment() {
   if (!S.mes) S.mes = mesPerDefecte(ev);
   S.assistencia = {};
   if (!ev) { state.reserves = []; return; }
-  await loadReserves(ev.id);
   const ss = sessionsDe(ev, S.mes);
-  if (!ss.length) return;
-  try {
-    const d = await apiGet(`/api/admin/orders?llista=${encodeURIComponent(ev.id)}&des=${ss[0]}&fins=${ss[ss.length - 1]}`);
-    for (const a of d?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = a.present;
-  } catch (e) {
-    if (e instanceof AuthError) throw e;
-    S.error = 'No es pot llegir l\'assistència. Has executat els SQL v11 i v13?';
-  }
+  const [, ass] = await Promise.all([
+    loadReserves(ev.id),
+    ss.length
+      ? apiGet(`/api/admin/orders?llista=${encodeURIComponent(ev.id)}&des=${ss[0]}&fins=${ss[ss.length - 1]}`)
+          .catch(e => { if (e instanceof AuthError) throw e; S.error = 'No es pot llegir l\'assistència. Has executat els SQL v11 i v13?'; return null; })
+      : null
+  ]);
+  for (const a of ass?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = a.present;
+  S.carregatAt = new Date();
 }
 
 function dadesSeguiment() {
@@ -1784,6 +1824,7 @@ function dadesSeguiment() {
   const sessions = sessionsDe(ev, S.mes);
   const persones = state.reserves.filter(reservaViva).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
   const espera = state.reserves.filter(r => r.status === 'waitlist');
+  const noApunten = state.reserves.filter(noSApunta).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
   const passades = sessions.filter(d => d <= avui());
   const marca = (r, d) => S.assistencia[r.id]?.[d];
   const gratuita = ev && window.NXC.tarifesEvent(ev).every(t => t.preu_mode === 'gratuit') && !(ev.extres || []).some(x => x.preu_mode !== 'gratuit');
@@ -1795,7 +1836,7 @@ function dadesSeguiment() {
     const si = passades.filter(d => marca(r, d) === true).length;
     return Math.round(si * 100 / passades.length);
   };
-  return { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona };
+  return { S, ev, sessions, persones, espera, noApunten, passades, marca, gratuita, cobra, nivell, pctPersona };
 }
 
 /* Selectors comuns: centre + activitat (amb "Totes les activitats") */
@@ -1834,6 +1875,9 @@ function dadesTotes() {
     .sort((a, b) => (evPer.get(a.event_id)?.titol?.ca || '').localeCompare(evPer.get(b.event_id)?.titol?.ca || '', 'ca') || a.nom.localeCompare(b.nom, 'ca'));
   const espera = state.reserves.filter(r => r.status === 'waitlist')
     .filter(r => { const e = evPer.get(r.event_id); return e && (!state.filtreCentre || centreDe(e) === state.filtreCentre); });
+  const noApunten = state.reserves.filter(noSApunta)
+    .filter(r => { const e = evPer.get(r.event_id); return e && e.estat !== 'arxivat' && (!state.filtreCentre || centreDe(e) === state.filtreCentre); })
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
   const passadesDe = r => sessionsDe(evPer.get(r.event_id), S.mes).filter(d => d <= avui());
   const pct = r => {
     const ps = passadesDe(r);
@@ -1844,7 +1888,7 @@ function dadesTotes() {
   const cobra = r => { const e = evPer.get(r.event_id); return !r.pare_id && e && !gratuitaEv(e) && (aCobrar(r) > 0 || r.consultar); };
   const nivell = r => (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa')
     .map(l => `${l.nom?.ca || l.id}${l.qty > 1 ? ' ×' + l.qty : ''}`).join(', ') || (r.pare_id ? 'Sessió vinculada' : '');
-  return { S, evPer, persones, espera, pct, cobra, nivell };
+  return { S, evPer, persones, espera, noApunten, pct, cobra, nivell };
 }
 
 window.sgNomesPendents = function() { state.seguiment.nomesPendents = !state.seguiment.nomesPendents; renderSeguiment(); };
@@ -1887,6 +1931,7 @@ ${tabsHTML()}
 <div class="sg-cap no-print">
   <h1 style="margin:0">Seguiment · totes les activitats</h1>
   <div class="sg-accions">
+    ${botoRefrescar()}
     <button class="btn btn-secondary" onclick="sgExcel()">⬇ Excel</button>
     <button class="btn btn-secondary" onclick="sgImprimir(false)">🖨 Imprimir</button>
   </div>
@@ -1930,12 +1975,13 @@ ${espera.length ? `
 <h3>Llista d'espera (${espera.length})</h3>
 <ul class="ll-espera">${espera.map(r => `<li>${esc(r.nom)} · ${esc(r.telefon || '—')} · ${esc(evPer.get(r.event_id)?.titol?.ca || '')}
   <button class="btn btn-ghost btn-mini no-print" onclick="sgDeEspera('${esc(r.id)}')">Passar a inscrita</button></li>`).join('')}</ul>` : ''}
+${blocNoApunten(dt.noApunten, evPer)}
 <div class="sg-print-peu">Responsable: ______________________________ &nbsp;&nbsp; Signatura: ____________________ &nbsp;&nbsp; Data: ____________</div>`;
 }
 
 function renderSeguiment() {
   if (state.seguiment.eventId === TOTES) return renderSeguimentTotes();
-  const { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona } = dadesSeguiment();
+  const { S, ev, sessions, persones, espera, noApunten, passades, marca, gratuita, cobra, nivell, pctPersona } = dadesSeguiment();
 
   if (!ev) { app.innerHTML = tabsHTML() + '<div class="alert alert-info">Cap activitat per fer seguiment.</div>'; return; }
 
@@ -1975,6 +2021,7 @@ ${tabsHTML()}
 <div class="sg-cap no-print">
   <h1 style="margin:0">Seguiment</h1>
   <div class="sg-accions">
+    ${botoRefrescar()}
     <button class="btn btn-primary" onclick="sgObrirAfegir()">+ Afegir persona</button>
     <button class="btn btn-secondary" onclick="sgExcel()">⬇ Excel</button>
     <button class="btn btn-secondary" onclick="sgImprimir(false)">🖨 Imprimir</button>
@@ -2029,6 +2076,7 @@ ${espera.length ? `
 <h3>Llista d'espera (${espera.length})</h3>
 <ul class="ll-espera">${espera.map(r => `<li>${esc(r.nom)} · ${esc(r.telefon || '—')} · ${r.places} pl. · ${esc(ORIGEN_NOM[r.origen] || '')}
   <button class="btn btn-ghost btn-mini no-print" onclick="sgDeEspera('${esc(r.id)}')">Passar a inscrita</button></li>`).join('')}</ul>` : ''}
+${blocNoApunten(noApunten, null)}
 
 <div class="sg-print-peu">Responsable: ______________________________ &nbsp;&nbsp; Signatura: ____________________ &nbsp;&nbsp; Data: ____________</div>`;
 }

@@ -77,13 +77,13 @@ export default async function handler(req, res) {
       const eventId = req.query?.event_id;
       let q = sb.from('reserves').select('*').order('created_at', { ascending: false });
       if (eventId) q = q.eq('event_id', eventId);
-      const { data, error } = await q;
+      /* Reserves i pagaments mensuals alhora: dues consultes en paral·lel */
+      const [{ data, error }, { data: pm, error: pmErr }] = await Promise.all([
+        q,
+        sb.from('pagaments_mes').select('reserva_id, mes, import_cents, metode, nota, pagat_at, per')
+      ]);
       if (error) throw error;
-      /* Pagaments mensuals (activitats amb model "mensual") */
-      let pagaments_mes = [];
-      const { data: pm, error: pmErr } = await sb.from('pagaments_mes')
-        .select('reserva_id, mes, import_cents, metode, nota, pagat_at, per');
-      if (!pmErr) pagaments_mes = pm || [];
+      const pagaments_mes = pmErr ? [] : (pm || []);
       return json(res, 200, { reserves: data || [], pagaments_mes, stripe: modeStripe() });
     }
 
