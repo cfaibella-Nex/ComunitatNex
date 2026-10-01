@@ -1202,8 +1202,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 .footer-ia {
   display: block;
   margin-top: 4px;
-  font-size: 0.85em;
-  opacity: 0.8;
+  color: var(--text-muted);
 }
 .footer-copy {
   margin-top: var(--sp-4);

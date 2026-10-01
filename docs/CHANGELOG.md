@@ -8,10 +8,11 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 - `js/main.js` + `css/styles.css`: línia discreta al peu de totes les pàgines (CA/ES):
   "Fotografies generades amb IA amb finalitat il·lustrativa. No representen persones reals."
-- `legal.html`: paràgraf "Imatges generades amb IA" a l'avís legal (CA/ES) i fora la frase dels cartells
+- `legal.html`: apartat "Ús de la intel·ligència artificial" a l'avís legal (CA/ES): compliment del Reglament d'IA, fotos sintètiques, revisió humana, cap dada personal a eines d'IA i fora la frase dels cartells
   dels centres cívics (ja no se'n mostren des de la v25).
 - `accessibilitat.html`: fora la frase d'ampliar cartells.
 - Segell de caché de tots els HTML: `?v=54` → `?v=55`.
+- Sense opacitat ni lletra reduïda: l'art. 50.5 exigeix que l'avís compleixi accessibilitat (contrast ≥ 4,5:1).
 
 ---
 
