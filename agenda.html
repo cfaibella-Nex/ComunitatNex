@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agenda · Comunitat NexSocial</title>
-  <meta name="description" content="Totes les activitats, tallers i esdeveniments de Comunitat NexSocial a Badalona, ordenats per data.">
+  <meta name="description" content="Totes les activitats, tallers i esdeveniments de Comunitat NexSocial a Badalona, mes a mes.">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon-96.png">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="/css/styles.css?v=55">
+  <link rel="stylesheet" href="/css/styles.css?v=56">
   <meta property="og:title" content="Agenda · Comunitat NexSocial">
-  <meta property="og:description" content="Totes les activitats, tallers i esdeveniments de Comunitat NexSocial a Badalona, ordenats per data.">
+  <meta property="og:description" content="Totes les activitats, tallers i esdeveniments de Comunitat NexSocial a Badalona, mes a mes.">
   <meta property="og:image" content="https://comunitat.nexsocial.org/assets/og-comunitat.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -21,7 +21,7 @@
   <meta property="og:site_name" content="Comunitat NexSocial">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Agenda · Comunitat NexSocial">
-  <meta name="twitter:description" content="Totes les activitats, tallers i esdeveniments de Comunitat NexSocial a Badalona, ordenats per data.">
+  <meta name="twitter:description" content="Totes les activitats, tallers i esdeveniments de Comunitat NexSocial a Badalona, mes a mes.">
   <meta name="twitter:image" content="https://comunitat.nexsocial.org/assets/og-comunitat.jpg">
 </head>
 <body>
@@ -30,14 +30,26 @@
     <section class="section">
       <h1 data-i18n="agenda.title">Agenda</h1>
       <p class="lead" data-i18n="agenda.sub">Tot el que farem, ordenat per data.</p>
-      <div id="events-list" class="mt-4"></div>
+      <div class="agenda-filtres" role="search">
+        <div class="form-group">
+          <label class="form-label" for="ag-cerca" data-i18n="agenda.cerca">Cerca una activitat</label>
+          <input class="form-input" type="search" id="ag-cerca" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ag-tipus" data-i18n="agenda.tipus">Tipus d'activitat</label>
+          <select class="form-select" id="ag-tipus"></select>
+        </div>
+      </div>
+      <div id="agenda-calendari"></div>
+      <h2 class="agenda-llista-titol" data-i18n="agenda.llista">Totes les activitats</h2>
+      <div id="events-list"></div>
     </section>
   </main>
   <div id="footer-placeholder"></div>
 
-  <script src="/js/main.js?v=55"></script>
-  <script src="/js/data.js?v=55"></script>
-  <script src="/js/agenda.js?v=55"></script>
+  <script src="/js/main.js?v=56"></script>
+  <script src="/js/data.js?v=56"></script>
+  <script src="/js/agenda.js?v=56"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('[data-i18n]').forEach(el => {

@@ -145,55 +145,185 @@ function eventRowHTML(ev) {
 </a>`;
 }
 
-/* ═══ Render llistat cronològic (Agenda) ═══ */
-async function renderAgenda() {
-  const container = qs('#events-list');
-  if (!container) return;
+/* ═══ Agenda: filtres + calendari mensual + llistat ═══
+   Els dos filtres (cerca i tipus) s'apliquen alhora al calendari i al
+   llistat de sota. Al calendari només hi van les activitats amb dia
+   fix; les que tenen etiqueta ("Octubre 2026", "Pròximament") surten
+   en una línia sota la graella com a "data per confirmar". */
+const MESOS = {
+  ca: ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'],
+  es: ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+};
+const CAP_SETMANA = {
+  ca: ['DL','DT','DC','DJ','DV','DS','DG'],
+  es: ['LU','MA','MI','JU','VI','SA','DO']
+};
+const MESOS_ENDAVANT = 12;
+const majuscula = t => t.charAt(0).toUpperCase() + t.slice(1);
+const pla = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const teEtiqueta = ev => !window.NX.esSetmanal(ev) && Boolean(ev.data_label && L(ev.data_label));
 
-  container.innerHTML = window.NX.carregantHTML();
-  const events = sortEvents(await fetchEvents());
-  const visibles = events.filter(window.NX.visibleWeb);
+function passaFiltres(ev, f) {
+  if (f.tipus && ev.tipo !== f.tipus) return false;
+  if (!f.q) return true;
+  return pla([L(ev.titol), L(ev.ubicacio), L(ev.entitat)].join(' ')).includes(f.q);
+}
+
+/* Sessions d'una activitat dins del mes (any, mes 0-11), a partir d'avui */
+function sessionsDelMes(ev, any, mes, avui) {
+  const ini = String(ev.data || '').slice(0, 10);
+  if (!ini) return [];
+  if (!window.NX.esSetmanal(ev)) {
+    const d = new Date(ini + 'T12:00:00');
+    return d.getFullYear() === any && d.getMonth() === mes && ini >= avui ? [ini] : [];
+  }
+  const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
+  const dow = new Date(ini + 'T12:00:00').getDay();
+  const out = [];
+  const d = new Date(any, mes, 1, 12);
+  while (d.getMonth() === mes) {
+    const k = iso(d);
+    if (d.getDay() === dow && k >= ini && k >= avui && !tretes.has(k)) out.push(k);
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+function chipHTML(ev) {
+  const esgotat = estatPlaces(ev) === 'esgotat';
+  const titol = L(ev.titol);
+  return `<a class="cal-ev cal-ev--${esc(ev.tipo || 'altre')}${esgotat ? ' cal-ev--esgotat' : ''}"
+    href="/detall.html?id=${encodeURIComponent(ev.id)}" title="${esc(titol)}">
+    ${ev.hora ? `<span class="cal-ev-hora">${esc(ev.hora)}</span>` : ''}
+    <span class="cal-ev-titol">${esc(titol)}</span>
+    ${esgotat ? `<span class="cal-ev-esgotat">${esc(T('ev.esgotat'))}</span>` : ''}
+  </a>`;
+}
+
+function calendariHTML(events, any, mes, minMes, maxMes) {
+  const lang = window.NX.getLang();
+  const avui = window.NX.avuiISO();
+  const locale = lang === 'ca' ? 'ca-ES' : 'es-ES';
+  const perDia = {};
+  const ambDia = events.filter(ev => !teEtiqueta(ev));
+  for (const ev of ambDia) {
+    for (const k of sessionsDelMes(ev, any, mes, avui)) (perDia[k] = perDia[k] || []).push(ev);
+  }
+  Object.values(perDia).forEach(l => l.sort((a, b) => String(a.hora || '').localeCompare(String(b.hora || ''))));
+
+  const primer = new Date(any, mes, 1, 12);
+  const buits = (primer.getDay() + 6) % 7;            // setmana de dilluns a diumenge
+  const dies = new Date(any, mes + 1, 0).getDate();
+  const nomDia = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+  let celles = '';
+  for (let i = 0; i < buits; i++) celles += '<li class="cal-dia cal-dia--fora" aria-hidden="true"></li>';
+  for (let n = 1; n <= dies; n++) {
+    const d = new Date(any, mes, n, 12);
+    const k = iso(d);
+    const evs = perDia[k] || [];
+    const cls = ['cal-dia', evs.length ? 'cal-dia--amb' : 'cal-dia--sense',
+                 k === avui ? 'cal-dia--avui' : '', k < avui ? 'cal-dia--passat' : ''].filter(Boolean).join(' ');
+    celles += `<li class="${cls}">
+      <div class="cal-data"><span class="cal-data-llarg">${esc(majuscula(nomDia.format(d)))}</span><span class="cal-data-num" aria-hidden="true">${n}</span>${k === avui ? `<span class="cal-avui">${esc(T('agenda.avui'))}</span>` : ''}</div>
+      ${evs.length ? `<div class="cal-evs">${evs.map(chipHTML).join('')}</div>` : ''}
+    </li>`;
+  }
+
+  const senseDia = events.filter(ev => {
+    if (!teEtiqueta(ev)) return false;
+    const d = new Date(String(ev.data).slice(0, 10) + 'T12:00:00');
+    return d.getFullYear() === any && d.getMonth() === mes;
+  });
+  const clau = any * 12 + mes;
+  const titol = `${majuscula(MESOS[lang][mes])} ${any}`;
+
+  return `
+<section class="cal" aria-labelledby="cal-titol">
+  <div class="cal-cap">
+    <button type="button" class="cal-nav" data-pas="-1" aria-label="${esc(T('agenda.mes_ant'))}" ${clau <= minMes ? 'disabled' : ''}><span aria-hidden="true">‹</span></button>
+    <h2 class="cal-titol" id="cal-titol" aria-live="polite"><span class="sr-only">${esc(T('agenda.calendari'))}: </span>${esc(titol)}</h2>
+    <button type="button" class="cal-nav" data-pas="1" aria-label="${esc(T('agenda.mes_seg'))}" ${clau >= maxMes ? 'disabled' : ''}><span aria-hidden="true">›</span></button>
+  </div>
+  <div class="cal-setmana" aria-hidden="true">${CAP_SETMANA[lang].map(x => `<span>${x}</span>`).join('')}</div>
+  <ol class="cal-graella">${celles}</ol>
+  ${Object.keys(perDia).length ? '' : `<p class="cal-buit">${esc(T('agenda.cal_buit'))}</p>`}
+  ${senseDia.length ? `<p class="cal-sense-dia">${esc(T('agenda.sense_dia'))} ${senseDia.map(ev =>
+      `<a href="/detall.html?id=${encodeURIComponent(ev.id)}">${esc(L(ev.titol))}</a>`).join(' · ')}</p>` : ''}
+</section>`;
+}
+
+function llistatHTML(visibles) {
+  if (!visibles.length) return `<div class="alert alert-info">${T('agenda.sense_res')}</div>`;
+  const lang = window.NX.getLang();
+  /* Les setmanals van a part, a dalt: no tenen "mes" */
+  const setmanals = visibles.filter(window.NX.esSetmanal);
+  const groups = {};
+  visibles.filter(e => !window.NX.esSetmanal(e)).forEach(ev => {
+    const d = new Date(ev.data);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (!groups[key]) groups[key] = { label: `${MESOS[lang][d.getMonth()]} ${d.getFullYear()}`, items: [] };
+    groups[key].items.push(ev);
+  });
+  const blocSetmanal = setmanals.length ? `
+    <div class="agenda-month">
+      <h3 class="agenda-month-title">${esc(majuscula(T('ev.cada_setmana')))}</h3>
+      <div class="events-list-horizontal">${setmanals.map(eventRowHTML).join('')}</div>
+    </div>` : '';
+  return blocSetmanal + Object.keys(groups).sort().map(k => `
+    <div class="agenda-month">
+      <h3 class="agenda-month-title">${esc(majuscula(groups[k].label))}</h3>
+      <div class="events-list-horizontal">${groups[k].items.map(eventRowHTML).join('')}</div>
+    </div>`).join('');
+}
+
+async function renderAgenda() {
+  const llista = qs('#events-list');
+  if (!llista) return;
+  const cal = qs('#agenda-calendari');
+  const cerca = qs('#ag-cerca');
+  const selTipus = qs('#ag-tipus');
+
+  llista.innerHTML = window.NX.carregantHTML();
+  const visibles = sortEvents(await fetchEvents()).filter(window.NX.visibleWeb);
 
   if (visibles.length === 0) {
-    container.innerHTML = `<div class="alert alert-info">${T('agenda.empty')}</div>`;
+    if (cal) cal.innerHTML = '';
+    llista.innerHTML = `<div class="alert alert-info">${T('agenda.empty')}</div>`;
     return;
   }
 
-  /* Les setmanals van a part, a dalt: no tenen "mes" */
-  const setmanals = visibles.filter(window.NX.esSetmanal);
-  const upcoming = visibles.filter(e => !window.NX.esSetmanal(e));
+  const ara = new Date();
+  const minMes = ara.getFullYear() * 12 + ara.getMonth();
+  const maxMes = minMes + MESOS_ENDAVANT;
+  const estat = { mes: minMes, q: '', tipus: '' };
 
-  const groups = {};
-  const monthNames = {
-    ca: ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'],
-    es: ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-  };
-  const lang = window.NX.getLang();
+  if (cerca) cerca.placeholder = T('agenda.cerca_ph');
+  if (selTipus) {
+    const tipus = ['taller', 'esdeveniment', 'mensual'].filter(t => visibles.some(e => e.tipo === t));
+    selTipus.innerHTML = `<option value="">${esc(T('agenda.tots'))}</option>`
+      + tipus.map(t => `<option value="${t}">${esc(tipoLabel(t))}</option>`).join('');
+  }
 
-  upcoming.forEach(ev => {
-    const d = new Date(ev.data);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    const label = `${monthNames[lang][d.getMonth()]} ${d.getFullYear()}`;
-    if (!groups[key]) groups[key] = { label, items: [] };
-    groups[key].items.push(ev);
+  function pinta(nomesCal) {
+    const filtrats = visibles.filter(ev => passaFiltres(ev, estat));
+    if (cal) cal.innerHTML = calendariHTML(filtrats, Math.floor(estat.mes / 12), estat.mes % 12, minMes, maxMes);
+    if (!nomesCal) llista.innerHTML = llistatHTML(filtrats) + phoneBannerHTML();
+  }
+
+  cerca?.addEventListener('input', () => { estat.q = pla(cerca.value.trim()); pinta(); });
+  selTipus?.addEventListener('change', () => { estat.tipus = selTipus.value; pinta(); });
+  cal?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.cal-nav');
+    if (!btn || btn.disabled) return;
+    estat.mes = Math.min(maxMes, Math.max(minMes, estat.mes + Number(btn.dataset.pas)));
+    pinta(true);
+    /* El focus es perd en repintar: el tornem al mateix botó (o a l'altre si aquest queda desactivat) */
+    const mateix = cal.querySelector(`.cal-nav[data-pas="${btn.dataset.pas}"]`);
+    (mateix && !mateix.disabled ? mateix : cal.querySelector('.cal-nav:not([disabled])'))?.focus();
   });
 
-  const html = Object.keys(groups).sort().map(k => {
-    const g = groups[k];
-    return `
-    <div class="agenda-month">
-      <h2 class="agenda-month-title">${esc(g.label.charAt(0).toUpperCase() + g.label.slice(1))}</h2>
-      <div class="events-list-horizontal">${g.items.map(eventRowHTML).join('')}</div>
-    </div>`;
-  }).join('');
-
-  const blocSetmanal = setmanals.length ? `
-    <div class="agenda-month">
-      <h2 class="agenda-month-title">${esc(T('ev.cada_setmana').charAt(0).toUpperCase() + T('ev.cada_setmana').slice(1))}</h2>
-      <div class="events-list-horizontal">${setmanals.map(eventRowHTML).join('')}</div>
-    </div>` : '';
-
-  container.innerHTML = blocSetmanal + html + phoneBannerHTML();
+  pinta();
 }
 
 /* ═══ Render POSTERS (per home "Properes activitats") ═══ */

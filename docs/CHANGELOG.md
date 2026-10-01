@@ -4,6 +4,24 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v28 · Calendari mensual a l'Agenda
+
+- `agenda.html` + `js/agenda.js`: a dalt, filtres (cerca per nom, lloc o entitat, sense accents
+  ni majúscules, i tipus d'activitat) i calendari mensual dl→dg; a sota, el llistat de sempre.
+  Els filtres s'apliquen a tots dos.
+- Calendari: comença al mes actual, no deixa anar enrere i arriba fins a 12 mesos endavant.
+  Les setmanals es repeteixen cada setmana des de la data d'inici i se salten les sessions tretes
+  al panell (`sessions_tretes`). Només surten sessions d'avui endavant. Avui queda marcat.
+  Cada activitat porta al detall per reservar; les plenes surten ratllades amb "Ple".
+- Les activitats amb etiqueta en lloc de dia ("Octubre 2026", "Pròximament") no entren a la
+  graella: surten sota el calendari com a "data per confirmar".
+- Mòbil (≤720px): la graella passa a llista dels dies que tenen activitat, amb la data sencera.
+- `js/main.js`: textos nous `agenda.*` (CA/ES) i subtítol "mes a mes".
+- `css/styles.css`: bloc `.cal-*` i `.agenda-filtres`. Contrastos ≥ 5,4:1.
+- Segell de caché de tots els HTML: `?v=55` → `?v=56`.
+
+---
+
 ## v27 · Textos legals iguals que nexsocial.org
 
 - `legal.html`: avís legal, política de privacitat i política de cookies passen al mateix model i
