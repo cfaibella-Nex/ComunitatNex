@@ -4,6 +4,16 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v27 · Textos legals iguals que nexsocial.org
+
+- `legal.html`: avís legal, política de privacitat i política de cookies passen al mateix model i
+  redactat que els de www.nexsocial.org (`js/nexsocial.js`, modals), CA/ES. Únics canvis respecte
+  a l'original: "formulari d'inscripció" en lloc de "formularis de contacte" i "panell intern de
+  l'equip" en lloc de "NexlicitIA". Fora la taula de claus del navegador, el telèfon i la línia de versió.
+- Anclatges `#avis`, `#privacitat`, `#cookies` (i `-es`) es mantenen: els enllaços del peu i del formulari no canvien.
+
+---
+
 ## v26 · Avís d'imatges generades amb IA (art. 50 Reglament d'IA)
 
 - `js/main.js` + `css/styles.css`: línia discreta al peu de totes les pàgines (CA/ES):
