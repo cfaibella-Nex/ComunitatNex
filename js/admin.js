@@ -461,6 +461,78 @@ window.setTab = async function(t) {
   await render();
 };
 
+/* ── Resum de la programació (dalt de tot d'Activitats) ─────
+   Es construeix sol amb les activitats no arxivades que tenen alguna
+   sessió d'avui endavant. Una fila per activitat, agrupades per centre. */
+const DIES_LLARG = ['Diumenge', 'Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte'];
+const franjaDia = hora => {
+  const h = parseInt(String(hora || '').slice(0, 2), 10);
+  if (Number.isNaN(h)) return '';
+  return h < 14 ? 'matí' : h < 20 ? 'tarda' : 'vespre';
+};
+const ddmm = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+
+function filaResum(ev) {
+  const hui = avui();
+  const setmanal = ev.recurrencia === 'setmanal' && ev.data;
+  let dia, periodicitat, ordreDia, ordreData;
+  if (setmanal) {
+    const dow = new Date(String(ev.data).slice(0, 10) + 'T12:00:00').getDay();
+    dia = `${DIES_LLARG[dow]} ${franjaDia(ev.hora)}`.trim();
+    periodicitat = 'setmanal';
+    ordreDia = (dow + 6) % 7;                       // dilluns primer
+    ordreData = '';
+  } else {
+    const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
+    const afegides = Array.isArray(ev.sessions_afegides) ? ev.sessions_afegides : [];
+    const dates = [...new Set([String(ev.data || '').slice(0, 10), ...afegides])]
+      .filter(d => d && d >= hui && !tretes.has(d)).sort();
+    if (!dates.length) return null;                 // ja no té cap sessió: no surt al resum
+    const dows = new Set(dates.map(d => new Date(d + 'T12:00:00').getDay()));
+    dia = dows.size === 1
+      ? `${DIES_LLARG[[...dows][0]]} ${dates.map(ddmm).join(' + ')}`
+      : dates.map(d => `${DIES_LLARG[new Date(d + 'T12:00:00').getDay()].slice(0, 2).toLowerCase()}. ${ddmm(d)}`).join(' + ');
+    periodicitat = ev.model || 'puntual';
+    ordreDia = (new Date(dates[0] + 'T12:00:00').getDay() + 6) % 7;
+    ordreData = dates[0];
+  }
+  return { ev, centre: centreDe(ev), dia, periodicitat, horari: window.NX.franjaHoraria(ev) || '—',
+           ordre: [ordreDia, ev.hora || '99:99', ordreData] };
+}
+
+function resumProgramacioHTML() {
+  const files = state.events.filter(e => e.estat !== 'arxivat').map(filaResum).filter(Boolean)
+    .sort((a, b) => a.centre.localeCompare(b.centre, 'ca')
+      || a.ordre[0] - b.ordre[0] || a.ordre[1].localeCompare(b.ordre[1]) || a.ordre[2].localeCompare(b.ordre[2]));
+  if (!files.length) return '';
+  const perCentre = {};
+  files.forEach(f => (perCentre[f.centre] ||= []).push(f));
+  const PER = { setmanal: 'Setmanal', mensual: 'Mensual', trimestral: 'Trimestral', puntual: 'Puntual' };
+  const ESTAT_CURT = { proximament: 'Pròximament', esgotat: 'Ple' };
+  const centres = Object.keys(perCentre);
+
+  const cos = centres.map((c, ci) => perCentre[c].map((f, i) => `
+    <tr class="${i === 0 ? 'rp-primera' : ''}${ci % 2 ? ' rp-parell' : ''}">
+      ${i === 0 ? `<th scope="rowgroup" rowspan="${perCentre[c].length}" class="rp-centre">${esc(c)}</th>` : ''}
+      <td><button class="btn-link rp-act" onclick="editEvent('${esc(f.ev.id)}')" title="Editar">${esc(f.ev.titol?.ca || f.ev.id)}</button>${
+        ESTAT_CURT[f.ev.estat] ? ` <span class="rp-estat">${ESTAT_CURT[f.ev.estat]}</span>` : ''}</td>
+      <td><span class="rp-per rp-per--${f.periodicitat}">${PER[f.periodicitat] || esc(f.periodicitat)}</span></td>
+      <td class="rp-dia">${esc(f.dia)}</td>
+      <td class="rp-hora">${esc(f.horari)}</td>
+    </tr>`).join('')).join('');
+
+  return `
+<details class="rp" open>
+  <summary><strong>Resum de la programació</strong> <span class="muted">· ${files.length} activitats · ${centres.length} ${centres.length === 1 ? 'centre' : 'centres'}</span></summary>
+  <div class="rp-wrap">
+    <table class="rp-taula">
+      <thead><tr><th scope="col">Entitat / Equipament</th><th scope="col">Activitat / Taller</th><th scope="col">Periodicitat</th><th scope="col">Dia</th><th scope="col">Horari</th></tr></thead>
+      <tbody>${cos}</tbody>
+    </table>
+  </div>
+</details>`;
+}
+
 /* ── EVENTS list + editor ─────────────────────────────────── */
 const ESTAT_EVENT = {
   actiu:       { nom: 'Visible',      color: 'var(--success)' },
@@ -600,8 +672,8 @@ function renderEvents() {
   const ocup = ocupacio();
 
   const filtres = {
-    properes: e => (e.data || '') >= hui && e.estat !== 'arxivat',
-    passades: e => (e.data || '') < hui && e.estat !== 'arxivat',
+    properes: e => (e.recurrencia === 'setmanal' || (e.data || '') >= hui) && e.estat !== 'arxivat',
+    passades: e => e.recurrencia !== 'setmanal' && (e.data || '') < hui && e.estat !== 'arxivat',
     arxivades: e => e.estat === 'arxivat',
     totes: () => true
   };
@@ -612,6 +684,7 @@ function renderEvents() {
     .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
 
   const etiquetes = { properes: 'Properes', passades: 'Passades', arxivades: 'Arxivades', totes: 'Totes' };
+  const resum = resumProgramacioHTML();
 
   app.innerHTML = `
 ${tabsHTML()}
@@ -619,6 +692,8 @@ ${tabsHTML()}
   <h1 style="margin:0">Activitats</h1>
   <button class="btn btn-primary" onclick="editEvent(null)">+ Nova activitat</button>
 </div>
+
+${resum}
 
 <div class="filters" style="margin-bottom: var(--sp-3)">
   ${Object.keys(filtres).map(k => `

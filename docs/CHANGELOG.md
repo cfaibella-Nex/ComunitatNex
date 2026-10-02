@@ -4,6 +4,22 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v34 · Activitats: resum de la programació + revisió a portàtil
+
+- `js/admin.js` + `admin.html`: a dalt de la pestanya Activitats, taula "Resum de la
+  programació" (Entitat / Equipament · Activitat / Taller · Periodicitat · Dia · Horari),
+  agrupada per centre i ordenada per dia i hora. Es construeix sola amb les activitats no
+  arxivades que tenen alguna sessió d'avui endavant. Setmanals: "Dijous matí"; amb dates:
+  "Dimarts 13/10 + 10/11" (data + sessions afegides − tretes). Clic al nom = editar. Plegable.
+- Bug: les activitats setmanals amb data d'inici passada sortien a "Passades" amb l'avís "no surt
+  a la web" (sí que hi surten). Ara van a "Properes".
+- Portàtil (revisat amb captures a 1280×720, 1366×768 i 1536×864):
+  · el Seguiment desbordava 13 px a 1280 (contenidor flex sense `min-width: 0`);
+  · a les targetes d'activitat la data es tallava ("29/09/202"): camps ràpids amb amplades pròpies.
+- Segell de caché: `?v=60` → `?v=61`.
+
+---
+
 ## v33 · Agenda: el calendari obre per la setmana d'avui
 
 - `js/agenda.js`: el calendari comença mostrant només la setmana actual (dl→dg), amb fletxes

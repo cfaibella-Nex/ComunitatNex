@@ -6,7 +6,7 @@
   <title>Admin · Comunitat NexSocial</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/styles.css?v=60">
+  <link rel="stylesheet" href="/css/styles.css?v=61">
 
   <style>
     /* ── Escala del panell ───────────────────────────────────
@@ -39,7 +39,7 @@
     .admin-body .filter-btn { padding: 6px 14px; font-size: var(--fs-sm); }
     .admin-body .admin-table th,
     .admin-body .admin-table td { padding: 8px 10px; font-size: var(--fs-sm); }
-    .admin-body .section { padding: var(--sp-3); max-width: 1400px; }
+    .admin-body .section { padding: var(--sp-3); max-width: 1400px; min-width: 0; width: 100%; } /* body és flex: sense min-width:0 el Seguiment desbordava a 1280 px */
 
     /* Pantalla de login del panel */
     .admin-login {
@@ -51,6 +51,28 @@
       border: 1px solid rgba(15,45,30,0.10);
     }
     .admin-login h1 { margin-top: 0; }
+
+    /* Resum de la programació */
+    .rp { background: var(--white); border: 1px solid rgba(15,45,30,0.10); border-radius: var(--radius-lg); margin-bottom: var(--sp-3); }
+    .rp > summary { cursor: pointer; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-md); list-style-position: inside; }
+    .rp > summary:focus-visible { outline: 3px solid var(--forest); outline-offset: -3px; border-radius: var(--radius-lg); }
+    .rp-wrap { overflow-x: auto; padding: 0 var(--sp-3) var(--sp-3); }
+    .rp-taula { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+    .rp-taula thead th { text-align: left; background: var(--forest-hero); color: var(--ink); font-weight: 700; padding: 10px 12px; white-space: nowrap; }
+    .rp-taula td, .rp-taula tbody th { padding: 10px 12px; border-bottom: 1px solid rgba(15,45,30,0.10); vertical-align: top; text-align: left; }
+    .rp-taula tr.rp-primera > * { border-top: 2px solid rgba(15,45,30,0.18); }
+    .rp-taula tbody tr:first-child > * { border-top: 0; }
+    .rp-centre { font-weight: 700; color: var(--forest); width: 24%; background: #FBFAF8; }
+    .rp-act { text-align: left; font-weight: 600; color: var(--ink) !important; }
+    .rp-estat { font-size: 13px; font-weight: 700; color: var(--text); background: #F1EEEA; border-radius: var(--radius-pill); padding: 1px 8px; white-space: nowrap; }
+    .rp-per { display: inline-block; font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-pill); white-space: nowrap; }
+    .rp-per--setmanal { background: var(--forest); color: var(--white); }
+    .rp-per--mensual { background: #FFF4D6; color: #6B4E00; }
+    .rp-per--trimestral { background: #E6EEF8; color: #1F4470; }
+    .rp-per--puntual { background: #F1EEEA; color: var(--ink); }
+    .rp-dia { white-space: nowrap; }
+    .rp-hora { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    @media (max-width: 720px) { .rp-dia { white-space: normal; } .rp-centre { width: auto; } }
 
     /* Graella d'activitats */
     .ev-capcalera {
@@ -80,11 +102,11 @@
     .ev-avis { font-size: var(--fs-xs); color: var(--danger); font-weight:600; }
     .ev-titol { margin:0; font-size: var(--fs-md); }
     .ev-sub { margin:0 0 var(--sp-2); font-size: var(--fs-sm); color: var(--text-muted); }
-    .ev-rapid {
-      display:grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
-      gap: var(--sp-1); margin-bottom: var(--sp-2);
-    }
-    .ev-rapid label { display:block; font-size: var(--fs-xs); color: var(--text-muted); }
+    /* Data i hora necessiten més amplada que places: abans la data es tallava ("29/09/202") */
+    .ev-rapid { display:flex; flex-wrap: wrap; gap: var(--sp-1); margin-bottom: var(--sp-2); }
+    .ev-rapid label { display:block; font-size: var(--fs-xs); color: var(--text-muted); flex: 1 1 120px; min-width: 0; }
+    .ev-rapid label:nth-child(1) { flex: 1.4 1 155px; }
+    .ev-rapid label:nth-child(3) { flex: 0.6 1 76px; }
     .ev-rapid input, .ev-rapid select {
       width:100%; padding:6px 8px; font-size: var(--fs-sm);
       border:1px solid rgba(15,45,30,0.20); border-radius: var(--radius-sm);
@@ -321,9 +343,9 @@
     <div id="admin-app"></div>
   </main>
 
-  <script src="/js/main.js?v=60"></script>
-  <script src="/js/carret.js?v=60"></script>
-  <script src="/js/xlsx-mini.js?v=60"></script>
-  <script src="/js/admin.js?v=60"></script>
+  <script src="/js/main.js?v=61"></script>
+  <script src="/js/carret.js?v=61"></script>
+  <script src="/js/xlsx-mini.js?v=61"></script>
+  <script src="/js/admin.js?v=61"></script>
 </body>
 </html>
