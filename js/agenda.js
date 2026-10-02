@@ -178,25 +178,23 @@ function passaFiltres(ev, f) {
   return pla([L(ev.titol), L(ev.ubicacio), L(ev.entitat)].join(' ')).includes(f.q);
 }
 
-/* Sessions d'una activitat dins del mes (any, mes 0-11), a partir d'avui */
-function sessionsDelMes(ev, any, mes, avui) {
+/* Sessions d'una activitat entre dues dates (ISO, incloses), a partir d'avui */
+function sessionsRang(ev, des, fins, avui) {
   const ini = String(ev.data || '').slice(0, 10);
   if (!ini) return [];
-  if (!window.NX.esSetmanal(ev)) {
-    const d = new Date(ini + 'T12:00:00');
-    return d.getFullYear() === any && d.getMonth() === mes && ini >= avui ? [ini] : [];
-  }
+  const desde = des > avui ? des : avui;
+  if (!window.NX.esSetmanal(ev)) return ini >= desde && ini <= fins ? [ini] : [];
   const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
   const dow = new Date(ini + 'T12:00:00').getDay();
   const out = [];
-  const d = new Date(any, mes, 1, 12);
-  while (d.getMonth() === mes) {
-    const k = iso(d);
-    if (d.getDay() === dow && k >= ini && k >= avui && !tretes.has(k)) out.push(k);
-    d.setDate(d.getDate() + 1);
+  const d = new Date(desde + 'T12:00:00');
+  for (let k = iso(d); k <= fins; d.setDate(d.getDate() + 1), k = iso(d)) {
+    if (d.getDay() === dow && k >= ini && !tretes.has(k)) out.push(k);
   }
   return out;
 }
+const dilluns = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; };
+const mesDe = d => d.getFullYear() * 12 + d.getMonth();
 
 function chipHTML(ev) {
   const esgotat = estatPlaces(ev) === 'esgotat';
@@ -209,55 +207,81 @@ function chipHTML(ev) {
   </a>`;
 }
 
-function calendariHTML(events, any, mes, minMes, maxMes) {
+/* Vista "setmana" (per defecte: la setmana d'avui) o vista "mes".
+   v = { vista, setmana (Date dilluns), mes (any*12+mes), minSet, maxDia, minMes, maxMes } */
+function calendariHTML(events, v) {
   const lang = window.NX.getLang();
   const avui = window.NX.avuiISO();
   const locale = lang === 'ca' ? 'ca-ES' : 'es-ES';
+  const esMes = v.vista === 'mes';
+
+  /* Dies a pintar: amb el mes, buits al davant perquè el dia 1 caigui al seu dia */
+  let dies = [], buits = 0, any, mes;
+  if (esMes) {
+    any = Math.floor(v.mes / 12); mes = v.mes % 12;
+    buits = (new Date(any, mes, 1, 12).getDay() + 6) % 7;
+    const n = new Date(any, mes + 1, 0).getDate();
+    for (let i = 1; i <= n; i++) dies.push(new Date(any, mes, i, 12));
+  } else {
+    for (let i = 0; i < 7; i++) { const d = new Date(v.setmana); d.setDate(d.getDate() + i); dies.push(d); }
+  }
+  const des = iso(dies[0]), fins = iso(dies[dies.length - 1]);
+
   const perDia = {};
-  const ambDia = events.filter(ev => !teEtiqueta(ev));
-  for (const ev of ambDia) {
-    for (const k of sessionsDelMes(ev, any, mes, avui)) (perDia[k] = perDia[k] || []).push(ev);
+  for (const ev of events.filter(ev => !teEtiqueta(ev))) {
+    for (const k of sessionsRang(ev, des, fins, avui)) (perDia[k] = perDia[k] || []).push(ev);
   }
   Object.values(perDia).forEach(l => l.sort((a, b) => String(a.hora || '').localeCompare(String(b.hora || ''))));
 
-  const primer = new Date(any, mes, 1, 12);
-  const buits = (primer.getDay() + 6) % 7;            // setmana de dilluns a diumenge
-  const dies = new Date(any, mes + 1, 0).getDate();
   const nomDia = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' });
   let celles = '';
   for (let i = 0; i < buits; i++) celles += '<li class="cal-dia cal-dia--fora" aria-hidden="true"></li>';
-  for (let n = 1; n <= dies; n++) {
-    const d = new Date(any, mes, n, 12);
+  for (const d of dies) {
     const k = iso(d);
     const evs = perDia[k] || [];
     const cls = ['cal-dia', evs.length ? 'cal-dia--amb' : 'cal-dia--sense',
                  k === avui ? 'cal-dia--avui' : '', k < avui ? 'cal-dia--passat' : ''].filter(Boolean).join(' ');
     celles += `<li class="${cls}">
-      <div class="cal-data"><span class="cal-data-llarg">${esc(majuscula(nomDia.format(d)))}</span><span class="cal-data-num" aria-hidden="true">${n}</span>${k === avui ? `<span class="cal-avui">${esc(T('agenda.avui'))}</span>` : ''}</div>
+      <div class="cal-data"><span class="cal-data-llarg">${esc(majuscula(nomDia.format(d)))}</span><span class="cal-data-num" aria-hidden="true">${d.getDate()}</span>${k === avui ? `<span class="cal-avui">${esc(T('agenda.avui'))}</span>` : ''}</div>
       ${evs.length ? `<div class="cal-evs">${evs.map(chipHTML).join('')}</div>` : ''}
     </li>`;
   }
 
-  const senseDia = events.filter(ev => {
+  let titol, potAnt, potSeg, ant, seg;
+  if (esMes) {
+    titol = `${majuscula(MESOS[lang][mes])} ${any}`;
+    potAnt = v.mes > v.minMes; potSeg = v.mes < v.maxMes;
+    ant = T('agenda.mes_ant'); seg = T('agenda.mes_seg');
+  } else {
+    const curt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
+    titol = `${curt.format(dies[0])} – ${curt.format(dies[6])}`;
+    potAnt = des > iso(v.minSet); potSeg = fins < v.maxDia;
+    ant = T('agenda.set_ant'); seg = T('agenda.set_seg');
+  }
+
+  const senseDia = esMes ? events.filter(ev => {
     if (!teEtiqueta(ev)) return false;
     const d = new Date(String(ev.data).slice(0, 10) + 'T12:00:00');
     return d.getFullYear() === any && d.getMonth() === mes;
-  });
-  const clau = any * 12 + mes;
-  const titol = `${majuscula(MESOS[lang][mes])} ${any}`;
+  }) : [];
 
   return `
-<section class="cal" aria-labelledby="cal-titol">
+<section class="cal cal--${esMes ? 'mes' : 'setmana'}" aria-labelledby="cal-titol">
   <div class="cal-cap">
-    <button type="button" class="cal-nav" data-pas="-1" aria-label="${esc(T('agenda.mes_ant'))}" ${clau <= minMes ? 'disabled' : ''}><span aria-hidden="true">‹</span></button>
+    <button type="button" class="cal-nav" data-pas="-1" aria-label="${esc(ant)}" ${potAnt ? '' : 'disabled'}><span aria-hidden="true">‹</span></button>
     <h2 class="cal-titol" id="cal-titol" aria-live="polite"><span class="sr-only">${esc(T('agenda.calendari'))}: </span>${esc(titol)}</h2>
-    <button type="button" class="cal-nav" data-pas="1" aria-label="${esc(T('agenda.mes_seg'))}" ${clau >= maxMes ? 'disabled' : ''}><span aria-hidden="true">›</span></button>
+    <button type="button" class="cal-nav" data-pas="1" aria-label="${esc(seg)}" ${potSeg ? '' : 'disabled'}><span aria-hidden="true">›</span></button>
   </div>
   <div class="cal-setmana" aria-hidden="true">${CAP_SETMANA[lang].map(x => `<span>${x}</span>`).join('')}</div>
   <ol class="cal-graella">${celles}</ol>
-  ${Object.keys(perDia).length ? '' : `<p class="cal-buit">${esc(T('agenda.cal_buit'))}</p>`}
+  ${Object.keys(perDia).length ? '' : `<p class="cal-buit">${esc(T(esMes ? 'agenda.cal_buit' : 'agenda.cal_buit_set'))}</p>`}
   ${senseDia.length ? `<p class="cal-sense-dia">${esc(T('agenda.sense_dia'))} ${senseDia.map(ev =>
       `<a href="/detall.html?id=${encodeURIComponent(ev.id)}">${esc(L(ev.titol))}</a>`).join(' · ')}</p>` : ''}
+  <div class="cal-peu">
+    <button type="button" class="btn btn-secondary cal-vista" aria-expanded="${esMes}">
+      ${esc(T(esMes ? 'agenda.veure_setmana' : 'agenda.veure_mes'))} <span aria-hidden="true">${esMes ? '▴' : '▾'}</span>
+    </button>
+  </div>
 </section>`;
 }
 
@@ -302,9 +326,11 @@ async function renderAgenda() {
   }
 
   const ara = new Date();
-  const minMes = ara.getFullYear() * 12 + ara.getMonth();
+  const minMes = mesDe(ara);
   const maxMes = minMes + MESOS_ENDAVANT;
-  const estat = { mes: minMes, q: '', tipus: '' };
+  const minSet = dilluns(ara);
+  const maxDia = iso(new Date(ara.getFullYear(), ara.getMonth() + MESOS_ENDAVANT + 1, 0, 12));
+  const estat = { vista: 'setmana', setmana: new Date(minSet), mes: minMes, q: '', tipus: '' };
 
   if (cerca) cerca.placeholder = T('agenda.cerca_ph');
   if (selTipus) {
@@ -315,16 +341,37 @@ async function renderAgenda() {
 
   function pinta(nomesCal) {
     const filtrats = visibles.filter(ev => passaFiltres(ev, estat));
-    if (cal) cal.innerHTML = calendariHTML(filtrats, Math.floor(estat.mes / 12), estat.mes % 12, minMes, maxMes);
+    if (cal) cal.innerHTML = calendariHTML(filtrats, { ...estat, minSet, maxDia, minMes, maxMes });
     if (!nomesCal) llista.innerHTML = llistatHTML(filtrats) + phoneBannerHTML();
   }
 
   cerca?.addEventListener('input', () => { estat.q = pla(cerca.value.trim()); pinta(); });
   selTipus?.addEventListener('change', () => { estat.tipus = selTipus.value; pinta(); });
   cal?.addEventListener('click', (e) => {
+    /* Setmana ⇄ mes. Obrir el mes porta al mes de la setmana que es mirava;
+       tornar a la setmana sempre torna a la d'avui. */
+    if (e.target.closest('.cal-vista')) {
+      if (estat.vista === 'setmana') {
+        const ref = estat.setmana < ara ? ara : estat.setmana;
+        estat.vista = 'mes';
+        estat.mes = Math.min(maxMes, Math.max(minMes, mesDe(ref)));
+      } else {
+        estat.vista = 'setmana';
+        estat.setmana = new Date(minSet);
+      }
+      pinta(true);
+      cal.querySelector('.cal-vista')?.focus();
+      return;
+    }
     const btn = e.target.closest('.cal-nav');
     if (!btn || btn.disabled) return;
-    estat.mes = Math.min(maxMes, Math.max(minMes, estat.mes + Number(btn.dataset.pas)));
+    const pas = Number(btn.dataset.pas);
+    if (estat.vista === 'mes') {
+      estat.mes = Math.min(maxMes, Math.max(minMes, estat.mes + pas));
+    } else {
+      const d = new Date(estat.setmana); d.setDate(d.getDate() + 7 * pas);
+      estat.setmana = d < minSet ? new Date(minSet) : d;
+    }
     pinta(true);
     /* El focus es perd en repintar: el tornem al mateix botó (o a l'altre si aquest queda desactivat) */
     const mateix = cal.querySelector(`.cal-nav[data-pas="${btn.dataset.pas}"]`);

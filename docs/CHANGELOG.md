@@ -4,6 +4,18 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v33 · Agenda: el calendari obre per la setmana d'avui
+
+- `js/agenda.js`: el calendari comença mostrant només la setmana actual (dl→dg), amb fletxes
+  setmana a setmana. "Veure tot el mes ▾" obre el mes de la setmana que es mira, amb les fletxes
+  de mes de sempre; "Veure només aquesta setmana ▴" torna a la setmana d'avui. Funciona encara
+  que la setmana travessi dos mesos. La línia "data per confirmar" només surt a la vista de mes.
+- `js/main.js`: textos nous `agenda.set_*`, `agenda.veure_*`, `agenda.cal_buit_set` (CA/ES).
+- `css/styles.css`: `.cal-peu` i caselles més altes a la vista setmana.
+- Segell de caché: `?v=59` → `?v=60`.
+
+---
+
 ## v32 · Peu: logo de NexSocial més gran i correu en una línia
 
 - `js/main.js` + `css/styles.css`: la columna de logos passa de 170 a 240 px; el de NexSocial

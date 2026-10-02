@@ -1923,6 +1923,8 @@ html.lletra-2 { --fs-xs: 20px; --fs-sm: 23px; --fs-base: 26px; --fs-md: 28px; --
 .cal-ev-esgotat { display: block; color: var(--danger); font-weight: 700; font-size: 14px; text-transform: uppercase; }
 .cal-buit, .cal-sense-dia { margin: var(--sp-2) 0 0; font-size: var(--fs-base); color: var(--text); }
 .cal-sense-dia a { color: var(--forest); font-weight: 600; }
+.cal-peu { display: flex; justify-content: center; margin-top: var(--sp-3); }
+.cal--setmana .cal-dia { min-height: 150px; }
 .agenda-llista-titol { font-family: var(--font-head); font-size: var(--fs-2xl); color: var(--ink); margin: 0 0 var(--sp-3); }
 
 @media (max-width: 720px) {
@@ -1931,7 +1933,7 @@ html.lletra-2 { --fs-xs: 20px; --fs-sm: 23px; --fs-base: 26px; --fs-md: 28px; --
   .cal-cap { gap: var(--sp-2); }
   .cal-setmana, .cal-dia--fora, .cal-dia--sense { display: none; }
   .cal-graella { display: block; border: 0; }
-  .cal-dia { min-height: 0; border: 0; border-bottom: 1px solid rgba(15,45,30,0.12); padding: var(--sp-2) 4px; background: none; }
+  .cal-dia, .cal--setmana .cal-dia { min-height: 0; border: 0; border-bottom: 1px solid rgba(15,45,30,0.12); padding: var(--sp-2) 4px; background: none; }
   .cal-dia--avui { box-shadow: none; }
   .cal-data { justify-content: flex-start; margin-bottom: var(--sp-1); }
   .cal-data-num { display: none; }

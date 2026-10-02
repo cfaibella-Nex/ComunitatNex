@@ -39,6 +39,11 @@ const i18n = {
     'agenda.llista':   'Totes les activitats',
     'agenda.sense_res':'No hi ha cap activitat amb aquests filtres.',
     'agenda.calendari':'Calendari',
+    'agenda.set_ant':  'Setmana anterior',
+    'agenda.set_seg':  'Setmana següent',
+    'agenda.veure_mes':'Veure tot el mes',
+    'agenda.veure_setmana':'Veure només aquesta setmana',
+    'agenda.cal_buit_set':'Aquesta setmana no hi ha cap activitat amb dia fix.',
 
     'reserves.title':  'Reserves',
     'reserves.sub':    "Tria una categoria i apunta't a la que t'interessi.",
@@ -250,6 +255,11 @@ const i18n = {
     'agenda.llista':   'Todas las actividades',
     'agenda.sense_res':'No hay ninguna actividad con estos filtros.',
     'agenda.calendari':'Calendario',
+    'agenda.set_ant':  'Semana anterior',
+    'agenda.set_seg':  'Semana siguiente',
+    'agenda.veure_mes':'Ver todo el mes',
+    'agenda.veure_setmana':'Ver solo esta semana',
+    'agenda.cal_buit_set':'Esta semana no hay ninguna actividad con día fijo.',
 
     'reserves.title':  'Reservas',
     'reserves.sub':    'Elige una categoría y apúntate a la que te interese.',
