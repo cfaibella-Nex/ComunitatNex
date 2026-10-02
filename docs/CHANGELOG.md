@@ -4,6 +4,19 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v35 · Panell compacte (portàtil)
+
+- `admin.html` (només CSS del panell; la web pública no canvia): espais, botons i camps més
+  baixos (38 px, per sobre del mínim WCAG 2.2 de 24 px), capçalera de 56 px, títols més petits.
+- Seguiment: xifres en una franja baixa (número i detall a la mateixa línia), filtres i avís més
+  ajustats, activitat d'una persona en una sola línia amb el centre a sota → files més baixes.
+  A 1366×768 la taula comença a 450 px i es veuen 7 persones sense fer scroll (abans, cap).
+- Resum de la programació: files de 30 px.
+- Activitats: targetes en 3 columnes, camps ràpids en 2×2, foto i botons més petits.
+- Segell de caché: `?v=61` → `?v=62`.
+
+---
+
 ## v34 · Activitats: resum de la programació + revisió a portàtil
 
 - `js/admin.js` + `admin.html`: a dalt de la pestanya Activitats, taula "Resum de la
