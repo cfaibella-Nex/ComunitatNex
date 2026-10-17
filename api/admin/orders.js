@@ -14,7 +14,7 @@
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
 //   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }
 //   PATCH { accio: 'anular_pagament_mes', id, mes, motiu }
-//   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' }
+//   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' | 'no_inscriu' | 'no_assisteix' }
 //   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
 //   PATCH { accio: 'esborrar_activitat', event_id } → esborrat de totes les inscripcions d'una activitat acabada
 //

@@ -4,6 +4,26 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v36 · Seguiment: "⊘ Baixa no assistència"
+
+- Nou estat al desplegable de Trucada per a qui s'inscriu i no ve mai. Mateix funcionament que
+  "✗ No s'hi apunta": allibera la plaça, conserva les dades i surt en un bloc a part
+  ("⊘ Baixa per no assistència") on es pot desfer o fer la "Baixa" amb esborrat de dades.
+- A diferència de "No s'hi apunta", també treu de la llista qui ja tenia assistència marcada.
+  Les assistències passades es conserven.
+- `js/admin.js`, `api/admin/orders.js` (només comentari), `admin.html` (`admin.js?v=63`).
+
+Taller d'Excel a Can Pepus, dos grups (cada un és una activitat amb llista i assistència pròpies):
+- Tarda: cada dimarts 17:45–18:45 (des del 20/10). Matí: cada dijous 12:10–13:10 (des del 22/10).
+- `sql/18-taller-excel-canpepus.sql`: els crea copiant la configuració del taller de mòbil de Can Pepus
+  (entitat, lloc, mapa, foto del casal, model, tarifa, places, estat). Idempotent.
+- `assets/taller-excel.jpg` + `.webp` (1200×800, foto pròpia generada amb IA).
+
+Dades: **executar `sql/17-baixa-no-assistencia.sql` i `sql/18-taller-excel-canpepus.sql`** a Supabase
+abans de publicar. Provats tots dos contra Postgres 16 local.
+
+---
+
 ## v35 · Panell compacte (portàtil)
 
 - `admin.html` (només CSS del panell; la web pública no canvia): espais, botons i camps més

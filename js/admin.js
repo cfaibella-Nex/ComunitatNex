@@ -1753,7 +1753,8 @@ const TRUCADA = {
   pendent:     { nom: '☎ Pendent de trucar', cls: 'tr-pendent' },
   no_contesta: { nom: '📵 No contesta',      cls: 'tr-nocontesta' },
   inscrit:     { nom: '✓ Inscrit/a',         cls: 'tr-inscrit' },
-  no_inscriu:  { nom: "✗ No s'hi apunta",    cls: 'tr-no' }
+  no_inscriu:  { nom: "✗ No s'hi apunta",    cls: 'tr-no' },
+  no_assisteix:{ nom: '⊘ Baixa no assistència', cls: 'tr-no' }
 };
 function trucadaDe(r) {
   if (r.trucada_estat) return r.trucada_estat;
@@ -1778,11 +1779,19 @@ window.sgTrucada = async function(id, estat, sel) {
    No surten a la taula principal sinó en un bloc a part, on es pot desfer
    o fer la baixa amb esborrat de dades. */
 const noSApunta = r => r.status === 'cancelled' && r.trucada_estat === 'no_inscriu' && !r.esborrat_at;
-function blocNoApunten(llista, evPer) {
+/* "⊘ Baixa no assistència" (SQL 17): mateix funcionament, per a qui s'inscriu i no ve mai. */
+const baixaNoAssist = r => r.status === 'cancelled' && r.trucada_estat === 'no_assisteix' && !r.esborrat_at;
+const FORA_LLISTA = [
+  { filtre: noSApunta,     titol: "✗ No s'hi apunten" },
+  { filtre: baixaNoAssist, titol: '⊘ Baixa per no assistència' }
+];
+const blocsForaLlista = (rs, evPer, extra = () => true) => FORA_LLISTA.map(b =>
+  blocNoApunten(rs.filter(b.filtre).filter(extra).sort((a, c) => a.nom.localeCompare(c.nom, 'ca')), evPer, b.titol)).join('');
+function blocNoApunten(llista, evPer, titol = "✗ No s'hi apunten") {
   if (!llista.length) return '';
   const quan = r => r.trucada_at ? formatDate(r.trucada_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', year: undefined }) : '';
   return `
-<h3 class="sg-noapunten-titol">✗ No s'hi apunten (${llista.length})</h3>
+<h3 class="sg-noapunten-titol">${titol} (${llista.length})</h3>
 <p class="form-help no-print">No ocupen plaça. Si canvien d'opinió, canvia'ls l'estat. "Baixa" esborra les seves dades.</p>
 <div class="sg-taula-wrap sg-noapunten">
 <table class="admin-table sg-taula">
@@ -1903,7 +1912,6 @@ function dadesSeguiment() {
   const sessions = sessionsDe(ev, S.mes);
   const persones = state.reserves.filter(reservaViva).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
   const espera = state.reserves.filter(r => r.status === 'waitlist');
-  const noApunten = state.reserves.filter(noSApunta).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
   const passades = sessions.filter(d => d <= avui());
   const marca = (r, d) => S.assistencia[r.id]?.[d];
   const gratuita = ev && window.NXC.tarifesEvent(ev).every(t => t.preu_mode === 'gratuit') && !(ev.extres || []).some(x => x.preu_mode !== 'gratuit');
@@ -1915,7 +1923,7 @@ function dadesSeguiment() {
     const si = passades.filter(d => marca(r, d) === true).length;
     return Math.round(si * 100 / passades.length);
   };
-  return { S, ev, sessions, persones, espera, noApunten, passades, marca, gratuita, cobra, nivell, pctPersona };
+  return { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona };
 }
 
 /* Selectors comuns: centre + activitat (amb "Totes les activitats") */
@@ -1954,9 +1962,7 @@ function dadesTotes() {
     .sort((a, b) => (evPer.get(a.event_id)?.titol?.ca || '').localeCompare(evPer.get(b.event_id)?.titol?.ca || '', 'ca') || a.nom.localeCompare(b.nom, 'ca'));
   const espera = state.reserves.filter(r => r.status === 'waitlist')
     .filter(r => { const e = evPer.get(r.event_id); return e && (!state.filtreCentre || centreDe(e) === state.filtreCentre); });
-  const noApunten = state.reserves.filter(noSApunta)
-    .filter(r => { const e = evPer.get(r.event_id); return e && e.estat !== 'arxivat' && (!state.filtreCentre || centreDe(e) === state.filtreCentre); })
-    .sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
+  const foraLlista = r => { const e = evPer.get(r.event_id); return e && e.estat !== 'arxivat' && (!state.filtreCentre || centreDe(e) === state.filtreCentre); };
   const passadesDe = r => sessionsDe(evPer.get(r.event_id), S.mes).filter(d => d <= avui());
   const pct = r => {
     const ps = passadesDe(r);
@@ -1967,14 +1973,14 @@ function dadesTotes() {
   const cobra = r => { const e = evPer.get(r.event_id); return !r.pare_id && e && !gratuitaEv(e) && (aCobrar(r) > 0 || r.consultar); };
   const nivell = r => (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa')
     .map(l => `${l.nom?.ca || l.id}${l.qty > 1 ? ' ×' + l.qty : ''}`).join(', ') || (r.pare_id ? 'Sessió vinculada' : '');
-  return { S, evPer, persones, espera, noApunten, pct, cobra, nivell };
+  return { S, evPer, persones, espera, foraLlista, pct, cobra, nivell };
 }
 
 /* ── Filtres i ordre de la taula del Seguiment ─────────────
    Cerca (nom, telèfon, contacte), estat de trucada, pagat i ordre per
    columna. S'apliquen a la taula, a la impressió i a l'Excel; les xifres
    de dalt sempre compten tothom. */
-const ORDRE_TRUCADA = { pendent: 0, no_contesta: 1, inscrit: 2, no_inscriu: 3 };
+const ORDRE_TRUCADA = { pendent: 0, no_contesta: 1, inscrit: 2, no_inscriu: 3, no_assisteix: 4 };
 const plaSg = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const nomesXifres = t => String(t || '').replace(/\D/g, '');
 const hiHaFiltres = () => { const f = state.sgFiltre; return Boolean(f.q || f.trucada || f.pagat); };
@@ -2025,7 +2031,7 @@ function filtresSgHTML(total, visibles) {
   <label class="ins-camp"><span>Trucada</span>
     <select class="form-select" onchange="sgFiltre('trucada', this.value)">
       ${opt('', 'Totes', f.trucada)}${opt('per_trucar', 'Per trucar (pendent + no contesta)', f.trucada)}
-      ${Object.entries(TRUCADA).filter(([k]) => k !== 'no_inscriu').map(([k, v]) => opt(k, v.nom, f.trucada)).join('')}
+      ${Object.entries(TRUCADA).filter(([k]) => !['no_inscriu', 'no_assisteix'].includes(k)).map(([k, v]) => opt(k, v.nom, f.trucada)).join('')}
     </select></label>
   <label class="ins-camp"><span>Pagat</span>
     <select class="form-select" onchange="sgFiltre('pagat', this.value)">
@@ -2149,13 +2155,13 @@ ${espera.length ? `
 <h3>Llista d'espera (${espera.length})</h3>
 <ul class="ll-espera">${espera.map(r => `<li>${esc(r.nom)} · ${esc(r.telefon || '—')} · ${esc(evPer.get(r.event_id)?.titol?.ca || '')}
   <button class="btn btn-ghost btn-mini no-print" onclick="sgDeEspera('${esc(r.id)}')">Passar a inscrita</button></li>`).join('')}</ul>` : ''}
-${blocNoApunten(dt.noApunten, evPer)}
+${blocsForaLlista(state.reserves, evPer, dt.foraLlista)}
 <div class="sg-print-peu">Responsable: ______________________________ &nbsp;&nbsp; Signatura: ____________________ &nbsp;&nbsp; Data: ____________</div>`;
 }
 
 function renderSeguiment() {
   if (state.seguiment.eventId === TOTES) return renderSeguimentTotes();
-  const { S, ev, sessions, persones, espera, noApunten, passades, marca, gratuita, cobra, nivell, pctPersona } = dadesSeguiment();
+  const { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona } = dadesSeguiment();
 
   if (!ev) { app.innerHTML = tabsHTML() + '<div class="alert alert-info">Cap activitat per fer seguiment.</div>'; return; }
 
@@ -2252,7 +2258,7 @@ ${espera.length ? `
 <h3>Llista d'espera (${espera.length})</h3>
 <ul class="ll-espera">${espera.map(r => `<li>${esc(r.nom)} · ${esc(r.telefon || '—')} · ${r.places} pl. · ${esc(ORIGEN_NOM[r.origen] || '')}
   <button class="btn btn-ghost btn-mini no-print" onclick="sgDeEspera('${esc(r.id)}')">Passar a inscrita</button></li>`).join('')}</ul>` : ''}
-${blocNoApunten(noApunten, null)}
+${blocsForaLlista(state.reserves, null)}
 
 <div class="sg-print-peu">Responsable: ______________________________ &nbsp;&nbsp; Signatura: ____________________ &nbsp;&nbsp; Data: ____________</div>`;
 }
