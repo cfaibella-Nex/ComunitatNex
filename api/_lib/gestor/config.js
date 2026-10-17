@@ -36,7 +36,7 @@ export const GESTOR = {
   estats: [
     { id: 'actiu',       nom: 'Visible',      ajuda: 'Es veu i s\'hi pot reservar' },
     { id: 'proximament', nom: 'Pròximament',  ajuda: 'Es veu, però encara no s\'hi pot reservar' },
-    { id: 'esgotat',     nom: 'Esgotat',      ajuda: 'Es veu amb la franja de complet; no s\'hi pot reservar' },
+    { id: 'esgotat',     nom: 'Esgotat',      ajuda: 'Es veu com a "Inscripcions completes"; només s\'hi pot apuntar a la llista d\'espera' },
     { id: 'arxivat',     nom: 'Arxivat',      ajuda: 'No apareix a la web. Les reserves fetes es conserven' }
   ],
 

@@ -51,8 +51,10 @@ async function renderCheckout() {
   const mode = NXC.cobrament(ev);
   /* Mateixa regla que el servidor: amb alguna línia a consultar o un
      total per sota del mínim de Stripe, no es cobra en línia. */
-  const pagaAra = mode === 'online' && !consultar && cents >= 50;
-  const avis = consultar ? 'chk.consultar'
+  const espera = window.NX.estatPlaces(ev) === 'esgotat';   // el servidor la posarà a la llista d'espera
+  const pagaAra = !espera && mode === 'online' && !consultar && cents >= 50;
+  const avis = espera ? 'chk.espera'
+             : consultar ? 'chk.consultar'
              : pagaAra ? 'chk.online'
              : cents > 0 && mode === 'online_aviat' ? 'chk.online_aviat'
              : cents > 0 && mode === 'presencial' ? 'chk.presencial'
@@ -128,7 +130,7 @@ async function renderCheckout() {
         ${avis ? `<div class="alert alert-info ins-avis">${esc(NXC.t(avis))}</div>` : ''}
 
         <button type="button" id="btn-reservar" class="btn btn-primary btn-lg btn-block" style="margin-top: var(--sp-2)">
-          ${pagaAra ? '💳 ' + esc(NXC.t('chk.pagar')) : T('form.enviar')}
+          ${pagaAra ? '💳 ' + esc(NXC.t('chk.pagar')) : espera ? T('form.espera') : T('form.enviar')}
         </button>
 
         <div class="muted" style="font-size: var(--fs-xs); margin-top: var(--sp-2); text-align: center">

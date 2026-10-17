@@ -135,7 +135,7 @@ function eventRowHTML(ev) {
     <h3 class="event-row-title">${esc(L(ev.titol))}</h3>
     <div class="event-row-loc">📍 ${esc(L(ev.ubicacio))}</div>
     <div class="event-row-cta">
-      <span class="event-row-arrow">${esgotat ? T('ev.esgotat') : T('ev.reservar') + ' →'}</span>
+      <span class="event-row-arrow">${esgotat ? T('ev.esgotat') + ' · ' + T('ev.espera') + ' →' : T('ev.reservar') + ' →'}</span>
     </div>
   </div>
   <div class="event-row-img${ev.cartell ? ' event-row-img--cartell' : ''}">
@@ -498,13 +498,11 @@ ${ev.cartell ? `
       <h3 style="margin-top:0">${T('form.title')}</h3>
       <p class="muted" style="margin-bottom:var(--sp-3); font-size:var(--fs-sm)">${NXC.t(unica ? 'ins.tria' : 'ins.tria_nivell')}</p>
 
-      ${esgotat
-        ? `<div class="alert alert-warning">${T('ev.esgotat')}</div>`
-        : `
+      ${esgotat ? `<div class="alert alert-warning"><strong>${T('ev.esgotat')}.</strong> ${T('ev.espera_avis')}</div>` : ''}
         <div class="ins-tarifes" id="ins-tarifes">
-          ${tarifes.map(x => tarifaHTML(ev, x, unica)).join('')}
+          ${tarifes.map(x => tarifaHTML(ev, x, unica, esgotat)).join('')}
         </div>
-        <div class="form-help ins-queden">${places} ${T('ev.places')}</div>
+        ${esgotat ? '' : `<div class="form-help ins-queden">${places} ${T('ev.places')}</div>`}
 
         <div class="total-box">
           <span>${T('form.total')}</span>
@@ -513,9 +511,8 @@ ${ev.cartell ? `
 
         <p class="form-error" id="ins-error" hidden>${NXC.t('ins.cap')}</p>
         <button type="button" id="btn-continuar" class="btn btn-primary btn-lg btn-block">
-          ${T('form.continuar')} →
+          ${esgotat ? T('form.espera') : T('form.continuar')} →
         </button>
-      `}
 
       <div class="booking-phone">
         <div class="muted" style="font-size:var(--fs-sm)">${T('phone.text')}</div>
@@ -525,16 +522,18 @@ ${ev.cartell ? `
   </div>
 </div>`;
 
-  if (!esgotat) bindInscripcio(ev, events, places);
+  bindInscripcio(ev, events, places, esgotat);
 }
 
 /* Una fila per tarifa (nivell). Amb una sola tarifa es veu com
    sempre: "Places" i el selector, sense parlar de nivells. */
-function tarifaHTML(ev, tarifa, unica) {
+function tarifaHTML(ev, tarifa, unica, espera = false) {
   const NXC = window.NXC;
-  const estat = NXC.estatTarifa(ev, tarifa);
+  /* Llista d'espera: només queda tancat el nivell marcat "complet" a mà
+     (el servidor el rebutja); la resta s'hi pot apuntar. */
+  const estat = espera ? (tarifa.estat === 'complet' ? 'complet' : 'espera') : NXC.estatTarifa(ev, tarifa);
   const complet = estat === 'complet';
-  const restants = NXC.restantsTarifa(ev, tarifa);
+  const restants = espera ? null : NXC.restantsTarifa(ev, tarifa);
   const nom = unica ? T('form.places') : L(tarifa.nom);
   const pill = complet
     ? `<span class="ins-pill ins-pill--ple">${NXC.t('nivell.complet')}</span>`
@@ -553,8 +552,10 @@ function tarifaHTML(ev, tarifa, unica) {
 }
 
 /* Pas 1: quantitats per tarifa. Límits: places de l'activitat, places
-   del nivell (si en té) i 10 per reserva, com fins ara. */
-function bindInscripcio(ev, events, placesEv) {
+   del nivell (si en té) i 10 per reserva, com fins ara.
+   Amb `espera` (inscripcions completes) només val el límit de 10: la
+   reserva entra a la llista d'espera (ho decideix el servidor). */
+function bindInscripcio(ev, events, placesEv, espera = false) {
   const NXC = window.NXC;
   const tarifes = NXC.tarifesEvent(ev);
   const MAX_RESERVA = 10;
@@ -562,19 +563,20 @@ function bindInscripcio(ev, events, placesEv) {
   const cart = { event_id: ev.id, linies: {}, extres: {} };
   if (prev) { cart.linies = prev.linies; cart.extres = prev.extres; }
 
+  const tancada = x => espera ? x.estat === 'complet' : NXC.estatTarifa(ev, x) === 'complet';
   /* Un carret desat abans que el nivell s'omplís no el pot arrossegar */
   for (const x of tarifes) {
-    if (NXC.estatTarifa(ev, x) === 'complet') delete cart.linies[x.id];
+    if (tancada(x)) delete cart.linies[x.id];
   }
   /* Amb una sola tarifa, 1 plaça preseleccionada: com abans */
-  const obertes = tarifes.filter(x => NXC.estatTarifa(ev, x) !== 'complet');
+  const obertes = tarifes.filter(x => !tancada(x));
   if (!NXC.cartPlaces(cart) && tarifes.length === 1 && obertes.length) cart.linies[obertes[0].id] = 1;
 
   const maxDe = (tarifa) => {
-    if (NXC.estatTarifa(ev, tarifa) === 'complet') return 0;
+    if (tancada(tarifa)) return 0;
     const altres = NXC.cartPlaces(cart) - (cart.linies[tarifa.id] || 0);
-    let max = Math.min(placesEv, MAX_RESERVA) - altres;
-    const rt = NXC.restantsTarifa(ev, tarifa);
+    let max = (espera ? MAX_RESERVA : Math.min(placesEv, MAX_RESERVA)) - altres;
+    const rt = espera ? null : NXC.restantsTarifa(ev, tarifa);
     if (rt !== null) max = Math.min(max, rt);
     return Math.max(0, max);
   };

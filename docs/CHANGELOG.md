@@ -4,6 +4,20 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v37 · Activitat plena → llista d'espera des de la web
+
+Abans, amb les places plenes sortia "Ple" i no deixava apuntar-se.
+- El rètol passa de "Ple / Completo" a "Inscripcions completes / Inscripciones completas" (targetes,
+  agenda, calendari i fitxa).
+- Fitxa: avís + es poden triar places (màx. 10) i el botó diu "Apuntar-me a la llista d'espera".
+  El servidor ja ho posava a `waitlist` (`p_permet_espera`): **no cal SQL**. Només queda tancat el
+  nivell marcat "complet" a mà al panell.
+- Pas final: avís de llista d'espera i sense pagament amb targeta.
+- Agenda (llista): la fila d'una activitat plena torna a ser clicable.
+- Panell: l'ajuda de l'estat "Esgotat" ho explica.
+- `js/main.js`, `js/carret.js`, `js/agenda.js`, `js/checkout.js`, `css/styles.css`,
+  `api/_lib/gestor/config.js`. Segell de caché `?v=62` → `?v=63` a tots els HTML.
+
 ## v36 · Seguiment: "⊘ Baixa no assistència"
 
 - Nou estat al desplegable de Trucada per a qui s'inscriu i no ve mai. Mateix funcionament que

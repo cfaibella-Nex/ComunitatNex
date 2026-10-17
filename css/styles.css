@@ -1274,7 +1274,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   border-color: var(--green-mid);
   color: var(--text);
 }
-.event-row.is-esgotat { opacity: 0.55; pointer-events: none; }
+.event-row.is-esgotat { opacity: 0.55; }
 
 .event-row-date {
   display: flex;
