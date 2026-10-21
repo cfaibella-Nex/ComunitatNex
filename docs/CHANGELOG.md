@@ -4,6 +4,24 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v38 · Seguiment: Baixa voluntària i marques d'assistència noves
+
+- Trucada: estat nou **"↩ Baixa voluntària"** (la persona diu que ho deixa). Mateix funcionament que
+  "⊘ Baixa no assistència": allibera la plaça, conserva dades i assistències, surt en un bloc a part
+  ("↩ Baixes voluntàries") i es pot desfer.
+- Assistència: la casella passa per **buit → ✓ → ✗ → J → — → buit** (✓ continua sent un sol clic).
+  · **J** falta justificada (metge…): requadre verd amb una J. No és una ✗ verda perquè ✗ vermella i
+    ✗ verda no les distingeix tothom (daltonisme); amb un signe propi no hi ha confusió.
+  · **—** encara no estava inscrit/a: requadre ratllat gris. Per a les sessions d'abans de l'alta.
+  · J i — **no compten al %** (ni a favor ni en contra), ni al de la persona ni a la mitjana.
+  · Llegenda a sobre de la taula; Excel i impressió amb els mateixos signes; a "Passar llista" es veu
+    l'etiqueta si el dia té J o —.
+- `js/admin.js`, `admin.html` (estils + `admin.js?v=64`), `api/admin/orders.js` (camp `motiu`).
+
+Dades: **executar `sql/19-assistencia-motius-baixa-voluntaria.sql` abans de publicar** (sense ell,
+el Seguiment no pot llegir l'assistència). Inclou el 17: si no l'havies executat, ja no cal.
+Provat contra Postgres 16 local, i el panell amb dades de prova (cicle de clics i %).
+
 ## v37 · Activitat plena → llista d'espera des de la web
 
 Abans, amb les places plenes sortia "Ple" i no deixava apuntar-se.

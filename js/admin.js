@@ -1754,7 +1754,8 @@ const TRUCADA = {
   no_contesta: { nom: '📵 No contesta',      cls: 'tr-nocontesta' },
   inscrit:     { nom: '✓ Inscrit/a',         cls: 'tr-inscrit' },
   no_inscriu:  { nom: "✗ No s'hi apunta",    cls: 'tr-no' },
-  no_assisteix:{ nom: '⊘ Baixa no assistència', cls: 'tr-no' }
+  no_assisteix:{ nom: '⊘ Baixa no assistència', cls: 'tr-no' },
+  baixa_voluntaria: { nom: '↩ Baixa voluntària', cls: 'tr-no' }
 };
 function trucadaDe(r) {
   if (r.trucada_estat) return r.trucada_estat;
@@ -1781,9 +1782,12 @@ window.sgTrucada = async function(id, estat, sel) {
 const noSApunta = r => r.status === 'cancelled' && r.trucada_estat === 'no_inscriu' && !r.esborrat_at;
 /* "⊘ Baixa no assistència" (SQL 17): mateix funcionament, per a qui s'inscriu i no ve mai. */
 const baixaNoAssist = r => r.status === 'cancelled' && r.trucada_estat === 'no_assisteix' && !r.esborrat_at;
+/* "↩ Baixa voluntària" (SQL 19): la persona diu que ho deixa. Mateix funcionament. */
+const baixaVoluntaria = r => r.status === 'cancelled' && r.trucada_estat === 'baixa_voluntaria' && !r.esborrat_at;
 const FORA_LLISTA = [
-  { filtre: noSApunta,     titol: "✗ No s'hi apunten" },
-  { filtre: baixaNoAssist, titol: '⊘ Baixa per no assistència' }
+  { filtre: noSApunta,       titol: "✗ No s'hi apunten" },
+  { filtre: baixaNoAssist,   titol: '⊘ Baixa per no assistència' },
+  { filtre: baixaVoluntaria, titol: '↩ Baixes voluntàries' }
 ];
 const blocsForaLlista = (rs, evPer, extra = () => true) => FORA_LLISTA.map(b =>
   blocNoApunten(rs.filter(b.filtre).filter(extra).sort((a, c) => a.nom.localeCompare(c.nom, 'ca')), evPer, b.titol)).join('');
@@ -1827,6 +1831,20 @@ window.sgNomesPerTrucar = function() {
   renderSeguiment();
 };
 const perTrucar = r => ['pendent', 'no_contesta'].includes(trucadaDe(r));
+/* ── Marques d'assistència (SQL 19) ───────────────────────
+   ✓ ha vingut · ✗ falta · J falta justificada (metge…) · — encara no
+   estava inscrit/a. J i — no compten al % d'assistència: ni a favor ni
+   en contra. No es distingeixen només pel color (✗ vermella / verda no
+   la veu tothom): cada una té el seu signe. */
+const valorAssist = a => a.motiu || a.present;
+const MARCA = {
+  true:        { txt: '✓', cls: 'si',    nom: 'ha vingut' },
+  false:       { txt: '✗', cls: 'no',    nom: 'falta' },
+  justificada: { txt: 'J', cls: 'just',  nom: 'falta justificada' },
+  no_inscrit:  { txt: '—', cls: 'noins', nom: 'encara no estava inscrit/a' }
+};
+const noCompta = m => m === 'justificada' || m === 'no_inscrit';
+const LLEGENDA_ASSIST = '<p class="form-help sg-llegenda">Assistència (clic per canviar): <b>✓</b> ha vingut · <b>✗</b> falta · <b class="sg-llegenda-j">J</b> falta justificada · <b>—</b> encara no inscrit/a. J i — no compten al %.</p>';
 const AVIS_GUIO = '<p class="form-help no-print sg-avis-guio">En marcar <strong>✓ Inscrit/a</strong> confirmes que li has llegit la frase de protecció de dades del guió de trucada.</p>';
 
 
@@ -1885,7 +1903,7 @@ async function carregaSeguiment() {
       apiGet(`/api/admin/orders?assistencia_totes=1&des=${S.mes}-01&fins=${ultimDia(S.mes)}`)
         .catch(e => { if (e instanceof AuthError) throw e; S.error = 'No es pot llegir l\'assistència.'; return null; })
     ]);
-    for (const a of ass?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = a.present;
+    for (const a of ass?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = valorAssist(a);
     S.carregatAt = new Date();
     return;
   }
@@ -1902,7 +1920,7 @@ async function carregaSeguiment() {
           .catch(e => { if (e instanceof AuthError) throw e; S.error = 'No es pot llegir l\'assistència. Has executat els SQL v11 i v13?'; return null; })
       : null
   ]);
-  for (const a of ass?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = a.present;
+  for (const a of ass?.assistencia || []) (S.assistencia[a.reserva_id] ||= {})[a.data] = valorAssist(a);
   S.carregatAt = new Date();
 }
 
@@ -1919,9 +1937,10 @@ function dadesSeguiment() {
   const nivell = r => (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa')
     .map(l => `${l.nom?.ca || l.id}${l.qty > 1 ? ' ×' + l.qty : ''}`).join(', ') || (r.pare_id ? 'Sessió vinculada' : '');
   const pctPersona = r => {
-    if (!passades.length) return null;
-    const si = passades.filter(d => marca(r, d) === true).length;
-    return Math.round(si * 100 / passades.length);
+    const ps = passades.filter(d => !noCompta(marca(r, d)));
+    if (!ps.length) return null;
+    const si = ps.filter(d => marca(r, d) === true).length;
+    return Math.round(si * 100 / ps.length);
   };
   return { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona };
 }
@@ -1965,7 +1984,7 @@ function dadesTotes() {
   const foraLlista = r => { const e = evPer.get(r.event_id); return e && e.estat !== 'arxivat' && (!state.filtreCentre || centreDe(e) === state.filtreCentre); };
   const passadesDe = r => sessionsDe(evPer.get(r.event_id), S.mes).filter(d => d <= avui());
   const pct = r => {
-    const ps = passadesDe(r);
+    const ps = passadesDe(r).filter(d => !noCompta(S.assistencia[r.id]?.[d]));
     if (!ps.length) return null;
     return Math.round(ps.filter(d => S.assistencia[r.id]?.[d] === true).length * 100 / ps.length);
   };
@@ -1980,7 +1999,7 @@ function dadesTotes() {
    Cerca (nom, telèfon, contacte), estat de trucada, pagat i ordre per
    columna. S'apliquen a la taula, a la impressió i a l'Excel; les xifres
    de dalt sempre compten tothom. */
-const ORDRE_TRUCADA = { pendent: 0, no_contesta: 1, inscrit: 2, no_inscriu: 3, no_assisteix: 4 };
+const ORDRE_TRUCADA = { pendent: 0, no_contesta: 1, inscrit: 2, no_inscriu: 3, no_assisteix: 4, baixa_voluntaria: 5 };
 const plaSg = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const nomesXifres = t => String(t || '').replace(/\D/g, '');
 const hiHaFiltres = () => { const f = state.sgFiltre; return Boolean(f.q || f.trucada || f.pagat); };
@@ -2031,7 +2050,7 @@ function filtresSgHTML(total, visibles) {
   <label class="ins-camp"><span>Trucada</span>
     <select class="form-select" onchange="sgFiltre('trucada', this.value)">
       ${opt('', 'Totes', f.trucada)}${opt('per_trucar', 'Per trucar (pendent + no contesta)', f.trucada)}
-      ${Object.entries(TRUCADA).filter(([k]) => !['no_inscriu', 'no_assisteix'].includes(k)).map(([k, v]) => opt(k, v.nom, f.trucada)).join('')}
+      ${Object.entries(TRUCADA).filter(([k]) => !['no_inscriu', 'no_assisteix', 'baixa_voluntaria'].includes(k)).map(([k, v]) => opt(k, v.nom, f.trucada)).join('')}
     </select></label>
   <label class="ins-camp"><span>Pagat</span>
     <select class="form-select" onchange="sgFiltre('pagat', this.value)">
@@ -2170,16 +2189,16 @@ function renderSeguiment() {
   const hanDePagar = persones.filter(cobra);
   const pagades = hanDePagar.filter(pagatAra).length;
   const totalSi = persones.reduce((t, r) => t + passades.filter(d => marca(r, d) === true).length, 0);
-  const pctMitja = persones.length && passades.length ? Math.round(totalSi * 100 / (persones.length * passades.length)) : null;
+  const totalComptables = persones.reduce((t, r) => t + passades.filter(d => !noCompta(marca(r, d))).length, 0);
+  const pctMitja = totalComptables ? Math.round(totalSi * 100 / totalComptables) : null;
 
   const celPagat = r => celPagatSg(r, cobra);
   const vistes = filtraSg(persones, { cobra, pct: pctPersona, evPer: null });
 
   const celSessio = (r, d) => {
-    const m = marca(r, d);
-    const txt = m === true ? '✓' : m === false ? '✗' : '';
-    return `<td class="sg-ses"><button class="sg-marca${m === true ? ' si' : m === false ? ' no' : ''}"
-      onclick="sgMarca('${esc(r.id)}','${d}')" aria-label="${esc(r.nom)} ${capSessio(d)}: ${m === true ? 'ha vingut' : m === false ? 'no ha vingut' : 'sense marcar'}">${txt}</button></td>`;
+    const k = MARCA[marca(r, d)];
+    return `<td class="sg-ses"><button class="sg-marca${k ? ' ' + k.cls : ''}"
+      onclick="sgMarca('${esc(r.id)}','${d}')" title="${k ? k.nom : 'sense marcar'}" aria-label="${esc(r.nom)} ${capSessio(d)}: ${k ? k.nom : 'sense marcar'}">${k ? k.txt : ''}</button></td>`;
   };
 
   const fila = (r, i) => `
@@ -2242,6 +2261,7 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
 
 ${filtresSgHTML(persones.length, vistes.length)}
 ${AVIS_GUIO}
+${sessions.length ? LLEGENDA_ASSIST : ''}
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
   <thead><tr>
@@ -2275,16 +2295,20 @@ window.sgMes = function(delta) {
   render();
 };
 
-/* Cicle d'una casella: buit → ✓ → ✗ → buit */
+/* Cicle d'una casella: buit → ✓ → ✗ → J → — → buit
+   (el més habitual, ✓, amb un sol clic) */
+const CICLE_ASSIST = [undefined, true, false, 'justificada', 'no_inscrit'];
 window.sgMarca = async function(id, data) {
   const S = state.seguiment;
   const abans = S.assistencia[id]?.[data];
-  const nou = abans === undefined ? true : abans === true ? false : null;
+  const seg = CICLE_ASSIST[(CICLE_ASSIST.indexOf(abans) + 1) % CICLE_ASSIST.length];
+  const nou = seg === undefined ? null : seg;
   (S.assistencia[id] ||= {});
   if (nou === null) delete S.assistencia[id][data]; else S.assistencia[id][data] = nou;
   renderSeguiment();
   try {
-    await apiSend('/api/admin/orders', 'PATCH', { accio: 'assistencia', id, data, present: nou });
+    await apiSend('/api/admin/orders', 'PATCH', { accio: 'assistencia', id, data,
+      present: nou === null ? null : nou === true, motiu: typeof nou === 'string' ? nou : null });
   } catch (e) {
     if (abans === undefined) delete S.assistencia[id][data]; else S.assistencia[id][data] = abans;
     renderSeguiment();
@@ -2490,7 +2514,7 @@ window.sgExcel = function() {
     !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
     r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
     r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '',
-    ...sessions.map(d => marca(r, d) === true ? '✓' : marca(r, d) === false ? '✗' : ''),
+    ...sessions.map(d => MARCA[marca(r, d)]?.txt || ''),
     pctPersona(r), r.observacions || '', r.id
   ]);
   const titol = `${ev.titol?.ca || ev.id}${ev.entitat?.ca ? ' · ' + ev.entitat.ca : ''}`;
@@ -2649,7 +2673,7 @@ async function carregaLlista() {
   await loadReserves(L.eventId);
   try {
     const d = await apiGet(`/api/admin/orders?llista=${encodeURIComponent(L.eventId)}&data=${L.data}`);
-    for (const a of d?.assistencia || []) L.assistencia[a.reserva_id] = a.present;
+    for (const a of d?.assistencia || []) L.assistencia[a.reserva_id] = valorAssist(a);
   } catch (e) {
     if (e instanceof AuthError) throw e;
     L.error = 'No es pot llegir l\'assistència. Has executat sql/02-cobraments-llista.sql?';
@@ -2678,7 +2702,7 @@ function renderLlista() {
       <div class="ll-qui">
         <strong>${esc(r.nom)}</strong>${r.places > 1 ? ` <span class="ll-places">× ${r.places}</span>` : ''}
         <div class="muted">${esc(resumLinies(r))} · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` (${esc(r.contacte)})` : ''}</div>
-        <div class="ll-pag">${pagamentHTML(r)}</div>
+        <div class="ll-pag">${pagamentHTML(r)}${noCompta(m) ? ` <span class="pag">${MARCA[m].txt} ${MARCA[m].nom}</span>` : ''}</div>
       </div>
       <div class="ll-botons">
         <button class="ll-btn ll-btn--si" aria-pressed="${m === true}" onclick="marcaAssistencia('${esc(r.id)}', ${m === true ? 'null' : 'true'})">✔ Ha vingut</button>

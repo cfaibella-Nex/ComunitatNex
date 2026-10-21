@@ -6,7 +6,7 @@
 //   PATCH { accio: 'pagament', id, import_cents, metode, nota }
 //   PATCH { accio: 'anular_pagament', id, motiu }
 //   PATCH { accio: 'link', id, import_cents }        → crea link Stripe
-//   PATCH { accio: 'assistencia', id, data, present } → true / false / null
+//   PATCH { accio: 'assistencia', id, data, present, motiu } → true / false / null; motiu: 'justificada' | 'no_inscrit' (amb present false)
 //   GET   ?llista=<event_id>&des=…&fins=…   → assistència d'un període (seguiment)
 //   PATCH { accio: 'afegir_persona', event_id, nom, telefon, email, tarifa_id, places, origen, alta, observacions }
 //   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen, contacte } }
@@ -14,7 +14,7 @@
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
 //   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }
 //   PATCH { accio: 'anular_pagament_mes', id, mes, motiu }
-//   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' | 'no_inscriu' | 'no_assisteix' }
+//   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' | 'no_inscriu' | 'no_assisteix' | 'baixa_voluntaria' }
 //   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
 //   PATCH { accio: 'esborrar_activitat', event_id } → esborrat de totes les inscripcions d'una activitat acabada
 //
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         const des = String(req.query?.des || ''), fins = String(req.query?.fins || '');
         if (!DATA_RE.test(des) || !DATA_RE.test(fins)) return json(res, 400, { error: 'Data no vàlida' });
         const { data: as, error } = await sb.from('assistencia')
-          .select('reserva_id, data, present').gte('data', des).lte('data', fins);
+          .select('reserva_id, data, present, motiu').gte('data', des).lte('data', fins);
         if (error) throw error;
         return json(res, 200, { assistencia: as || [] });
       }
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         const ids = (res1 || []).map(r => r.id);
         if (!ids.length) return json(res, 200, { assistencia: [] });
         const { data: as, error: e2 } = await sb.from('assistencia')
-          .select('reserva_id, data, present, actor, updated_at')
+          .select('reserva_id, data, present, motiu, actor, updated_at')
           .gte('data', des).lte('data', fins).in('reserva_id', ids);
         if (e2) throw e2;
         return json(res, 200, { assistencia: as || [] });
@@ -160,7 +160,11 @@ export default async function handler(req, res) {
         const data = String(body.data || '');
         if (!DATA_RE.test(data)) return json(res, 400, { error: 'Data no vàlida' });
         const present = body.present === true ? true : body.present === false ? false : null;
-        const out = await rpc('admin_marcar_assistencia', { p_reserva: id, p_data: data, p_present: present, p_actor: actor });
+        /* Falta justificada o encara no inscrit/a: compten com a "no ha vingut"
+           però no al % (SQL 19). Sense SQL 19, només true/false/null. */
+        const motiu = ['justificada', 'no_inscrit'].includes(body.motiu) ? body.motiu : null;
+        const out = await rpc('admin_marcar_assistencia', { p_reserva: id, p_data: data, p_present: motiu ? false : present, p_actor: actor,
+          ...(motiu ? { p_motiu: motiu } : {}) });
         if (!out?.ok) return json(res, 409, { error: out?.error === 'reserva_no_activa' ? 'La reserva no està activa' : 'Reserva no trobada' });
         return json(res, 200, { ok: true });
       }
