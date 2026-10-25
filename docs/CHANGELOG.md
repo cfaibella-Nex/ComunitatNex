@@ -4,6 +4,24 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v40 · Banda "Pròximament" + preinscripció · enllaç oficial idCAT Mòbil
+
+**Activitats en estat "Pròximament" (marcat al panell)**
+- Banda sobre la imatge a targetes, agenda, pòsters de portada i fitxa: "PRÒXIMAMENT" i, si la data
+  d'inici és futura, "A partir de gener de 2027" (CA/ES, amb apòstrof: "d'abril"). Calendari: etiqueta.
+- S'hi poden **preinscriure**: botó "Preinscriure'm", avís a la fitxa i al pas final
+  ("Confirmar la preinscripció"). Arriba al Seguiment com qualsevol inscripció.
+- **No es cobra en línia** mentre és Pròximament (també al servidor: `api/reserva.js`).
+- Panell: l'ajuda de l'estat ho explica. Les activitats noves i les còpies es creen en aquest estat:
+  cal passar-les a "Visible" quan comencin.
+- `js/main.js`, `js/agenda.js`, `js/reserves.js`, `js/checkout.js`, `js/carret.js`, `css/styles.css`,
+  `api/reserva.js`, `api/_lib/gestor/config.js`. Segell de caché `?v=63` → `?v=64`.
+
+**Recursos:** targeta nova "Com donar-se d'alta a l'idCAT Mòbil" (Tràmits i ajuts · Consorci AOC,
+enllaç oficial). `js/recursos-data.js?v=65`.
+
+Sense SQL nou.
+
 ## v39 · Pagament "No correspon" + Guies NexSocial a Recursos
 
 **"— No correspon" (activitats mensuals, un mes concret)**

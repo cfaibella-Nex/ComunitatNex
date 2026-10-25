@@ -159,6 +159,7 @@ if (typeof window.eventCardHTML !== 'function') {
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}">${esc(tipoLabel(ev.tipo))}</span>
     <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
     ${window.NX.botoCartell ? window.NX.botoCartell(ev) : ''}
+    ${window.NX.bandaProximament ? window.NX.bandaProximament(ev) : ''}
   </div>
   <div class="event-card-body">
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
@@ -173,7 +174,7 @@ if (typeof window.eventCardHTML !== 'function') {
   </div>
   <div class="event-card-footer">
     <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="btn btn-primary btn-block">
-      ${T('ev.reservar')} →
+      ${window.NX.esProximament && window.NX.esProximament(ev) ? T('ev.preinscriure') : T('ev.reservar')} →
     </a>
   </div>
   <div style="padding: 0 var(--sp-3) var(--sp-2); font-size: var(--fs-sm)">${status}</div>

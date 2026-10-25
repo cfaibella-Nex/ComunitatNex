@@ -52,8 +52,10 @@ async function renderCheckout() {
   /* Mateixa regla que el servidor: amb alguna línia a consultar o un
      total per sota del mínim de Stripe, no es cobra en línia. */
   const espera = window.NX.estatPlaces(ev) === 'esgotat';   // el servidor la posarà a la llista d'espera
-  const pagaAra = !espera && mode === 'online' && !consultar && cents >= 50;
+  const prox = !espera && window.NX.esProximament(ev);      // preinscripció: no es cobra en línia
+  const pagaAra = !espera && !prox && mode === 'online' && !consultar && cents >= 50;
   const avis = espera ? 'chk.espera'
+             : prox ? 'chk.prox'
              : consultar ? 'chk.consultar'
              : pagaAra ? 'chk.online'
              : cents > 0 && mode === 'online_aviat' ? 'chk.online_aviat'
@@ -130,7 +132,7 @@ async function renderCheckout() {
         ${avis ? `<div class="alert alert-info ins-avis">${esc(NXC.t(avis))}</div>` : ''}
 
         <button type="button" id="btn-reservar" class="btn btn-primary btn-lg btn-block" style="margin-top: var(--sp-2)">
-          ${pagaAra ? '💳 ' + esc(NXC.t('chk.pagar')) : espera ? T('form.espera') : T('form.enviar')}
+          ${pagaAra ? '💳 ' + esc(NXC.t('chk.pagar')) : espera ? T('form.espera') : prox ? T('form.enviar_prox') : T('form.enviar')}
         </button>
 
         <div class="muted" style="font-size: var(--fs-xs); margin-top: var(--sp-2); text-align: center">

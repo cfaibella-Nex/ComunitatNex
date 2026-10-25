@@ -120,7 +120,8 @@ export default async function handler(req, res) {
     }
 
     const cobrament = cobramentEvent(ev);
-    const online = cobrament === 'online' && !calc.consultar && calc.totalCents >= MINIM_STRIPE;
+    /* Pròximament = preinscripció: mai es cobra en línia */
+    const online = cobrament === 'online' && ev.estat !== 'proximament' && !calc.consultar && calc.totalCents >= MINIM_STRIPE;
 
     const params = {
       p_event_id: ev.id,

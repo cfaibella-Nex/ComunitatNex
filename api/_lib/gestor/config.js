@@ -35,7 +35,7 @@ export const GESTOR = {
      Es corresponen amb els de comunitat.events. */
   estats: [
     { id: 'actiu',       nom: 'Visible',      ajuda: 'Es veu i s\'hi pot reservar' },
-    { id: 'proximament', nom: 'Pròximament',  ajuda: 'Es veu, però encara no s\'hi pot reservar' },
+    { id: 'proximament', nom: 'Pròximament',  ajuda: 'Es veu amb la banda "Pròximament" (i "A partir de…" si l\'inici és futur); s\'hi poden preinscriure, sense pagament en línia' },
     { id: 'esgotat',     nom: 'Esgotat',      ajuda: 'Es veu com a "Inscripcions completes"; només s\'hi pot apuntar a la llista d\'espera' },
     { id: 'arxivat',     nom: 'Arxivat',      ajuda: 'No apareix a la web. Les reserves fetes es conserven' }
   ],

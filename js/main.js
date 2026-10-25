@@ -74,6 +74,10 @@ const i18n = {
     'ev.places':       'places disponibles',
     'ev.ultimes':      'Últimes places!',
     'ev.esgotat':      'Inscripcions completes',
+    'ev.prox':         'Pròximament',
+    'ev.prox_avis':    "Encara no ha començat. Et pots preinscriure i et trucarem abans de l'inici.",
+    'ev.preinscriure': "Preinscriure'm",
+    'form.enviar_prox': 'Confirmar la preinscripció',
     'ev.espera':       "Llista d'espera",
     'ev.espera_avis':  "Pots apuntar-te a la llista d'espera i et trucarem si s'allibera alguna plaça.",
     'form.espera':     "Apuntar-me a la llista d'espera",
@@ -293,6 +297,10 @@ const i18n = {
     'ev.places':       'plazas disponibles',
     'ev.ultimes':      '¡Últimas plazas!',
     'ev.esgotat':      'Inscripciones completas',
+    'ev.prox':         'Próximamente',
+    'ev.prox_avis':    'Todavía no ha empezado. Puedes preinscribirte y te llamaremos antes del inicio.',
+    'ev.preinscriure': 'Preinscribirme',
+    'form.enviar_prox': 'Confirmar la preinscripción',
     'ev.espera':       'Lista de espera',
     'ev.espera_avis':  'Puedes apuntarte a la lista de espera y te llamaremos si se libera alguna plaza.',
     'form.espera':     'Apuntarme a la lista de espera',
@@ -697,6 +705,26 @@ function imatgePublica(ev) {
    fora, i el focus torna al botó que l'ha obert. */
 const ICONA_LUPA = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="M10.5 7.5v6M7.5 10.5h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
+/* ── Pròximament ───────────────────────────────────────────
+   Estat "Pròximament" marcat al panell: banda sobre la imatge i
+   preinscripció (s'hi pot apuntar; no es cobra en línia). Si la data
+   d'inici és futura, la banda diu des de quan: "A partir de gener de 2027". */
+function esProximament(ev) { return ev?.estat === 'proximament'; }
+function textApartirDe(ev) {
+  const iso = String(ev?.data || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || iso <= avuiISO()) return '';
+  const [y, m] = iso.split('-').map(Number);
+  const lang = getLang();
+  const mes = new Intl.DateTimeFormat(lang === 'es' ? 'es-ES' : 'ca-ES', { month: 'long' }).format(new Date(y, m - 1, 1, 12));
+  if (lang === 'es') return `A partir de ${mes} de ${y}`;
+  return `A partir ${/^[aeiouàèéíòóú]/i.test(mes) ? "d'" : 'de '}${mes} de ${y}`;
+}
+function bandaProximament(ev) {
+  if (!esProximament(ev)) return '';
+  const des = textApartirDe(ev);
+  return `<span class="banda-prox"><strong>${esc(T('ev.prox'))}</strong>${des ? `<small>${esc(des)}</small>` : ''}</span>`;
+}
+
 function botoCartell(ev) {
   if (!ev?.cartell) return '';
   const alt = `${T('ev.cartell_alt')}: ${L(ev.titol)}`;
@@ -849,7 +877,7 @@ window.NX = {
   T, L, getLang, setLang,
   esc, formatDate, formatPrice,
   tipoLabel, tipoBadgeClass, placesRestants, estatPlaces, LLINDAR_ULTIMES,
-  phoneBannerHTML, imatgePublica, botoCartell, obrirCartell,
+  phoneBannerHTML, imatgePublica, botoCartell, obrirCartell, esProximament, textApartirDe, bandaProximament,
   esSetmanal, franjaHoraria, properaSessio, visibleWeb, quanText, diaCurt, avuiISO, carregantHTML,
   PHONE, PHONE_TEL, WHATSAPP,
   qs, qsa

@@ -53,6 +53,7 @@ function eventCardHTML(ev) {
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}">${esc(tipoLabel(ev.tipo))}</span>
     <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
     ${window.NX.botoCartell(ev)}
+    ${window.NX.bandaProximament(ev)}
   </div>
   <div class="event-card-body">
     <h3 class="event-title">${esc(L(ev.titol))}</h3>
@@ -67,7 +68,7 @@ function eventCardHTML(ev) {
   </div>
   <div class="event-card-footer">
     <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="btn btn-primary btn-block">
-      ${T('ev.reservar')} →
+      ${window.NX.esProximament(ev) ? T('ev.preinscriure') : T('ev.reservar')} →
     </a>
   </div>
   <div style="padding: 0 var(--sp-3) var(--sp-2); font-size: var(--fs-sm)">${status}</div>
@@ -81,6 +82,7 @@ function eventPosterHTML(ev) {
 <a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster${ev.cartell ? ' event-poster--cartell' : ''}">
   <img src="${esc(window.NX.imatgePublica(ev))}" alt="${esc(L(ev.titol))}" loading="lazy">
   ${window.NX.botoCartell(ev)}
+  ${window.NX.bandaProximament(ev)}
   <div class="event-poster-overlay">
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}" style="position:static;display:inline-block;margin-bottom:8px">${esc(tipoLabel(ev.tipo))}</span>
     <h3 class="event-poster-title">${esc(L(ev.titol))}</h3>
@@ -135,12 +137,13 @@ function eventRowHTML(ev) {
     <h3 class="event-row-title">${esc(L(ev.titol))}</h3>
     <div class="event-row-loc">📍 ${esc(L(ev.ubicacio))}</div>
     <div class="event-row-cta">
-      <span class="event-row-arrow">${esgotat ? T('ev.esgotat') + ' · ' + T('ev.espera') + ' →' : T('ev.reservar') + ' →'}</span>
+      <span class="event-row-arrow">${esgotat ? T('ev.esgotat') + ' · ' + T('ev.espera') + ' →' : (window.NX.esProximament(ev) ? T('ev.preinscriure') : T('ev.reservar')) + ' →'}</span>
     </div>
   </div>
   <div class="event-row-img${ev.cartell ? ' event-row-img--cartell' : ''}">
     <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
     ${window.NX.botoCartell(ev)}
+    ${window.NX.bandaProximament(ev)}
   </div>
 </a>`;
 }
@@ -203,7 +206,7 @@ function chipHTML(ev) {
     href="/detall.html?id=${encodeURIComponent(ev.id)}" title="${esc(titol)}">
     ${ev.hora ? `<span class="cal-ev-hora">${esc(ev.hora)}</span>` : ''}
     <span class="cal-ev-titol">${esc(titol)}</span>
-    ${esgotat ? `<span class="cal-ev-esgotat">${esc(T('ev.esgotat'))}</span>` : ''}
+    ${esgotat ? `<span class="cal-ev-esgotat">${esc(T('ev.esgotat'))}</span>` : window.NX.esProximament(ev) ? `<span class="cal-ev-prox">${esc(T('ev.prox'))}</span>` : ''}
   </a>`;
 }
 
@@ -439,9 +442,11 @@ ${ev.cartell ? `
     <img src="${esc(ev.cartell)}" alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">
     <span class="cartell-lupa-text">${esc(T('ev.cartell_veure'))}</span>
   </button>
+  ${window.NX.bandaProximament(ev)}
 </div>` : `
 <div class="detail-hero">
   <img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}">
+  ${window.NX.bandaProximament(ev)}
 </div>`}
 <div class="container mt-4">
   <a href="/agenda.html" class="detail-back">${T('ev.tornar')}</a>
@@ -498,7 +503,8 @@ ${ev.cartell ? `
       <h3 style="margin-top:0">${T('form.title')}</h3>
       <p class="muted" style="margin-bottom:var(--sp-3); font-size:var(--fs-sm)">${NXC.t(unica ? 'ins.tria' : 'ins.tria_nivell')}</p>
 
-      ${esgotat ? `<div class="alert alert-warning"><strong>${T('ev.esgotat')}.</strong> ${T('ev.espera_avis')}</div>` : ''}
+      ${esgotat ? `<div class="alert alert-warning"><strong>${T('ev.esgotat')}.</strong> ${T('ev.espera_avis')}</div>`
+        : window.NX.esProximament(ev) ? `<div class="alert alert-info"><strong>${T('ev.prox')}${window.NX.textApartirDe(ev) ? ' · ' + esc(window.NX.textApartirDe(ev).toLowerCase()) : ''}.</strong> ${T('ev.prox_avis')}</div>` : ''}
         <div class="ins-tarifes" id="ins-tarifes">
           ${tarifes.map(x => tarifaHTML(ev, x, unica, esgotat)).join('')}
         </div>
@@ -511,7 +517,7 @@ ${ev.cartell ? `
 
         <p class="form-error" id="ins-error" hidden>${NXC.t('ins.cap')}</p>
         <button type="button" id="btn-continuar" class="btn btn-primary btn-lg btn-block">
-          ${esgotat ? T('form.espera') : T('form.continuar')} →
+          ${esgotat ? T('form.espera') : window.NX.esProximament(ev) ? T('ev.preinscriure') : T('form.continuar')} →
         </button>
 
       <div class="booking-phone">

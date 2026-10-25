@@ -117,6 +117,21 @@ const RECURSOS_LINKS = [
     url: 'https://dretssocials.gencat.cat/ca/ambits_tematics/persones_grans/'
   },
   {
+    id: 'aoc-alta-idcat-mobil',
+    categoria: 'tramits',
+    intencions: ['informacio', 'aprendre'],
+    font: 'Consorci AOC · Generalitat de Catalunya',
+    titol: {
+      ca: "Com donar-se d'alta a l'idCAT Mòbil",
+      es: 'Cómo darse de alta en el idCAT Mòbil'
+    },
+    descripcio: {
+      ca: "L'identificador gratuït per entrar a La Meva Salut i fer tràmits. Alta per internet amb el DNI o TIE i la targeta sanitària; sense targeta sanitària, amb selfie. També en persona.",
+      es: 'El identificador gratuito para entrar en La Meva Salut y hacer trámites. Alta por internet con el DNI o TIE y la tarjeta sanitaria; sin tarjeta sanitaria, con selfie. También en persona.'
+    },
+    url: 'https://suport.aoc.cat/ca-ES/article/?servei=idcat-mobil&id=KA-07618_com-em-puc-donar-dalta-per-internet-a-lidcat-mobil'
+  },
+  {
     id: 'punts-omnia',
     categoria: 'tecnologia',
     intencions: ['aprendre', 'gent'],
