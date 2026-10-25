@@ -21,6 +21,14 @@ const TXT = {
     ajuda_d: 'Digue\'ns què busques i t\'ajudem a trobar l\'activitat o el recurs que et va bé. Sense compromís.',
     ajuda_c: 'Truca\'ns al',
     agenda: 'Veure les nostres activitats',
+    guies_t: 'Guies NexSocial',
+    guies_d: 'El material dels nostres tallers, perquè el tinguis a casa i el puguis repassar quan vulguis.',
+    guia_veure: 'Veure la guia',
+    guia_baixar: 'Descarregar',
+    guia_meta: (n, mida) => `PDF · ${n} pàgines · ${mida}`,
+    guia_idioma: '',
+    guia_comprovada: 'Informació comprovada el',
+    guia_alt: 'Portada de la guia',
     intencions: {
       exercici: 'Vull moure\'m',
       gent: 'Vull conèixer gent',
@@ -48,6 +56,14 @@ const TXT = {
     ajuda_d: 'Dinos qué buscas y te ayudamos a encontrar la actividad o el recurso que te vaya bien. Sin compromiso.',
     ajuda_c: 'Llámanos al',
     agenda: 'Ver nuestras actividades',
+    guies_t: 'Guías NexSocial',
+    guies_d: 'El material de nuestros talleres, para que lo tengas en casa y lo puedas repasar cuando quieras.',
+    guia_veure: 'Ver la guía',
+    guia_baixar: 'Descargar',
+    guia_meta: (n, mida) => `PDF · ${n} páginas · ${mida}`,
+    guia_idioma: 'Guía en catalán',
+    guia_comprovada: 'Información comprobada el',
+    guia_alt: 'Portada de la guía',
     intencions: {
       exercici: 'Quiero moverme',
       gent: 'Quiero conocer gente',
@@ -95,6 +111,40 @@ function targeta(r, t, lang) {
   </article>`;
 }
 
+/* Bloc "Guies NexSocial": material propi, sempre visible (no depèn dels filtres) */
+function dataCurta(iso, lang) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  return new Intl.DateTimeFormat(lang === 'es' ? 'es-ES' : 'ca-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(y, m - 1, d, 12));
+}
+function guiaHTML(g, t, lang) {
+  const nomFitxer = g.pdf.split('/').pop();
+  const punts = (g.punts?.[lang] || g.punts?.ca || []);
+  return `
+  <article class="guia">
+    <a class="guia-portada" href="${esc(g.pdf)}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+      <picture>
+        <source srcset="${esc(g.portada)}.webp" type="image/webp">
+        <img src="${esc(g.portada)}.jpg" alt="" width="1200" height="675" loading="lazy">
+      </picture>
+    </a>
+    <div class="guia-cos">
+      <span class="guia-etiqueta">${esc(L(g.taller))}</span>
+      <h3 class="guia-titol">${esc(L(g.titol))}</h3>
+      <p class="guia-subtitol">${esc(L(g.subtitol))}</p>
+      ${punts.length ? `<ul class="guia-punts">${punts.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
+      <p class="guia-meta">${esc(t.guia_meta(g.pagines, g.mida))}${g.idioma !== lang && t.guia_idioma ? ` · <strong>${esc(t.guia_idioma)}</strong>` : ''}${g.comprovada ? `<br>${esc(t.guia_comprovada)} ${esc(dataCurta(g.comprovada, lang))}` : ''}</p>
+      <div class="guia-botons">
+        <a class="btn btn-primary" href="${esc(g.pdf)}" target="_blank" rel="noopener">
+          ${t.guia_veure} ↗<span class="sr-only"> · ${esc(L(g.titol))} (PDF) · ${t.extern}</span>
+        </a>
+        <a class="btn btn-secondary" href="${esc(g.pdf)}" download="${esc(nomFitxer)}">
+          ⬇ ${t.guia_baixar}<span class="sr-only"> · ${esc(L(g.titol))} (PDF, ${esc(g.mida)})</span>
+        </a>
+      </div>
+    </div>
+  </article>`;
+}
+
 function render() {
   const lang = getLang();
   const t = TXT[lang] || TXT.ca;
@@ -125,8 +175,17 @@ function render() {
 
   const hiHaFiltre = filtreIntencio || filtreCategoria;
 
+  const guies = window.GUIES_NEXSOCIAL || [];
+
   app.innerHTML = `
   <p class="lead">${t.intro}</p>
+
+  ${guies.length ? `
+  <section class="guies" aria-labelledby="guies-titol">
+    <h2 id="guies-titol" class="guies-titol">${t.guies_t}</h2>
+    <p class="guies-desc">${t.guies_d}</p>
+    ${guies.map(g => guiaHTML(g, t, lang)).join('')}
+  </section>` : ''}
 
   <div class="recursos-filtres">
     <h2 class="recursos-filtres-title">${t.quevols}</h2>

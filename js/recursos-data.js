@@ -195,3 +195,31 @@ const RECURSOS_LINKS = [
 ];
 
 window.RECURSOS_LINKS = RECURSOS_LINKS;
+
+/* ── Guies NexSocial ───────────────────────────────────────
+   Material propi dels tallers, en PDF. Surten en un bloc destacat a
+   dalt de Recursos. /assets/ es desa en memòria cau un any: quan una
+   guia canviï, el PDF nou ha de tenir un NOM NOU (p. ex. -2027-01.pdf).
+     pdf      → fitxer a /assets/guies/
+     portada  → imatge sense extensió (hi ha .webp i .jpg)
+     idioma   → idioma del PDF; si no coincideix amb el de la web, s'avisa */
+const GUIES_NEXSOCIAL = [
+  {
+    id: 'la-meva-salut-al-mobil',
+    pdf: '/assets/guies/la-meva-salut-al-mobil-2026-10.pdf',
+    portada: '/assets/guies/la-meva-salut-al-mobil',
+    pagines: 24,
+    mida: '2,5 MB',
+    idioma: 'ca',
+    comprovada: '2026-10-21',
+    taller: { ca: 'Taller de mòbil', es: 'Taller de móvil' },
+    titol: { ca: 'La Meva Salut al mòbil', es: 'La Meva Salut en el móvil' },
+    subtitol: { ca: 'Com entrar-hi pas a pas', es: 'Cómo entrar paso a paso' },
+    punts: {
+      ca: ["Donar-se d'alta a l'idCAT Mòbil", 'Entrar a La Meva Salut', 'Demanar visita al CAP', 'Què fer si alguna cosa falla'],
+      es: ['Darse de alta en el idCAT Mòbil', 'Entrar en La Meva Salut', 'Pedir visita en el CAP', 'Qué hacer si algo falla']
+    }
+  }
+];
+
+window.GUIES_NEXSOCIAL = GUIES_NEXSOCIAL;

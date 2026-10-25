@@ -4,6 +4,31 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v39 · Pagament "No correspon" + Guies NexSocial a Recursos
+
+**"— No correspon" (activitats mensuals, un mes concret)**
+- Seguiment, columna Pagat: opció nova "— No correspon · oct". Demana el motiu (ex. "només 1 sessió,
+  justificada"), que queda a la nota i a l'auditoria.
+- Aquell mes la persona no surt ni com a pendent ni com a pagada i no suma a cobraments; el mes
+  següent torna a sortir com a pendent. Es desfà triant "⏳ Pendent" o un mètode de pagament.
+- Cobraments: desapareix de "Falten per pagar"; botó "— No correspon" a la fitxa de cobrament del mes;
+  a l'historial de mesos surt com "oct —". Excel del Seguiment: "No correspon".
+- Es desa a `pagaments_mes` amb `metode = 'no_correspon'` i 0 €.
+- `js/admin.js`, `admin.html` (estils + `admin.js?v=65`), `api/admin/orders.js`.
+
+**Recursos: bloc "Guies NexSocial"** (material propi dels tallers, sempre visible a dalt)
+- Primera guia: "La Meva Salut al mòbil" (24 pàgines): portada, punts clau, data de comprovació i
+  botons "Veure la guia" (pestanya nova) i "Descarregar". CA + ES; en castellà avisa "Guía en catalán".
+- La diapositiva 11 ja no té el text provisional: Atenció Ciutadana de l'Ajuntament (El Viver) i
+  cita prèvia (93 483 29 25 · citaprevia.badalona.cat).
+- Les guies es declaren a `GUIES_NEXSOCIAL` (`js/recursos-data.js`). `/assets/` té memòria cau d'un
+  any: **una guia nova o corregida ha de tenir un nom de fitxer nou**.
+- `recursos.html`, `js/recursos.js`, `js/recursos-data.js`, `assets/guies/` (PDF + portada .webp/.jpg).
+
+Dades: **executar `sql/20-pagament-no-correspon.sql`** abans de publicar (sense ell, "No correspon"
+dona error en desar; la resta funciona). Provat contra Postgres 16 local i el panell i Recursos al
+navegador (escriptori i mòbil, CA i ES).
+
 ## v38 · Seguiment: Baixa voluntària i marques d'assistència noves
 
 - Trucada: estat nou **"↩ Baixa voluntària"** (la persona diu que ho deixa). Mateix funcionament que

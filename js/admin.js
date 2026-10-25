@@ -1256,6 +1256,14 @@ function aCobrar(r) {
   return (r.total_cents || 0) > 0 ? r.total_cents : calc;
 }
 const pagatMes = (r, mes) => state.pagamentsMes.get(`${r.id}|${mes}`);
+/* "No correspon" (SQL 20): el mes es desa com un registre de pagament amb
+   mètode 'no_correspon' i 0 €. Aquell mes la persona no ha de pagar: no surt
+   com a pendent ni com a pagada, ni suma als cobraments. Es desfà tornant a
+   "Pendent". Només activitats mensuals. */
+const NO_CORRESPON = 'no_correspon';
+const esNoCorrespon = p => p?.metode === NO_CORRESPON;
+const cobratMes = (r, mes) => { const p = pagatMes(r, mes); return p && !esNoCorrespon(p) ? p : null; };
+const noCorresponMes = (r, mes) => esNoCorrespon(pagatMes(r, mes));
 const mesCurt = mes => { const [y, m] = mes.split('-').map(Number); return new Intl.DateTimeFormat('ca-ES', { month: 'short' }).format(new Date(y, m - 1, 1, 12)).replace('.', ''); };
 /* Mesos que toca pagar d'una inscripció mensual: de l'inici de l'activitat fins a `fins` */
 function mesosDe(r, fins) {
@@ -1356,12 +1364,12 @@ function renderReserves() {
     if (!(aCobrar(r) > 0 || r.consultar || r.payment_status === 'paid')) return false;
     if (trucadaDe(r) !== 'inscrit' && r.payment_status !== 'paid') return false;
     const ev = evPer.get(r.event_id);
-    if (esMensual(ev)) return mesosDe(r, M).includes(M);
+    if (esMensual(ev)) return mesosDe(r, M).includes(M) && !noCorresponMes(r, M);
     return true;
   };
-  const pagada = r => esMensual(evPer.get(r.event_id)) ? !!pagatMes(r, M) : r.payment_status === 'paid';
+  const pagada = r => esMensual(evPer.get(r.event_id)) ? !!cobratMes(r, M) : r.payment_status === 'paid';
   const importFila = r => {
-    if (esMensual(evPer.get(r.event_id))) return pagatMes(r, M)?.import_cents ?? aCobrar(r);
+    if (esMensual(evPer.get(r.event_id))) return cobratMes(r, M)?.import_cents ?? aCobrar(r);
     return r.payment_status === 'paid' ? r.import_pagat_cents : aCobrar(r);
   };
   const FILTRES = {
@@ -1378,9 +1386,10 @@ function renderReserves() {
   const celPagamentFila = r => {
     const ev = evPer.get(r.event_id);
     if (!esMensual(ev)) return pagamentHTML(r);
-    const p = pagatMes(r, M);
+    const p = cobratMes(r, M);
     const historial = mesosDe(r, M).slice(-6).map(m => {
-      const ok = pagatMes(r, m);
+      if (noCorresponMes(r, m)) return `<span class="mes-xip mes-nc" title="${esc(nomMesLlarg(m))}: no correspon${pagatMes(r, m).nota ? ' · ' + esc(pagatMes(r, m).nota) : ''}">${esc(mesCurt(m))} —</span>`;
+      const ok = cobratMes(r, m);
       return `<span class="mes-xip ${ok ? 'mes-ok' : 'mes-no'}" title="${esc(nomMesLlarg(m))}: ${ok ? 'pagat (' + (METODE_NOM[ok.metode] || '') + ')' : 'pendent'}">${esc(mesCurt(m))} ${ok ? '✓' : '⏳'}</span>`;
     }).join('');
     return `${p ? `<span class="pag pag--ok">✓ ${esc(mesCurt(M))} · ${esc(METODE_NOM[p.metode] || '')}</span>` : `<span class="pag pag--pendent">⏳ Pendent ${esc(mesCurt(M))}</span>`}
@@ -1388,7 +1397,7 @@ function renderReserves() {
   };
   const botoFila = r => {
     if (esMensual(evPer.get(r.event_id))) {
-      return pagatMes(r, M)
+      return cobratMes(r, M)
         ? `<button class="btn btn-ghost btn-mini" onclick="anularMes('${esc(r.id)}','${M}')">Anul·lar</button>`
         : `<button class="btn btn-primary btn-mini" onclick="obrirCobrament('${esc(r.id)}')">Cobrar ${esc(mesCurt(M))}</button>`;
     }
@@ -1461,6 +1470,17 @@ async function registrarMes(id, mes, importCents, metode, nota) {
   const out = await apiSend('/api/admin/orders', 'PATCH', { accio: 'pagament_mes', id, mes, import_cents: importCents, metode, nota });
   if (out?.pagament) state.pagamentsMes.set(`${id}|${mes}`, out.pagament);
 }
+/* Des de Cobraments: aquell mes no s'ha de cobrar (desapareix de "Falten per pagar") */
+window.marcarNoCorrespon = async function(id, mes) {
+  const r = state.reserves.find(x => x.id === id);
+  const motiu = prompt(`Per què no correspon cobrar ${nomMesLlarg(mes)} a ${r?.nom || ''}? (queda a l'auditoria; ex. "només 1 sessió, justificada")`, '');
+  if (motiu === null) return;
+  try {
+    await registrarMes(id, mes, 0, NO_CORRESPON, motiu.trim() || 'sense motiu');
+    state.cobrant = null;
+  } catch (e) { alert('No s\'ha pogut fer: ' + errText(e)); }
+  render();
+};
 window.anularMes = async function(id, mes) {
   const r = state.reserves.find(x => x.id === id);
   const motiu = prompt(`Anul·lar el pagament de ${nomMesLlarg(mes)} de ${r?.nom || ''}? Escriu el motiu (queda a l'auditoria):`, '');
@@ -1598,6 +1618,7 @@ function renderCobramentMes(r, box) {
         </select></label>
       <label class="ins-camp"><span>Nota (opcional)</span><input class="form-input" id="cobm-nota" maxlength="200"></label>
       <button class="btn btn-primary" onclick="cobrarMesPanell('${esc(r.id)}','${M}')">Registrar el pagament de ${esc(nomMesLlarg(M))}</button>
+      <button class="btn btn-ghost" onclick="marcarNoCorrespon('${esc(r.id)}','${M}')" title="Aquell mes no se li cobra (ex. només 1 sessió i justificada). Es desfà al Seguiment.">— No correspon ${esc(mesCurt(M))}</button>
     </div>
   </div>
 </section>`;
@@ -1933,7 +1954,8 @@ function dadesSeguiment() {
   const passades = sessions.filter(d => d <= avui());
   const marca = (r, d) => S.assistencia[r.id]?.[d];
   const gratuita = ev && window.NXC.tarifesEvent(ev).every(t => t.preu_mode === 'gratuit') && !(ev.extres || []).some(x => x.preu_mode !== 'gratuit');
-  const cobra = r => !r.pare_id && !gratuita && (aCobrar(r) > 0 || r.consultar);
+  const cobraBase = r => !r.pare_id && !gratuita && (aCobrar(r) > 0 || r.consultar);
+  const cobra = r => cobraBase(r) && !noCorresponAra(r);
   const nivell = r => (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa')
     .map(l => `${l.nom?.ca || l.id}${l.qty > 1 ? ' ×' + l.qty : ''}`).join(', ') || (r.pare_id ? 'Sessió vinculada' : '');
   const pctPersona = r => {
@@ -1942,7 +1964,7 @@ function dadesSeguiment() {
     const si = ps.filter(d => marca(r, d) === true).length;
     return Math.round(si * 100 / ps.length);
   };
-  return { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona };
+  return { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, cobraBase, nivell, pctPersona };
 }
 
 /* Selectors comuns: centre + activitat (amb "Totes les activitats") */
@@ -1989,10 +2011,11 @@ function dadesTotes() {
     return Math.round(ps.filter(d => S.assistencia[r.id]?.[d] === true).length * 100 / ps.length);
   };
   const gratuitaEv = ev => window.NXC.tarifesEvent(ev).every(t => t.preu_mode === 'gratuit') && !(ev.extres || []).some(x => x.preu_mode !== 'gratuit');
-  const cobra = r => { const e = evPer.get(r.event_id); return !r.pare_id && e && !gratuitaEv(e) && (aCobrar(r) > 0 || r.consultar); };
+  const cobraBase = r => { const e = evPer.get(r.event_id); return !r.pare_id && e && !gratuitaEv(e) && (aCobrar(r) > 0 || r.consultar); };
+  const cobra = r => cobraBase(r) && !noCorresponAra(r);
   const nivell = r => (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa')
     .map(l => `${l.nom?.ca || l.id}${l.qty > 1 ? ' ×' + l.qty : ''}`).join(', ') || (r.pare_id ? 'Sessió vinculada' : '');
-  return { S, evPer, persones, espera, foraLlista, pct, cobra, nivell };
+  return { S, evPer, persones, espera, foraLlista, pct, cobra, cobraBase, nivell };
 }
 
 /* ── Filtres i ordre de la taula del Seguiment ─────────────
@@ -2092,7 +2115,7 @@ window.sgTreureFiltres = function() {
 
 function renderSeguimentTotes() {
   const dt = dadesTotes();
-  const { S, evPer, espera, pct, cobra, nivell } = dt;
+  const { S, evPer, espera, pct, cobra, cobraBase, nivell } = dt;
   const pendentsTr = dt.persones.filter(perTrucar).length;
   const persones = dt.persones;
   const vistes = filtraSg(persones, { cobra, pct, evPer });
@@ -2101,7 +2124,7 @@ function renderSeguimentTotes() {
   const pcts = persones.map(pct).filter(x => x !== null);
   const pctMitja = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : null;
 
-  const celPagat = r => celPagatSg(r, cobra);
+  const celPagat = r => celPagatSg(r, cobraBase);
 
 
   const fila = (r, i) => {
@@ -2180,7 +2203,7 @@ ${blocsForaLlista(state.reserves, evPer, dt.foraLlista)}
 
 function renderSeguiment() {
   if (state.seguiment.eventId === TOTES) return renderSeguimentTotes();
-  const { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, nivell, pctPersona } = dadesSeguiment();
+  const { S, ev, sessions, persones, espera, passades, marca, gratuita, cobra, cobraBase, nivell, pctPersona } = dadesSeguiment();
 
   if (!ev) { app.innerHTML = tabsHTML() + '<div class="alert alert-info">Cap activitat per fer seguiment.</div>'; return; }
 
@@ -2192,7 +2215,7 @@ function renderSeguiment() {
   const totalComptables = persones.reduce((t, r) => t + passades.filter(d => !noCompta(marca(r, d))).length, 0);
   const pctMitja = totalComptables ? Math.round(totalSi * 100 / totalComptables) : null;
 
-  const celPagat = r => celPagatSg(r, cobra);
+  const celPagat = r => celPagatSg(r, cobraBase);
   const vistes = filtraSg(persones, { cobra, pct: pctPersona, evPer: null });
 
   const celSessio = (r, d) => {
@@ -2337,20 +2360,24 @@ window.sgDeEspera = async function(id) {
 
 /* Pagat: triar un mètode registra el cobrament; "No pagat" l'anul·la */
 /* Columna "Pagat" del Seguiment. Activitats mensuals: el mes que es mira. */
-const pagatAra = r => esMensual(evDe(r)) ? !!pagatMes(r, state.seguiment.mes || avui().slice(0, 7)) : r.payment_status === 'paid';
+const pagatAra = r => esMensual(evDe(r)) ? !!cobratMes(r, state.seguiment.mes || avui().slice(0, 7)) : r.payment_status === 'paid';
+const noCorresponAra = r => esMensual(evDe(r)) && noCorresponMes(r, state.seguiment.mes || avui().slice(0, 7));
 function celPagatSg(r, cobra) {
   if (!cobra(r)) return '<span class="muted">—</span>';
   const mensual = esMensual(evDe(r));
   const mes = state.seguiment.mes || avui().slice(0, 7);
-  const p = mensual ? pagatMes(r, mes) : null;
+  const nc = mensual && noCorresponMes(r, mes);
+  const p = mensual && !nc ? pagatMes(r, mes) : null;
   const pagat = mensual ? !!p : r.payment_status === 'paid';
   const metode = mensual ? p?.metode : r.metode_pagament;
   const pendentTxt = mensual ? `⏳ Pendent ${mesCurt(mes)}` : r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar';
   const imp = mensual ? (p?.import_cents ?? aCobrar(r)) : pagat ? r.import_pagat_cents : aCobrar(r);
-  return `<select class="sg-sel${pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}${mensual ? ' (' + esc(nomMesLlarg(mes)) + ')' : ''}">
+  const notaNc = nc ? pagatMes(r, mes).nota || '' : '';
+  return `<select class="sg-sel${nc ? ' sg-nocorrespon' : pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}${mensual ? ' (' + esc(nomMesLlarg(mes)) + ')' : ''}"${notaNc ? ` title="${esc(notaNc)}"` : ''}>
       <option value="">${pendentTxt}</option>
       ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && metode === k ? 'selected' : ''}>✓ ${v}${mensual ? ' · ' + mesCurt(mes) : ''}</option>`).join('')}
-    </select>${imp ? `<small class="sg-import">${eur(imp)}${mensual ? '/mes' : ''}</small>` : ''}`;
+      ${mensual ? `<option value="${NO_CORRESPON}" ${nc ? 'selected' : ''}>— No correspon · ${mesCurt(mes)}</option>` : ''}
+    </select>${imp && !nc ? `<small class="sg-import">${eur(imp)}${mensual ? '/mes' : ''}</small>` : ''}`;
 }
 
 window.sgPagat = async function(id, metode, sel) {
@@ -2359,6 +2386,26 @@ window.sgPagat = async function(id, metode, sel) {
   if (esMensual(evDe(r))) {
     const mes = state.seguiment.mes || avui().slice(0, 7);
     try {
+      const actual = pagatMes(r, mes);
+      /* No correspon ↔ pendent / pagat */
+      if (metode === NO_CORRESPON) {
+        if (esNoCorrespon(actual)) return;
+        if (actual && !confirm(`${nomMesLlarg(mes)} de ${r.nom} consta com a pagat. Anul·lar el pagament i marcar-lo com a "No correspon"?`)) { renderSeguiment(); return; }
+        const motiu = prompt(`Per què no correspon cobrar ${nomMesLlarg(mes)} a ${r.nom}? (queda a l'auditoria; ex. "només 1 sessió, justificada")`, '');
+        if (motiu === null) { renderSeguiment(); return; }
+        if (actual) {
+          await apiSend('/api/admin/orders', 'PATCH', { accio: 'anular_pagament_mes', id, mes, motiu: 'passa a no correspon' });
+          state.pagamentsMes.delete(`${id}|${mes}`);
+        }
+        await registrarMes(id, mes, 0, NO_CORRESPON, motiu.trim() || 'sense motiu');
+        renderSeguiment();
+        return;
+      }
+      if (esNoCorrespon(actual)) {
+        await apiSend('/api/admin/orders', 'PATCH', { accio: 'anular_pagament_mes', id, mes, motiu: 'treu el "no correspon"' });
+        state.pagamentsMes.delete(`${id}|${mes}`);
+        if (!metode) { renderSeguiment(); return; }
+      }
       if (!metode) {
         if (!pagatMes(r, mes)) return;
         if (!confirm(`Anul·lar el pagament de ${nomMesLlarg(mes)} de ${r.nom}?`)) { renderSeguiment(); return; }
@@ -2491,7 +2538,7 @@ window.sgExcel = function() {
       const e = evPer.get(r.event_id);
       return [i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', e?.titol?.ca || r.event_id, centreDe(e), nivell(r), r.places,
         ORIGEN_NOM[r.origen] || '', TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
-        !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
+        noCorresponAra(r) ? 'No correspon' : !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
         r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
         r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '', pct(r), r.observacions || '', r.id,
         CANAL_INFO[r.info_canal] || '', r.informada_at ? new Date(r.informada_at).toLocaleString('ca-ES') : 'PENDENT', r.informada_per || ''];
@@ -2511,7 +2558,7 @@ window.sgExcel = function() {
   const files = persones.map((r, i) => [
     i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', nivell(r), r.places, ORIGEN_NOM[r.origen] || '',
     TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
-    !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
+    noCorresponAra(r) ? 'No correspon' : !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
     r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
     r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '',
     ...sessions.map(d => MARCA[marca(r, d)]?.txt || ''),

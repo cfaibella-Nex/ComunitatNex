@@ -17,6 +17,11 @@ Executa els fitxers de `sql/` **en ordre de número**. Tots són idempotents: es
 | `09-baixa-esborrat.sql` | Baixa amb esborrat de dades personals (també de l'auditoria) |
 | `10-trucades.sql` | Seguiment de trucades (pendent · no contesta · inscrit/a) |
 | `11-pagaments-mensuals.sql` | Pagaments mes a mes de les activitats mensuals |
+| `16-no-sapunta.sql` | "✗ No s'hi apunta" sense esborrar dades (12–15 es van fer fora del repo) |
+| `17-baixa-no-assistencia.sql` | "⊘ Baixa no assistència" (el 19 ja l'inclou) |
+| `18-taller-excel-canpepus.sql` | Taller d'Excel a Can Pepus, grups de tarda i de matí |
+| `19-assistencia-motius-baixa-voluntaria.sql` | Assistència J (justificada) i — (no inscrit/a) · "↩ Baixa voluntària" |
+| `20-pagament-no-correspon.sql` | "— No correspon" en un mes d'activitat mensual |
 
 ⚠ Si algun dia tornes a executar un fitxer antic (p. ex. el 05), executa després **tots els següents fins al final**: alguns redefineixen la mateixa funció d'auditoria.
 

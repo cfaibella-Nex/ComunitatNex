@@ -12,7 +12,7 @@
 //   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen, contacte } }
 //   PATCH { accio: 'sessio', event_id, data, operacio: 'afegir' | 'treure' }
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
-//   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }
+//   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }  (metode 'no_correspon' = aquell mes no es cobra, 0 €)
 //   PATCH { accio: 'anular_pagament_mes', id, mes, motiu }
 //   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' | 'no_inscriu' | 'no_assisteix' | 'baixa_voluntaria' }
 //   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
@@ -229,7 +229,9 @@ export default async function handler(req, res) {
         if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) return json(res, 400, { error: 'Mes no vàlid' });
         const imp = enter(body.import_cents);
         if (!(imp >= 0) || imp > 1000000) return json(res, 400, { error: 'Import no vàlid' });
-        if (!METODES.includes(body.metode)) return json(res, 400, { error: 'Mètode no vàlid' });
+        /* 'no_correspon' (SQL 20): aquell mes no s'ha de cobrar; sempre 0 € */
+        if (!METODES.includes(body.metode) && body.metode !== 'no_correspon') return json(res, 400, { error: 'Mètode no vàlid' });
+        if (body.metode === 'no_correspon' && imp !== 0) return json(res, 400, { error: 'Import no vàlid' });
         const out = await rpc('admin_pagament_mes', { p_reserva: id, p_mes: mes, p_import: imp, p_metode: body.metode,
           p_actor: actor, p_nota: body.nota ? String(body.nota).slice(0, 200) : null });
         if (!out?.ok) return json(res, 409, { error: out?.error === 'ja_pagat' ? 'Aquest mes ja consta com a pagat' : 'No es pot registrar' });
