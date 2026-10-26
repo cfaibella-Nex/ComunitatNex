@@ -22,6 +22,7 @@ Executa els fitxers de `sql/` **en ordre de número**. Tots són idempotents: es
 | `18-taller-excel-canpepus.sql` | Taller d'Excel a Can Pepus, grups de tarda i de matí |
 | `19-assistencia-motius-baixa-voluntaria.sql` | Assistència J (justificada) i — (no inscrit/a) · "↩ Baixa voluntària" |
 | `20-pagament-no-correspon.sql` | "— No correspon" en un mes d'activitat mensual |
+| `21-tallers-cuina-repara-canpepus.sql` | Can Pepus: Cuina Freda i Repara i Reviu (Pròximament) |
 
 ⚠ Si algun dia tornes a executar un fitxer antic (p. ex. el 05), executa després **tots els següents fins al final**: alguns redefineixen la mateixa funció d'auditoria.
 

@@ -4,6 +4,21 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v41 · Can Pepus: Taller de Cuina Freda i Taller Repara i Reviu (Pròximament)
+
+Dues activitats noves a Can Pepus, setmanals i en estat **Pròximament** (banda + preinscripció):
+- **Taller de Cuina Freda** — cada dilluns 12:30–13:30 (`taller-cuina-freda-canpepus`).
+- **Taller Repara i Reviu** — cada dimarts 16:30–18:00 (`taller-repara-reviu-canpepus`).
+- `sql/21-tallers-cuina-repara-canpepus.sql`: com el 18, copia la configuració del taller de mòbil de
+  Can Pepus (entitat, lloc, mapa, foto del casal, model, tarifes, places, cobrament) i hi posa títol,
+  text CA/ES, horari i foto. Sense cartell. Idempotent: no trepitja els canvis fets al panell.
+- `assets/taller-cuina-freda.jpg/.webp` i `assets/taller-repara-reviu.jpg/.webp` (1200×800, IA).
+- Data = darrer dilluns/dimarts (només fixa el dia de la setmana). **Quan comencin: data real
+  d'inici + estat "Visible" al panell.**
+
+Dades: **executar `sql/21-tallers-cuina-repara-canpepus.sql`** a Supabase. Provat contra Postgres 16
+local (dues execucions). Sense canvis de codi.
+
 ## v40 · Banda "Pròximament" + preinscripció · enllaç oficial idCAT Mòbil
 
 **Activitats en estat "Pròximament" (marcat al panell)**
