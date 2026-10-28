@@ -4,6 +4,20 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v42 · Passar llista: selector d'activitat sense data i només dies de sessió fets
+
+- **Activitat**: el desplegable ja no porta la data al davant ("Taller de Memòria · Casal de la
+  Solidaritat Can Pepus"). Ordre: primer les que han fet sessió més recentment. Si dues activitats
+  tenen el mateix nom i centre (p. ex. dos grups), s'hi afegeix el dia de la setmana.
+- **Dia**: el calendari lliure passa a ser un desplegable amb **només els dies que s'ha fet sessió**
+  (fins avui inclòs, marcat "· avui"), amb la mateixa regla que el Seguiment: setmanals automàtiques
+  − sessions tretes + sessions afegides. Les activitats "Pròximament" no en tenen.
+- Per defecte s'obre l'activitat amb la sessió més recent i el seu darrer dia.
+- Activitat sense cap sessió feta: avís "Aquesta activitat encara no ha fet cap sessió."
+- `admin.html`: `admin.js?v=66`.
+
+Sense SQL. Fitxers: `js/admin.js`, `admin.html`, `docs/CHANGELOG.md`.
+
 ## v41 · Can Pepus: Taller de Cuina Freda i Taller Repara i Reviu (Pròximament)
 
 Dues activitats noves a Can Pepus, setmanals i en estat **Pròximament** (banda + preinscripció):

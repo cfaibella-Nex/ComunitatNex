@@ -2694,16 +2694,29 @@ ${tabsHTML()}
    Per activitat i per dia: a les mensuals (castellà cada dimarts) es
    passa llista cada sessió. A les puntuals, marcar el dia de l'activitat
    també canvia l'estat de la reserva a "Va assistir" / "No va venir". */
-function eventPerDefecte() {
-  const vius = state.events.filter(e => e.estat !== 'arxivat');
-  const futurs = vius.filter(e => (e.data || '') >= avui()).sort((a, b) => a.data.localeCompare(b.data));
-  return (futurs[0] || vius[0])?.id || null;
+/* Dies de sessió ja fets (fins avui inclòs), del més recent al més antic.
+   Mateixa regla que el Seguiment: setmanals automàtiques − tretes + afegides. */
+function sessionsFetes(ev) {
+  if (!ev || ev.estat === 'proximament') return [];
+  const fins = avui();
+  const dies = new Set(Array.isArray(ev.sessions_afegides) ? ev.sessions_afegides : []);
+  if (esPuntual(ev)) sessionsDe(ev, null).forEach(d => dies.add(d));
+  else if (ev.data) {
+    let [y, m] = String(ev.data).slice(0, 7).split('-').map(Number);
+    const [yf, mf] = fins.slice(0, 7).split('-').map(Number);
+    while (y < yf || (y === yf && m <= mf)) {
+      sessionsDe(ev, `${y}-${pad2(m)}`).forEach(d => dies.add(d));
+      if (++m > 12) { m = 1; y++; }
+    }
+  }
+  return [...dies].filter(d => d <= fins).sort().reverse();
 }
 
-function dataPerDefecte(ev) {
-  if (!ev) return avui();
-  if ((ev.model || 'puntual') === 'puntual' && ev.data) return ev.data;
-  return avui();
+/* Per defecte, l'activitat amb la sessió més recent (la d'avui, si n'hi ha) */
+function eventPerDefecte() {
+  const vius = state.events.filter(e => e.estat !== 'arxivat');
+  const amb = vius.map(e => [e.id, sessionsFetes(e)[0] || '']).sort((a, b) => b[1].localeCompare(a[1]));
+  return amb[0]?.[0] || null;
 }
 
 async function carregaLlista() {
@@ -2714,10 +2727,12 @@ async function carregaLlista() {
     L.data = null;
   }
   const ev = state.events.find(e => e.id === L.eventId);
-  if (!L.data) L.data = dataPerDefecte(ev);
+  const dies = sessionsFetes(ev);
+  if (!dies.includes(L.data)) L.data = dies[0] || null;
   L.assistencia = {};
   if (!L.eventId) { state.reserves = []; return; }
   await loadReserves(L.eventId);
+  if (!L.data) return;
   try {
     const d = await apiGet(`/api/admin/orders?llista=${encodeURIComponent(L.eventId)}&data=${L.data}`);
     for (const a of d?.assistencia || []) L.assistencia[a.reserva_id] = valorAssist(a);
@@ -2737,10 +2752,24 @@ function renderLlista() {
   const no = actius.filter(r => marca(r) === false);
   const places = rs => rs.reduce((s, r) => s + (r.places || 0), 0);
 
-  const opcions = state.events
-    .filter(e => e.estat !== 'arxivat')
-    .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
-    .map(e => `<option value="${esc(e.id)}" ${e.id === L.eventId ? 'selected' : ''}>${esc(e.data || '—')} · ${esc(e.titol?.ca || e.id)}${e.entitat?.ca ? ' · ' + esc(e.entitat.ca) : ''}</option>`).join('');
+  /* Activitat sense data al davant: primer les que han fet sessió més recentment */
+  const nomDia = iso => new Intl.DateTimeFormat('ca-ES', { weekday: 'long' }).format(new Date(iso + 'T12:00:00'));
+  const etiqueta = e => `${e.titol?.ca || e.id}${e.entitat?.ca ? ' · ' + e.entitat.ca : ''}`;
+  const vius = state.events.filter(e => e.estat !== 'arxivat')
+    .map(e => ({ e, darrera: sessionsFetes(e)[0] || '' }))
+    .sort((a, b) => b.darrera.localeCompare(a.darrera) || etiqueta(a.e).localeCompare(etiqueta(b.e), 'ca'));
+  const repetides = new Set(vius.map(x => etiqueta(x.e)).filter((t, i, a) => a.indexOf(t) !== i));
+  const opcions = vius.map(({ e }) => {
+    const t = etiqueta(e) + (repetides.has(etiqueta(e)) && e.data ? ` (${nomDia(String(e.data).slice(0, 10))})` : '');
+    return `<option value="${esc(e.id)}" ${e.id === L.eventId ? 'selected' : ''}>${esc(t)}</option>`;
+  }).join('');
+
+  /* Dia: només els dies que s'ha fet sessió */
+  const dies = sessionsFetes(ev);
+  const optDies = dies.map(d => {
+    const [y, m, dd] = d.split('-').map(Number);
+    return `<option value="${d}" ${d === L.data ? 'selected' : ''}>${nomDia(d)} ${dd}/${m}/${y}${d === avui() ? ' · avui' : ''}</option>`;
+  }).join('');
 
   const fila = r => {
     const m = marca(r);
@@ -2769,10 +2798,10 @@ ${tabsHTML()}
   <label class="ins-camp"><span>Activitat</span>
     <select class="form-select" onchange="llistaEvent(this.value)">${opcions || '<option>Cap activitat</option>'}</select></label>
   <label class="ins-camp"><span>Dia</span>
-    <input class="form-input" type="date" value="${esc(L.data || '')}" onchange="llistaData(this.value)"></label>
+    <select class="form-select" onchange="llistaData(this.value)" ${dies.length ? '' : 'disabled'}>${optDies || '<option>Cap sessió feta</option>'}</select></label>
 </div>
 ${L.error ? `<div class="alert alert-warning">${esc(L.error)}</div>` : ''}
-${ev ? `
+${ev && !L.data ? '<div class="alert alert-info">Aquesta activitat encara no ha fet cap sessió.</div>' : ev ? `
 <h2 class="ll-titol">${esc(ev.titol?.ca || ev.id)} · ${esc(formatDate(L.data, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</h2>
 <p class="ll-resum">
   <strong>${actius.length}</strong> reserves (${places(actius)} places) ·
