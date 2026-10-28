@@ -30,7 +30,7 @@ let state = {
   filtreReserves: 'cobrar',      // cobrar | pagades | totes
   filtreCentre: '',              // Reserves i Seguiment: '' = tots els centres
   cobrant: null,                 // id de la reserva amb el panell de cobrament obert
-  llista: { eventId: null, data: null, assistencia: {} },
+  llista: { centre: '', eventId: null, data: null, assistencia: {} },
   seguiment: { eventId: null, mes: null, assistencia: {} },   // assistencia[reserva][data] = true/false
   sgFiltre: { q: '', trucada: '', pagat: '', col: '', dir: 1 }, // Seguiment: es manté en canviar d'activitat o de mes
   usuari: null,
@@ -443,16 +443,20 @@ async function renderTab() {
 
 function tabsHTML() {
   const u = state.usuari || {};
-  const b = (t, nom) => `<button class="filter-btn ${state.tab === t ? 'active' : ''}" onclick="setTab('${t}')">${nom}</button>`;
+  const b = (t, nom) => `<button class="filter-btn tab-${t} ${state.tab === t ? 'active' : ''}" onclick="setTab('${t}')"${state.tab === t ? ' aria-current="page"' : ''}>${nom}</button>`;
   return `
 <div class="filters admin-tabs" style="margin-bottom: var(--sp-4);">
+ <div class="admin-tabs-fila">
   ${b('events', 'Activitats')}
   ${potFer('reserves') ? b('cerca', '🔍 Cercar') : ''}
   ${potFer('reserves') ? b('seguiment', '📋 Seguiment') + b('reserves', '💶 Cobraments') + b('llista', 'Passar llista') : ''}
   ${potFer('auditoria') ? b('auditoria', 'Auditoria') : ''}
   ${potFer('usuaris') && !u.antic ? b('usuaris', 'Usuaris') : ''}
+ </div>
+ <div class="admin-tabs-usuari">
   <span class="admin-qui">${esc(u.nom || '')}${u.antic ? '' : ` · <button class="btn-link" onclick="canviarContrasenya()">Contrasenya</button>`}</span>
   <button class="filter-btn" onclick="logout()">Sortir</button>
+ </div>
 </div>`;
 }
 
@@ -460,6 +464,16 @@ window.setTab = async function(t) {
   state.tab = t;
   await render();
 };
+/* Mòbil: la fila de pestanyes es desplaça de costat; cada cop que es repinta
+   el panell, si la pestanya activa queda tallada, la porta a la vista */
+function centraPestanya() {
+  const fila = app.querySelector('.admin-tabs-fila'), act = fila?.querySelector('.active');
+  if (!act || fila.scrollWidth <= fila.clientWidth) return;
+  const f = fila.getBoundingClientRect(), b = act.getBoundingClientRect(), marge = 16;
+  if (b.right > f.right - marge) fila.scrollLeft += b.right - f.right + marge;   // només si queda tallada
+  else if (b.left < f.left + marge) fila.scrollLeft -= f.left + marge - b.left;
+}
+new MutationObserver(centraPestanya).observe(app, { childList: true });
 
 /* ── Resum de la programació (dalt de tot d'Activitats) ─────
    Es construeix sol amb les activitats no arxivades que tenen alguna
@@ -2712,9 +2726,9 @@ function sessionsFetes(ev) {
   return [...dies].filter(d => d <= fins).sort().reverse();
 }
 
-/* Per defecte, l'activitat amb la sessió més recent (la d'avui, si n'hi ha) */
-function eventPerDefecte() {
-  const vius = state.events.filter(e => e.estat !== 'arxivat');
+/* Per defecte, l'activitat amb la sessió més recent (la d'avui, si n'hi ha), dins del centre triat */
+function eventPerDefecte(centre) {
+  const vius = state.events.filter(e => e.estat !== 'arxivat' && (!centre || centreDe(e) === centre));
   const amb = vius.map(e => [e.id, sessionsFetes(e)[0] || '']).sort((a, b) => b[1].localeCompare(a[1]));
   return amb[0]?.[0] || null;
 }
@@ -2722,11 +2736,13 @@ function eventPerDefecte() {
 async function carregaLlista() {
   const L = state.llista;
   L.error = null;
-  if (!L.eventId || !state.events.some(e => e.id === L.eventId)) {
-    L.eventId = eventPerDefecte();
+  const valid = id => state.events.some(e => e.id === id && (!L.centre || centreDe(e) === L.centre));
+  if (!L.eventId || !valid(L.eventId)) {
+    L.eventId = eventPerDefecte(L.centre);
     L.data = null;
   }
   const ev = state.events.find(e => e.id === L.eventId);
+  if (ev) L.centre = centreDe(ev);
   const dies = sessionsFetes(ev);
   if (!dies.includes(L.data)) L.data = dies[0] || null;
   L.assistencia = {};
@@ -2756,8 +2772,8 @@ function renderLlista() {
 
   /* Activitat sense data al davant: primer les que han fet sessió més recentment */
   const nomDia = iso => new Intl.DateTimeFormat('ca-ES', { weekday: 'long' }).format(new Date(iso + 'T12:00:00'));
-  const etiqueta = e => `${e.titol?.ca || e.id}${e.entitat?.ca ? ' · ' + e.entitat.ca : ''}`;
-  const vius = state.events.filter(e => e.estat !== 'arxivat')
+  const etiqueta = e => e.titol?.ca || e.id;
+  const vius = state.events.filter(e => e.estat !== 'arxivat' && centreDe(e) === L.centre)
     .map(e => ({ e, darrera: sessionsFetes(e)[0] || '' }))
     .sort((a, b) => b.darrera.localeCompare(a.darrera) || etiqueta(a.e).localeCompare(etiqueta(b.e), 'ca'));
   const repetides = new Set(vius.map(x => etiqueta(x.e)).filter((t, i, a) => a.indexOf(t) !== i));
@@ -2788,7 +2804,7 @@ function renderLlista() {
         <div class="muted">${esc(resumLinies(r))} · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` (${esc(r.contacte)})` : ''}</div>
         <div class="ll-pag">${pagamentHTML(r)}</div>
       </div>
-      <div class="ll-botons">
+      <div class="ll-botons" role="group" aria-label="Assistència de ${esc(r.nom)}">
         ${BOTONS.map(([v, cls, txt]) => `<button class="ll-btn ll-btn--${cls}" aria-pressed="${m === v}" onclick="marcaAssistencia('${esc(r.id)}', ${m === v ? 'null' : JSON.stringify(v).replace(/"/g, "'")})">${txt}</button>`).join('')}
       </div>
       <span class="ll-print-casella" aria-hidden="true"></span>
@@ -2802,6 +2818,8 @@ ${tabsHTML()}
   <button class="btn btn-secondary no-print" onclick="window.print()">🖨 Imprimir</button>
 </div>
 <div class="ll-selectors no-print">
+  <label class="ins-camp"><span>Centre</span>
+    <select class="form-select" onchange="llistaCentre(this.value)">${centresActius().map(c => `<option value="${esc(c)}" ${c === L.centre ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
   <label class="ins-camp"><span>Activitat</span>
     <select class="form-select" onchange="llistaEvent(this.value)">${opcions || '<option>Cap activitat</option>'}</select></label>
   <label class="ins-camp"><span>Dia</span>
@@ -2809,7 +2827,7 @@ ${tabsHTML()}
 </div>
 ${L.error ? `<div class="alert alert-warning">${esc(L.error)}</div>` : ''}
 ${ev && !L.data ? '<div class="alert alert-info">Aquesta activitat encara no ha fet cap sessió.</div>' : ev ? `
-<h2 class="ll-titol">${esc(ev.titol?.ca || ev.id)} · ${esc(formatDate(L.data, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</h2>
+<h2 class="ll-titol">${esc(ev.titol?.ca || ev.id)} · ${esc(L.centre)} · ${esc(formatDate(L.data, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</h2>
 <p class="ll-resum">
   <strong>${actius.length}</strong> reserves (${places(actius)} places) ·
   <span class="ll-si">${han.length} han vingut</span> ·
@@ -2825,11 +2843,15 @@ ${espera.length ? `
 }
 
 window.obrirLlista = function(eventId) {
-  state.llista = { eventId, data: null, assistencia: {} };
+  state.llista = { centre: '', eventId, data: null, assistencia: {} };
   setTab('llista');
 };
+window.llistaCentre = function(c) {
+  state.llista = { centre: c, eventId: null, data: null, assistencia: {} };
+  render();
+};
 window.llistaEvent = function(id) {
-  state.llista = { eventId: id, data: null, assistencia: {} };
+  state.llista = { centre: state.llista.centre, eventId: id, data: null, assistencia: {} };
   render();
 };
 window.llistaData = function(d) {

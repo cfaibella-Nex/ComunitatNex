@@ -174,7 +174,7 @@
 
     /* Passar llista: pensat per al mòbil, dret al centre cívic */
     .ll-cap { display:flex; justify-content:space-between; align-items:center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
-    .ll-selectors { display:grid; grid-template-columns: 2fr 1fr; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+    .ll-selectors { display:grid; grid-template-columns: 1fr 2fr 1fr; gap: var(--sp-2); margin-bottom: var(--sp-3); }
     .ll-titol { margin: 0 0 4px; }
     .ll-resum { margin: 0 0 var(--sp-2); }
     .ll-si { color: var(--forest); font-weight:700; }
@@ -208,7 +208,20 @@
     }
     /* Capçalera del panell: pestanyes segons el rol i qui ha entrat */
     .admin-tabs { align-items: center; }
-    .admin-qui { margin-left: auto; font-size: var(--fs-sm); color: var(--text-muted); }
+    .admin-tabs-fila { display:flex; flex-wrap: wrap; gap: 6px; }
+    .admin-tabs-usuari { display:flex; align-items:center; gap: 6px; margin-left: auto; }
+    .admin-qui { font-size: var(--fs-sm); color: var(--text-muted); }
+    /* Mòbil: a dalt qui ha entrat; a sota, una sola fila de pestanyes que es desplaça de costat,
+       amb les d'ús diari primer (Auditoria i Usuaris, a la dreta) */
+    @media (max-width: 620px) {
+      .admin-body .admin-tabs { flex-direction: column-reverse; align-items: stretch; flex-wrap: nowrap; }
+      .admin-tabs-usuari { justify-content: flex-end; }
+      .admin-tabs-fila { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+                         margin: 0 calc(-1 * var(--sp-3)); padding: 2px var(--sp-3) 6px; scroll-padding: 0 var(--sp-3); }
+      .admin-tabs-fila .filter-btn { flex: none; white-space: nowrap; scroll-snap-align: start; min-height: 44px; }
+      .tab-events { order: 1; } .tab-seguiment { order: 2; } .tab-llista { order: 3; } .tab-reserves { order: 4; }
+      .tab-cerca { order: 5; } .tab-auditoria { order: 6; } .tab-usuaris { order: 7; }
+    }
     .btn-link { background: none; border: none; padding: 0; color: var(--forest); text-decoration: underline; cursor: pointer; font: inherit; }
     .usr-accions { white-space: nowrap; }
     .usr-temporal { display:flex; gap: var(--sp-1); align-items:center; margin: var(--sp-1) 0; }
@@ -344,6 +357,10 @@
       body.print-blanc .sg-check::after { content: ''; display:inline-block; width: 14px; height: 14px; border: 1.5px solid #000; border-radius: 3px; }
     }
 
+    /* Mòbil: camps a 16 px perquè l'iPhone no faci zoom en tocar-los, i alçada tàctil còmoda */
+    @media (max-width: 620px) {
+      .admin-body .form-input, .admin-body .form-select, .admin-body .form-textarea { font-size: 16px; min-height: 44px; }
+    }
     @media (max-width: 520px) {
       .ev-card { flex-direction: column; }
       .ev-foto { width:100%; height:140px; }
@@ -370,6 +387,6 @@
   <script src="/js/main.js?v=64"></script>
   <script src="/js/carret.js?v=64"></script>
   <script src="/js/xlsx-mini.js?v=64"></script>
-  <script src="/js/admin.js?v=67"></script>
+  <script src="/js/admin.js?v=69"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
-## v42 · Passar llista: selector d'activitat sense data i només dies de sessió fets
+## v42 · Passar llista: centre, activitat sense data, només dies fets, 4 estats i mòbil
 
 - **Activitat**: el desplegable ja no porta la data al davant ("Taller de Memòria · Casal de la
   Solidaritat Can Pepus"). Ordre: primer les que han fet sessió més recentment. Si dues activitats
@@ -18,7 +18,17 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
   **"J Justificada"** i **"— No inscrit/a"** (mateixos colors que les caselles del Seguiment; tornar a
   tocar el botó marcat el desmarca). El resum compta justificades i no inscrits a part, i ja no surten
   com a "sense marcar". Al mòbil, els botons en 2×2.
-- `admin.html`: `admin.js?v=67`.
+- **Centre** al davant (Centre · Activitat · Dia): el desplegable d'activitat només mostra les del
+  centre triat, sense repetir-lo. Per defecte, el centre de l'activitat amb la sessió més recent;
+  "Passar llista" des d'una targeta obre directament el seu centre. El títol mostra activitat · centre · dia.
+- **Mòbil**: revisat a 375 px (sense scroll horitzontal, botons de 48 px en 2×2, selectors un sota
+  l'altre). Camps de formulari de tot el panell a 16 px i 44 px d'alt al mòbil (l'iPhone feia zoom en
+  tocar-los perquè eren de 13 px). Botons d'assistència agrupats per persona per al lector de pantalla.
+- **Pestanyes del panell al mòbil** (tot el panell): a dalt, qui ha entrat · Contrasenya · Sortir;
+  a sota, **una sola fila que es desplaça de costat** en aquest ordre: Activitats · Seguiment ·
+  Passar llista · Cobraments · Cercar, i a la dreta Auditoria i Usuaris. Botons de 44 px. Si la
+  pestanya activa queda tallada, la fila s'hi desplaça sola. A l'ordinador, igual que abans.
+- `admin.html`: `admin.js?v=69`.
 
 Sense SQL. Fitxers: `js/admin.js`, `admin.html`, `docs/CHANGELOG.md`.
 
