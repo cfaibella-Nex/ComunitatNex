@@ -185,22 +185,26 @@
                border-radius: var(--radius); padding: var(--sp-2); }
     .ll-fila--si { border-left-color: var(--forest); background: var(--cards-odd); }
     .ll-fila--no { border-left-color: var(--danger); }
+    .ll-fila--just { border-left-color: var(--forest); border-left-style: double; }
+    .ll-fila--noins { border-left-color: #8A7F74; border-left-style: dashed; }
     .ll-qui strong { font-size: var(--fs-md); }
     .ll-places { font-weight:700; color: var(--forest); }
     .ll-qui .muted { font-size: var(--fs-sm); }
     .ll-pag { margin-top: 4px; }
-    .ll-botons { display:flex; gap: var(--sp-1); flex:none; }
+    .ll-botons { display:grid; grid-template-columns: repeat(4, auto); gap: var(--sp-1); flex:none; }
     .ll-btn { min-height: 48px; min-width: 48px; padding: 0 14px; border-radius: var(--radius);
               border: 2px solid rgba(15,45,30,0.25); background: var(--white); color: var(--ink);
               font-weight:700; font-size: var(--fs-sm); cursor:pointer; }
     .ll-btn--si[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color:#fff; }
     .ll-btn--no[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color:#fff; }
+    .ll-btn--just[aria-pressed="true"] { background: var(--forest-hero); border-color: var(--forest); color: var(--forest); }
+    .ll-btn--noins[aria-pressed="true"] { background: repeating-linear-gradient(135deg, #F1EEEA 0 5px, #E4DED6 5px 10px); border-color: #8A7F74; border-style: dashed; color: #5E554C; }
     .ll-espera { color: var(--text-muted); }
     .ll-print-casella { display:none; }
     @media (max-width: 620px) {
       .ll-selectors { grid-template-columns: 1fr; }
       .ll-fila { flex-direction: column; align-items: stretch; }
-      .ll-botons .ll-btn { flex:1; }
+      .ll-botons { grid-template-columns: 1fr 1fr; }
     }
     /* Capçalera del panell: pestanyes segons el rol i qui ha entrat */
     .admin-tabs { align-items: center; }
@@ -366,6 +370,6 @@
   <script src="/js/main.js?v=64"></script>
   <script src="/js/carret.js?v=64"></script>
   <script src="/js/xlsx-mini.js?v=64"></script>
-  <script src="/js/admin.js?v=66"></script>
+  <script src="/js/admin.js?v=67"></script>
 </body>
 </html>

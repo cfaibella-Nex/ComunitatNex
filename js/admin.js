@@ -2750,6 +2750,8 @@ function renderLlista() {
   const marca = r => L.assistencia[r.id];
   const han = actius.filter(r => marca(r) === true);
   const no = actius.filter(r => marca(r) === false);
+  const just = actius.filter(r => marca(r) === 'justificada');
+  const noins = actius.filter(r => marca(r) === 'no_inscrit');
   const places = rs => rs.reduce((s, r) => s + (r.places || 0), 0);
 
   /* Activitat sense data al davant: primer les que han fet sessió més recentment */
@@ -2771,18 +2773,23 @@ function renderLlista() {
     return `<option value="${d}" ${d === L.data ? 'selected' : ''}>${nomDia(d)} ${dd}/${m}/${y}${d === avui() ? ' · avui' : ''}</option>`;
   }).join('');
 
+  /* Els mateixos 4 estats que el Seguiment: ✓ · ✗ · J · — (tornar a tocar el marcat el treu) */
+  const BOTONS = [
+    [true, 'si', '✔ Ha vingut'], [false, 'no', '✗ No ha vingut'],
+    ['justificada', 'just', 'J Justificada'], ['no_inscrit', 'noins', '— No inscrit/a']
+  ];
+  const FILA_CLS = { true: 'si', false: 'no', justificada: 'just', no_inscrit: 'noins' };
   const fila = r => {
     const m = marca(r);
     return `
-    <li class="ll-fila${m === true ? ' ll-fila--si' : m === false ? ' ll-fila--no' : ''}">
+    <li class="ll-fila${m !== undefined ? ' ll-fila--' + FILA_CLS[m] : ''}">
       <div class="ll-qui">
         <strong>${esc(r.nom)}</strong>${r.places > 1 ? ` <span class="ll-places">× ${r.places}</span>` : ''}
         <div class="muted">${esc(resumLinies(r))} · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` (${esc(r.contacte)})` : ''}</div>
-        <div class="ll-pag">${pagamentHTML(r)}${noCompta(m) ? ` <span class="pag">${MARCA[m].txt} ${MARCA[m].nom}</span>` : ''}</div>
+        <div class="ll-pag">${pagamentHTML(r)}</div>
       </div>
       <div class="ll-botons">
-        <button class="ll-btn ll-btn--si" aria-pressed="${m === true}" onclick="marcaAssistencia('${esc(r.id)}', ${m === true ? 'null' : 'true'})">✔ Ha vingut</button>
-        <button class="ll-btn ll-btn--no" aria-pressed="${m === false}" onclick="marcaAssistencia('${esc(r.id)}', ${m === false ? 'null' : 'false'})">✗ No ha vingut</button>
+        ${BOTONS.map(([v, cls, txt]) => `<button class="ll-btn ll-btn--${cls}" aria-pressed="${m === v}" onclick="marcaAssistencia('${esc(r.id)}', ${m === v ? 'null' : JSON.stringify(v).replace(/"/g, "'")})">${txt}</button>`).join('')}
       </div>
       <span class="ll-print-casella" aria-hidden="true"></span>
     </li>`;
@@ -2807,7 +2814,8 @@ ${ev && !L.data ? '<div class="alert alert-info">Aquesta activitat encara no ha 
   <strong>${actius.length}</strong> reserves (${places(actius)} places) ·
   <span class="ll-si">${han.length} han vingut</span> ·
   <span class="ll-no">${no.length} no</span> ·
-  ${actius.length - han.length - no.length} sense marcar
+  ${just.length ? `${just.length} justificades · ` : ''}${noins.length ? `${noins.length} no inscrits · ` : ''}
+  ${actius.length - han.length - no.length - just.length - noins.length} sense marcar
 </p>
 <ul class="ll-llista">${actius.map(fila).join('') || '<li class="muted">Cap reserva activa.</li>'}</ul>
 ${espera.length ? `
@@ -2837,7 +2845,8 @@ window.marcaAssistencia = async function(id, present) {
   if (present === null) delete L.assistencia[id]; else L.assistencia[id] = present;
   renderLlista();
   try {
-    await apiSend('/api/admin/orders', 'PATCH', { accio: 'assistencia', id, data: L.data, present });
+    await apiSend('/api/admin/orders', 'PATCH', { accio: 'assistencia', id, data: L.data,
+      present: present === null ? null : present === true, motiu: typeof present === 'string' ? present : null });
   } catch (e) {
     if (abans === undefined) delete L.assistencia[id]; else L.assistencia[id] = abans;
     renderLlista();

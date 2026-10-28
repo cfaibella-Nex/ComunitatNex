@@ -14,7 +14,11 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
   − sessions tretes + sessions afegides. Les activitats "Pròximament" no en tenen.
 - Per defecte s'obre l'activitat amb la sessió més recent i el seu darrer dia.
 - Activitat sense cap sessió feta: avís "Aquesta activitat encara no ha fet cap sessió."
-- `admin.html`: `admin.js?v=66`.
+- **Els 4 estats del Seguiment**: a més de "✔ Ha vingut" i "✗ No ha vingut", botons
+  **"J Justificada"** i **"— No inscrit/a"** (mateixos colors que les caselles del Seguiment; tornar a
+  tocar el botó marcat el desmarca). El resum compta justificades i no inscrits a part, i ja no surten
+  com a "sense marcar". Al mòbil, els botons en 2×2.
+- `admin.html`: `admin.js?v=67`.
 
 Sense SQL. Fitxers: `js/admin.js`, `admin.html`, `docs/CHANGELOG.md`.
 
