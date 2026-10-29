@@ -671,7 +671,7 @@ window.duplicarEvent = async function(id) {
   delete copia.versio; delete copia.created_at; delete copia.updated_at;
   copia.id = `${ev.id}-${Math.random().toString(36).slice(2, 6)}`.slice(0, 80);
   copia.estat = 'proximament';
-  copia.data = '';
+  copia.data = null;   // "" no és una data vàlida: Postgres el rebutja
   if (copia.titol?.ca) copia.titol.ca = `${copia.titol.ca} (còpia)`.slice(0, 120);
   if (copia.titol?.es) copia.titol.es = `${copia.titol.es} (copia)`.slice(0, 120);
   try {

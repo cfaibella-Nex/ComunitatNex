@@ -4,6 +4,17 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v43 · Duplicar activitat: ja no falla
+
+- **Error**: "Duplicar" enviava la data buida (`""`) i Postgres la rebutja (`invalid input syntax for
+  type date`), així que no es creava la còpia. Passava el mateix si s'esborrava la data des del camp
+  ràpid de la targeta.
+- `api/admin/events.js`: data buida → sense data (`null`), per a qualsevol alta o edició.
+- `js/admin.js`: la còpia es crea amb `data: null`. `admin.html`: `admin.js?v=70`.
+- Provat contra Postgres 16 local amb l'esquema del repo: abans fallava, ara es desa.
+
+Sense SQL.
+
 ## v42 · Passar llista: centre, activitat sense data, només dies fets, 4 estats i mòbil
 
 - **Activitat**: el desplegable ja no porta la data al davant ("Taller de Memòria · Casal de la

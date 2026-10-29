@@ -25,6 +25,8 @@ export default async function handler(req, res) {
       case 'PATCH': {
         const body = await readBody(req);
         if (!body?.id) return json(res, 400, { error: 'Falta id' });
+        /* Data buida = sense data (la columna és date: "" la rebutja Postgres) */
+        if (body.data === '') body.data = null;
 
         /* Tarifes, extres, model i cobrament: es validen aquí i es
            desa la versió neta, mai el que arriba tal qual. */
