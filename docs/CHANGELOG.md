@@ -4,20 +4,24 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
-## v44 · Sant Roc, dijous: Conversa en castellà + Connecta't (recursos comunitaris)
+## v44 · Sant Roc, dijous: Conversa en castellà + Conéctate · Vida comunitaria (Pròximament)
 
-Tallerista: Ilham. Totes dues gratuïtes i setmanals.
-- **Conversa en castellà** (abans "Taller de castellà bàsic", mateix id `taller-castellano-santroc`:
-  es conserven inscrits i assistència): dijous 16:00–17:00, text nou CA/ES, tarifes i extres a
-  "Gratuït" (mateixos ids). Es treu el cartell del centre cívic, que tenia l'horari antic.
-- **Connecta't: vida i recursos comunitaris** (`connectat-recursos-santroc`), nova: dijous 17:00–18:00,
-  atenció individual amb cita prèvia, 4 places, visible des del dijous 5/11. Lloc copiat del castellà.
-  Foto `assets/connectat-recursos.jpg/.webp` (1200×800) i cartell propi de NexSocial
-  `assets/cartells/nexsocial-connectat-santroc.jpg`.
-- `sql/22-santroc-conversa-connectat.sql`: idempotent; l'alta nova no trepitja els canvis del panell.
+Dos tallers nous, gratuïts, setmanals i en estat **Pròximament** (banda + preinscripció). Tallerista: Ilham.
+- **Conversa en castellà** — cada dijous 16:00–17:00. Substitueix el "Taller de castellà bàsic" amb el
+  mateix id (`taller-castellano-santroc`: es conserven inscrits i assistència). Text nou CA/ES, tarifes
+  i extres a "Gratuït" amb l'horari nou. Sense cartell.
+- **Conéctate · Vida comunitaria** (CA: "Connecta't · Vida comunitària") — cada dijous 17:00–18:00,
+  atenció individual amb cita prèvia, 4 places (`conectate-vida-comunitaria-santroc`). Lloc copiat del
+  castellà. Foto pròpia `assets/connectat-recursos.jpg/.webp` (1200×800). Sense cartell.
+- `sql/22-santroc-conversa-connectat.sql`: idempotent i no trepitja els canvis del panell. Si s'havia
+  executat la primera versió (id `connectat-recursos-santroc`, amb cartell), l'esborra; si algú s'hi
+  havia apuntat, l'arxiva.
+- Data = darrer dijous (només fixa el dia de la setmana). **Quan comencin: data real d'inici + estat
+  "Visible" al panell.**
+- Esborrar a mà: `assets/cartells/nexsocial-connectat-santroc.jpg` (ja no es fa servir).
 
-Dades: **pujar primer les imatges i després executar `sql/22-santroc-conversa-connectat.sql`** a
-Supabase. Provat contra Postgres 16 local (dues execucions) i amb el validador del panell. Sense canvis de codi.
+Dades: **executar `sql/22-santroc-conversa-connectat.sql`** a Supabase. Provat contra Postgres 16 local
+(base neta, després de la primera versió amb i sense inscrits, i dues execucions). Sense canvis de codi.
 
 ## v43 · Duplicar activitat: ja no falla
 
