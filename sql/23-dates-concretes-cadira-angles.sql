@@ -67,54 +67,55 @@ where e.id = 'taller-angles-canpepus'
   and not exists (select 1 from comunitat.auditoria a
                    where a.taula = 'events' and a.registre_id = e.id and a.actor = 'sql-23');
 
--- 3b. Anglès intermedi: si ja s'ha creat amb "Duplicar", s'arregla aquella; si no, se'n crea una
-do $$
-declare
-  v_id text;
-  v_base comunitat.events%rowtype;
-begin
-  select * into v_base from comunitat.events where id = 'taller-angles-canpepus';
-  if not found then return; end if;
-
-  select id into v_id from comunitat.events
+-- 3b. Anglès intermedi (SQL normal, sense bloc DO: l'editor de Supabase el tallava)
+--     Si ja s'ha creat amb "Duplicar" (taller-angles-canpepus-xxxx), s'arregla aquella...
+with cand as (
+  select id from comunitat.events
    where estat <> 'arxivat' and id <> 'taller-angles-canpepus'
      and (id like 'taller-angles-canpepus-%' or id = 'taller-angles-intermedi-canpepus')
    order by (titol->>'ca' ilike '%intermedi%') desc, created_at desc
-   limit 1;
+   limit 1
+), base as (
+  select descripcio, ubicacio from comunitat.events where id = 'taller-angles-canpepus'
+)
+update comunitat.events e set
+  titol       = '{"ca":"Conversa en anglès intermedi","es":"Conversación en inglés intermedio"}'::jsonb,
+  descripcio  = base.descripcio,
+  ubicacio    = base.ubicacio,
+  hora        = '18:00',
+  durada      = 60,
+  recurrencia = 'setmanal',
+  data        = case when e.data is null then date '2026-11-03'
+                     when extract(isodow from e.data) = 2 then e.data
+                     else e.data + ((9 - extract(isodow from e.data)::int) % 7) end,
+  tarifes     = coalesce((select jsonb_agg(t || '{"preu_mode":"consultar","preu_cents":0,"preu_intern_cents":1500,
+                            "detall":{"ca":"Dimarts 18:00 – 19:00","es":"Martes 18:00 – 19:00"}}'::jsonb)
+                            from jsonb_array_elements(e.tarifes) t), e.tarifes)
+from cand, base
+where e.id = cand.id
+  and not exists (select 1 from comunitat.auditoria a
+                   where a.taula = 'events' and a.registre_id = e.id and a.actor = 'sql-23');
 
-  if v_id is null then
-    insert into comunitat.events (
-      id, tipo, titol, descripcio, entitat, ubicacio, mapa_url, data, hora, durada, cupo,
-      preu_cents, tipo_iva, imatge, imatge_lloc, cartell, data_label, estat, model, pagament,
-      tarifes, extres, recurrencia)
-    values (
-      'taller-angles-intermedi-canpepus', v_base.tipo,
-      '{"ca":"Conversa en anglès intermedi","es":"Conversación en inglés intermedio"}',
-      v_base.descripcio, v_base.entitat, v_base.ubicacio, v_base.mapa_url,
-      date '2026-11-03',                       -- primer dimarts del grup nou
-      '18:00', 60, v_base.cupo, 0, v_base.tipo_iva, v_base.imatge, v_base.imatge_lloc, null, null,
-      v_base.estat, v_base.model, v_base.pagament,
-      coalesce((select jsonb_agg(t || '{"detall":{"ca":"Dimarts 18:00 – 19:00","es":"Martes 18:00 – 19:00"}}'::jsonb)
-                  from jsonb_array_elements(v_base.tarifes) t), v_base.tarifes),
-      v_base.extres, 'setmanal');
-  elsif not exists (select 1 from comunitat.auditoria a
-                     where a.taula = 'events' and a.registre_id = v_id and a.actor = 'sql-23') then
-    update comunitat.events e set
-      titol      = '{"ca":"Conversa en anglès intermedi","es":"Conversación en inglés intermedio"}'::jsonb,
-      descripcio = v_base.descripcio,
-      ubicacio   = v_base.ubicacio,
-      hora       = '18:00',
-      durada     = 60,
-      recurrencia = 'setmanal',
-      data       = case when e.data is null then date '2026-11-03'
-                        when extract(isodow from e.data) = 2 then e.data
-                        else e.data + ((9 - extract(isodow from e.data)::int) % 7) end,
-      tarifes    = coalesce((select jsonb_agg(t || '{"preu_mode":"consultar","preu_cents":0,"preu_intern_cents":1500,
-                               "detall":{"ca":"Dimarts 18:00 – 19:00","es":"Martes 18:00 – 19:00"}}'::jsonb)
-                               from jsonb_array_elements(e.tarifes) t), e.tarifes)
-    where e.id = v_id;
-  end if;
-end $$;
+--     ... i si no n'hi ha cap, se'n crea una copiant el bàsic (des del dimarts 3/11)
+insert into comunitat.events (
+  id, tipo, titol, descripcio, entitat, ubicacio, mapa_url, data, hora, durada, cupo,
+  preu_cents, tipo_iva, imatge, imatge_lloc, cartell, data_label, estat, model, pagament,
+  tarifes, extres, recurrencia)
+select
+  'taller-angles-intermedi-canpepus', b.tipo,
+  '{"ca":"Conversa en anglès intermedi","es":"Conversación en inglés intermedio"}'::jsonb,
+  b.descripcio, b.entitat, b.ubicacio, b.mapa_url,
+  date '2026-11-03', '18:00', 60, b.cupo, 0, b.tipo_iva, b.imatge, b.imatge_lloc, null, null,
+  b.estat, b.model, b.pagament,
+  coalesce((select jsonb_agg(t || '{"detall":{"ca":"Dimarts 18:00 – 19:00","es":"Martes 18:00 – 19:00"}}'::jsonb)
+              from jsonb_array_elements(b.tarifes) t), b.tarifes),
+  b.extres, 'setmanal'
+from comunitat.events b
+where b.id = 'taller-angles-canpepus'
+  and not exists (select 1 from comunitat.events c
+                   where c.estat <> 'arxivat' and c.id <> 'taller-angles-canpepus'
+                     and (c.id like 'taller-angles-canpepus-%' or c.id = 'taller-angles-intermedi-canpepus'))
+on conflict (id) do nothing;
 
 -- Comprovació
 select id, tipo, titol->>'ca' as titol, recurrencia, data, to_char(data, 'TMDay') as dia, hora, durada, cupo, estat,
