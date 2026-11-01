@@ -4,6 +4,21 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v44 · Sant Roc, dijous: Conversa en castellà + Connecta't (recursos comunitaris)
+
+Tallerista: Ilham. Totes dues gratuïtes i setmanals.
+- **Conversa en castellà** (abans "Taller de castellà bàsic", mateix id `taller-castellano-santroc`:
+  es conserven inscrits i assistència): dijous 16:00–17:00, text nou CA/ES, tarifes i extres a
+  "Gratuït" (mateixos ids). Es treu el cartell del centre cívic, que tenia l'horari antic.
+- **Connecta't: vida i recursos comunitaris** (`connectat-recursos-santroc`), nova: dijous 17:00–18:00,
+  atenció individual amb cita prèvia, 4 places, visible des del dijous 5/11. Lloc copiat del castellà.
+  Foto `assets/connectat-recursos.jpg/.webp` (1200×800) i cartell propi de NexSocial
+  `assets/cartells/nexsocial-connectat-santroc.jpg`.
+- `sql/22-santroc-conversa-connectat.sql`: idempotent; l'alta nova no trepitja els canvis del panell.
+
+Dades: **pujar primer les imatges i després executar `sql/22-santroc-conversa-connectat.sql`** a
+Supabase. Provat contra Postgres 16 local (dues execucions) i amb el validador del panell. Sense canvis de codi.
+
 ## v43 · Duplicar activitat: ja no falla
 
 - **Error**: "Duplicar" enviava la data buida (`""`) i Postgres la rebutja (`invalid input syntax for
