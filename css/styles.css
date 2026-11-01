@@ -33,7 +33,7 @@
 
   /* Estats funcionals */
   --success:     #2D6B48;
-  --warning:     #B8860B;
+  --warning:     #8B6508;   /* abans #B8860B: el text blanc a sobre no arribava al contrast mínim (3,3 → 5,3) */
   --danger:      #A03030;
   --info:        #2D6B48;
 
@@ -620,7 +620,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 /* ── Targetes d'activitat ──────────────────────────────────── */
 .events-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));   /* al mòbil no desborda */
   gap: var(--sp-3);
 }
 .event-card {
@@ -661,6 +661,11 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   scrollbar-width: none;
 }
 .tabs::-webkit-scrollbar { display: none; }
+/* Mòbil: les pestanyes passen a dues files en lloc de quedar amagades pel costat */
+@media (max-width: 600px) {
+  .tabs { flex-wrap: wrap; overflow: visible; }
+  .tab { padding: 12px 14px; }
+}
 .tab {
   background: transparent;
   border: none;
@@ -765,7 +770,13 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
   border-radius: var(--radius);
 }
 .detail-info dt { font-weight: 600; color: var(--forest); }
-.detail-info dd { margin: 0; }
+.detail-info dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.detail-layout > * { min-width: 0; }
+/* Mòbil amb la lletra ampliada (A+): etiqueta a sobre del valor, perquè no surti de la pantalla */
+@media (max-width: 480px) {
+  html.lletra-1 .detail-info dl, html.lletra-2 .detail-info dl { grid-template-columns: 1fr; row-gap: 2px; }
+  html.lletra-1 .detail-info dd, html.lletra-2 .detail-info dd { margin-bottom: var(--sp-1); }
+}
 
 /* ── Formularis (senior-first) ─────────────────────────────── */
 .form-group { margin-bottom: var(--sp-3); }
@@ -923,7 +934,7 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 /* Graella de fitxes */
 .pastimes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
   gap: var(--sp-4);
 }
 
@@ -1362,10 +1373,12 @@ p { margin: 0 0 var(--sp-3); max-width: 65ch; }
 
 @media (max-width: 720px) {
   .event-row {
-    grid-template-columns: 70px 1fr;
+    grid-template-columns: 86px 1fr;
     gap: var(--sp-2);
     padding: var(--sp-2);
   }
+  .event-row-date { padding: var(--sp-1) 2px; min-width: 0; }
+  .event-row-month { letter-spacing: 0; font-size: 14px; overflow-wrap: anywhere; }
   .event-row-img { display: none; }
   .event-row-day { font-size: 32px; }
   .event-row-title { font-size: var(--fs-base); }

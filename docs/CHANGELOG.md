@@ -4,6 +4,30 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v46 · Revisió mòbil i accessibilitat (web pública i panell)
+
+Auditoria a 375 px (iPhone) de 14 pantalles públiques i 10 del panell, amb axe-core (WCAG 2.2 AA),
+mides de toc, desbordaments i lletra ampliada (A+). Resultat: 0 desbordaments, 0 errors axe,
+0 objectius de toc < 24 px, 0 camps que facin zoom a l'iPhone. A l'ordinador no canvia res.
+
+**Web pública** (`css/styles.css`)
+- Etiqueta "Últimes places": contrast 3,3 → 5,3 (`--warning` #B8860B → #8B6508, també a vores i panell).
+- Reserves: les targetes ja no surten 13 px per la dreta (graella `minmax(min(340px,100%),1fr)`), i les
+  pestanyes (Esdeveniments · Tallers · Activitats) passen a diverses files: abans quedaven amagades pel costat.
+- Agenda: el requadre del dia ("DT · CADA SETMANA") ja no desborda.
+- Fitxa amb la lletra ampliada (A+): Data/Hora/Durada amb l'etiqueta a sobre del valor; abans desbordava 40 px.
+
+**Panell** (`admin.html`, `js/admin.js`)
+- Editor d'activitat en una columna al mòbil (abans 617 px d'ample) i botons de foto que es parteixen.
+- Cobraments, Usuaris i Auditoria: al mòbil, una fitxa per fila amb "Columna: valor" (abans calia
+  desplaçar-se de costat). El full del Seguiment es manté com a taula amb desplaçament lateral.
+- Tots els camps a 16 px al mòbil (l'iPhone feia zoom en tocar-los).
+- Botons petits a 24 px mínim: ordenar columnes, "×" de sessió, "Contrasenya", "Veure només aquestes",
+  telèfons. Text petit (10,8 px) a 12 px.
+- Lector de pantalla: cada etiqueta del formulari queda vinculada al seu camp (abans 20 camps sense nom);
+  selector de rol dels usuaris amb nom.
+- Versions: `styles.css?v=65` a totes les pàgines, `admin.js?v=72`.
+
 ## v45 · "Dates concretes" (quinzenal) + Una cadira més (AVV Canyadó) + anglès bàsic/intermedi
 
 **Tipus de repetició nou: "Dates concretes"** (panell → Es repeteix). Per a activitats quinzenals o

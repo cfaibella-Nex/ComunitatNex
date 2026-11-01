@@ -6,7 +6,7 @@
   <title>Admin · Comunitat NexSocial</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/css/styles.css?v=64">
+  <link rel="stylesheet" href="/css/styles.css?v=65">
 
   <style>
     /* ── Escala del panell ───────────────────────────────────
@@ -361,6 +361,30 @@
     /* Mòbil: camps a 16 px perquè l'iPhone no faci zoom en tocar-los, i alçada tàctil còmoda */
     @media (max-width: 620px) {
       .admin-body .form-input, .admin-body .form-select, .admin-body .form-textarea { font-size: 16px; min-height: 44px; }
+      .admin-body input:not([type=checkbox]):not([type=radio]):not([type=file]), .admin-body select, .admin-body textarea { font-size: 16px; }
+    }
+    /* Editor d'activitat: dues columnes a l'ordinador, una al mòbil */
+    .ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+    .ed-grid > * { min-width: 0; }
+    @media (max-width: 620px) { .ed-grid { grid-template-columns: 1fr; gap: 0 var(--sp-3); } }
+    /* Mida mínima de toc (WCAG 2.5.8: 24 px) per als botons petits */
+    .admin-body .btn-link, .sg-ord, .sg-treure { min-height: 24px; min-width: 24px; display: inline-flex; align-items: center; justify-content: center; }
+    .cerca-cancel { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; }
+    .cerca-cancel input { width: 22px; height: 22px; }
+    .admin-body small { font-size: var(--fs-xs); }
+    .admin-body a[href^="tel:"] { display: inline-block; min-height: 24px; padding: 3px 0; }
+    .mes-xip { font-size: var(--fs-xs) !important; }
+    /* Taules normals (Cobraments, Usuaris, Auditoria) al mòbil: una fitxa per fila, "Columna: valor".
+       El full del Seguiment (.sg-taula) es manté com a taula amb desplaçament lateral. */
+    @media (max-width: 620px) {
+      .admin-table:not(.sg-taula) thead { display: none; }
+      .admin-table:not(.sg-taula), .admin-table:not(.sg-taula) tbody,
+      .admin-table:not(.sg-taula) tr, .admin-table:not(.sg-taula) td { display: block; width: 100%; }
+      .admin-table:not(.sg-taula) tr { padding: 8px 0; border-bottom: 2px solid rgba(15,45,30,0.12); }
+      .admin-body .admin-table:not(.sg-taula) td { border: 0; padding: 3px 12px; overflow-wrap: anywhere; }
+      .admin-table:not(.sg-taula) td[data-label]::before { content: attr(data-label) ": "; font-weight: 700; color: var(--text-muted); }
+      .admin-table:not(.sg-taula) td:empty { display: none; }
+      .admin-table:not(.sg-taula) td .btn { margin-top: 4px; }
     }
     @media (max-width: 520px) {
       .ev-card { flex-direction: column; }
@@ -388,6 +412,6 @@
   <script src="/js/main.js?v=66"></script>
   <script src="/js/carret.js?v=64"></script>
   <script src="/js/xlsx-mini.js?v=64"></script>
-  <script src="/js/admin.js?v=71"></script>
+  <script src="/js/admin.js?v=72"></script>
 </body>
 </html>

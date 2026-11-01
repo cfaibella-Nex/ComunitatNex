@@ -288,7 +288,7 @@ async function renderUsuaris(avis) {
       <td><strong>${esc(u.nom)}</strong>${u.id === state.usuari?.id ? ' <small>(tu)</small>' : ''}</td>
       <td>${esc(u.email)}</td>
       <td>${u.id === state.usuari?.id ? esc(rols[u.rol] || u.rol) : `
-        <select onchange="usuariAccio('${esc(u.id)}','rol',this.value)">
+        <select aria-label="Rol de ${esc(u.nom)}" onchange="usuariAccio('${esc(u.id)}','rol',this.value)">
           ${Object.entries(rols).map(([k, v]) => `<option value="${k}" ${u.rol === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}
         </select>`}</td>
       <td>${!u.actiu ? 'Desactivat' : u.ha_de_canviar ? 'Pendent de primera entrada' : 'Actiu'}</td>
@@ -474,6 +474,29 @@ function centraPestanya() {
   else if (b.left < f.left + marge) fila.scrollLeft -= f.left + marge - b.left;
 }
 new MutationObserver(centraPestanya).observe(app, { childList: true });
+
+/* Accessibilitat, cada cop que es repinta el panell:
+   · cada etiqueta de formulari queda vinculada al seu camp (el lector de pantalla l'anuncia
+     i tocar l'etiqueta posa el focus al camp);
+   · a les taules normals (no el full del Seguiment) cada cel·la sap el nom de la seva
+     columna, perquè al mòbil es mostren com a fitxes amb "Columna: valor". */
+let idCamp = 0;
+function accessibilitatPanell() {
+  app.querySelectorAll('.form-group').forEach(g => {
+    const lab = g.querySelector(':scope > label.form-label');
+    const camp = g.querySelector('input:not([type=hidden]):not([type=file]), select, textarea');
+    if (!lab || !camp || lab.htmlFor || lab.contains(camp)) return;
+    if (!camp.id) camp.id = `camp-auto-${++idCamp}`;
+    lab.htmlFor = camp.id;
+  });
+  app.querySelectorAll('table.admin-table:not(.sg-taula)').forEach(t => {
+    const caps = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    t.querySelectorAll('tbody tr').forEach(tr => [...tr.children].forEach((td, i) => {
+      if (caps[i] && !td.hasAttribute('colspan')) td.dataset.label = caps[i];
+    }));
+  });
+}
+new MutationObserver(accessibilitatPanell).observe(app, { childList: true });
 
 /* ── Resum de la programació (dalt de tot d'Activitats) ─────
    Es construeix sol amb les activitats no arxivades que tenen alguna
@@ -763,7 +786,7 @@ window.editEvent = function(id) {
 <h1>${isNew ? 'Nou event' : 'Editar: ' + esc(ev.titol?.ca)}</h1>
 
 <form id="ev-form" style="max-width: 800px;">
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3);">
+  <div class="ed-grid">
     <div class="form-group">
       <label class="form-label">ID (únic, sense espais)</label>
       <input class="form-input" name="id" value="${esc(ev.id)}" ${isNew ? '' : 'readonly'} required>
@@ -1174,7 +1197,7 @@ function campImatge(clau, etiqueta, valor, ajuda) {
         <div style="flex:1; min-width:0;">
           <input class="form-input" name="${clau}" id="camp-${clau}" value="${esc(v)}" placeholder="Cap imatge">
           <input type="file" id="file-${clau}" accept="image/jpeg,image/png,image/webp" style="display:none">
-          <div style="display:flex; gap: var(--sp-2); align-items:center; margin-top: var(--sp-1);">
+          <div style="display:flex; flex-wrap:wrap; gap: var(--sp-2); align-items:center; margin-top: var(--sp-1);">
             <button type="button" class="btn btn-secondary" onclick="triarImatge('${clau}')">Pujar una foto</button>
             ${v ? `<button type="button" class="btn btn-ghost" onclick="treureImatge('${clau}')">Treure</button>` : ''}
             <span id="estat-${clau}" class="muted" style="font-size:var(--fs-sm)"></span>
