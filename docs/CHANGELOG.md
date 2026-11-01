@@ -16,12 +16,16 @@ amb dies irregulars (ex. 1r i 3r dijous de mes, amb excepcions).
 - Panell: resum de la programació ("Dates concretes"), targetes, filtres properes/passades, Seguiment
   (2 dies per mes, amb navegador de mesos), Passar llista (només els dies fets) i Cercar.
 - `api/events.js` (propera sessió), `api/reserva.js` (oberta mentre quedi un dia), `js/main.js`,
-  `js/agenda.js`, `js/admin.js`. Versions: `main.js`/`agenda.js?v=65` a totes les pàgines, `admin.js?v=71`.
+  `js/agenda.js`, `js/admin.js`. Versions: `main.js?v=66` i `agenda.js?v=65` a totes les pàgines, `admin.js?v=71`.
 
 **Una cadira més · Tardeos veïnals** (`una-cadira-mes-canyado`) — AVV Canyadó (c/ Eduard Marquina,
 25-27), dinamització a càrrec de NexSocial. 17:30–19:30, gratuïta, 25 places, **Pròximament**.
 Dies: 12/11, 26/11, 3/12, 17/12 i, del gener al juny de 2027, 1r i 3r dijous (16 dies).
-Imatge `assets/taller-cadira-mes.jpg/.webp` (il·lustracions del cartell, 1200×800).
+Tipus **Activitat** (no taller). El tipus intern `mensual` passa a dir-se "Activitat" a la web i al panell
+(pestanya "Activitats" a Reserves): és només l'etiqueta, no té res a veure amb el model de cobrament.
+Cartell: la portada (`assets/cartells/avv-canyado-cadira-mes.jpg`, sense la franja de logos): a les
+targetes se'n veu la part de dalt i a la fitxa surt sencer i s'amplia. La pàgina del calendari és només
+per a xarxes. Imatge de reserva `assets/taller-cadira-mes.jpg/.webp` (il·lustracions de la portada).
 
 **Anglès a Can Pepus** (Nidhi Nagdev), dimarts, Sala Polivalent, 15 € intern ("a consultar" a la web):
 - `taller-angles-canpepus` → **Conversa en anglès bàsic**, 16:30–17:30.

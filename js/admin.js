@@ -771,7 +771,7 @@ window.editEvent = function(id) {
     <div class="form-group">
       <label class="form-label">Tipus</label>
       <select class="form-select" name="tipo">
-        <option value="mensual" ${ev.tipo==='mensual'?'selected':''}>Activitat mensual</option>
+        <option value="mensual" ${ev.tipo==='mensual'?'selected':''}>Activitat</option>
         <option value="taller" ${ev.tipo==='taller'?'selected':''}>Taller</option>
         <option value="esdeveniment" ${ev.tipo==='esdeveniment'?'selected':''}>Esdeveniment</option>
       </select>

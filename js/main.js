@@ -49,10 +49,10 @@ const i18n = {
     'reserves.sub':    "Tria una categoria i apunta't a la que t'interessi.",
     'reserves.tab.esdev':    'Esdeveniments',
     'reserves.tab.tallers':  'Tallers',
-    'reserves.tab.mensual':  'Activitats mensuals',
+    'reserves.tab.mensual':  'Activitats',
     'reserves.empty.esdev':  'No hi ha esdeveniments programats ara mateix.',
     'reserves.empty.tallers':'No hi ha tallers oberts a inscripció ara mateix.',
-    'reserves.empty.mensual':"No hi ha activitats mensuals programades ara mateix.",
+    'reserves.empty.mensual':"No hi ha activitats programades ara mateix.",
 
     'ev.reservar':     'Reservar plaça',
     'ev.veure':        'Veure detalls',
@@ -273,10 +273,10 @@ const i18n = {
     'reserves.sub':    'Elige una categoría y apúntate a la que te interese.',
     'reserves.tab.esdev':    'Eventos',
     'reserves.tab.tallers':  'Talleres',
-    'reserves.tab.mensual':  'Actividades mensuales',
+    'reserves.tab.mensual':  'Actividades',
     'reserves.empty.esdev':  'No hay eventos programados ahora mismo.',
     'reserves.empty.tallers':'No hay talleres abiertos a inscripción ahora mismo.',
-    'reserves.empty.mensual':'No hay actividades mensuales programadas ahora mismo.',
+    'reserves.empty.mensual':'No hay actividades programadas ahora mismo.',
 
     'ev.reservar':     'Reservar plaza',
     'ev.veure':        'Ver detalles',
@@ -593,7 +593,7 @@ function formatPrice(cents) {
 
 function tipoLabel(tipo) {
   const map = {
-    mensual: getLang() === 'ca' ? 'Activitat mensual' : 'Actividad mensual',
+    mensual: getLang() === 'ca' ? 'Activitat' : 'Actividad',      // tipus intern 'mensual' (no és el model de cobrament)
     taller:  getLang() === 'ca' ? 'Taller' : 'Taller',
     esdeveniment: getLang() === 'ca' ? 'Esdeveniment' : 'Evento'
   };
