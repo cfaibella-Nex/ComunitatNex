@@ -31,7 +31,7 @@ insert into comunitat.events (
   '{"ca":"Seu de l''AVV Canyadó · c/ Eduard Marquina, 25-27, Badalona","es":"Sede de la AVV Canyadó · c/ Eduard Marquina, 25-27, Badalona"}',
   'https://maps.google.com/?q=Carrer+Eduard+Marquina+25+Badalona',
   date '2026-11-12', '17:30', 120, 25, 0, 'exempt',
-  '/assets/taller-cadira-mes.jpg', null, '/assets/cartells/avv-canyado-cadira-mes.jpg',
+  '/assets/taller-cadira-mes.jpg', '/assets/canyado.jpg', '/assets/cartells/avv-canyado-cadira-mes.jpg',
   '{"ca":"1r i 3r dijous de mes","es":"1.º y 3.º jueves de mes"}',
   'proximament', 'puntual', 'presencial',
   '[{"id":"inscripcio","nom":{"ca":"Inscripció","es":"Inscripción"},"detall":{"ca":"1r i 3r dijous de mes · 17:30 – 19:30","es":"1.º y 3.º jueves de mes · 17:30 – 19:30"},"preu_mode":"gratuit","preu_cents":0,"places":null,"estat":"disponible"}]',
@@ -45,6 +45,10 @@ insert into comunitat.events (
 update comunitat.events set cartell = coalesce(cartell, '/assets/cartells/avv-canyado-cadira-mes.jpg'),
                             tipo = case when tipo = 'taller' then 'mensual' else tipo end
  where id = 'una-cadira-mes-canyado' and (cartell is null or tipo = 'taller');
+
+-- Foto del local de l'AVV Canyadó a totes les activitats d'aquest centre que no en tinguin
+update comunitat.events set imatge_lloc = '/assets/canyado.jpg'
+ where entitat->>'ca' = 'AVV Canyadó' and imatge_lloc is null;
 
 -- 3a. Anglès bàsic (el taller de sempre)
 update comunitat.events e set

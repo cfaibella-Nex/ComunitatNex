@@ -26,6 +26,8 @@ Tipus **Activitat** (no taller). El tipus intern `mensual` passa a dir-se "Activ
 Cartell: la portada (`assets/cartells/avv-canyado-cadira-mes.jpg`, sense la franja de logos): a les
 targetes se'n veu la part de dalt i a la fitxa surt sencer i s'amplia. La pàgina del calendari és només
 per a xarxes. Imatge de reserva `assets/taller-cadira-mes.jpg/.webp` (il·lustracions de la portada).
+Foto del lloc: `assets/canyado.jpg/.webp` (entrada de l'AVV); el SQL la posa a totes les activitats amb
+entitat "AVV Canyadó" que no en tinguin. Per a activitats noves al mateix local: **Duplicar** "Una cadira més".
 
 **Anglès a Can Pepus** (Nidhi Nagdev), dimarts, Sala Polivalent, 15 € intern ("a consultar" a la web):
 - `taller-angles-canpepus` → **Conversa en anglès bàsic**, 16:30–17:30.
