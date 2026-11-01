@@ -118,7 +118,7 @@ function eventRowHTML(ev) {
     : `<span class="event-row-day">${dia}</span><span class="event-row-month">${esc(mesLabel)}</span>`;
 
   // Línia meta: si hi ha label, el fem servir; sinó dia setmana + hora
-  const metaText = setmanal
+  const metaText = setmanal || ev.etiqueta_dates
     ? `${esc(window.NX.quanText(ev))} · ${esc(hora)}`
     : label
     ? esc(label) + (isProximament ? '' : ` · ${esc(hora)}`)
@@ -186,6 +186,7 @@ function sessionsRang(ev, des, fins, avui) {
   const ini = String(ev.data || '').slice(0, 10);
   if (!ini) return [];
   const desde = des > avui ? des : avui;
+  if (Array.isArray(ev.sessions)) return ev.sessions.filter(d => d >= desde && d <= fins);   // dates concretes
   if (!window.NX.esSetmanal(ev)) return ini >= desde && ini <= fins ? [ini] : [];
   const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
   const dow = new Date(ini + 'T12:00:00').getDay();

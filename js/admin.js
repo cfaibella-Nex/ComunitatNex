@@ -490,7 +490,15 @@ function filaResum(ev) {
   const hui = avui();
   const setmanal = ev.recurrencia === 'setmanal' && ev.data;
   let dia, periodicitat, ordreDia, ordreData;
-  if (setmanal) {
+  if (esDates(ev)) {
+    const futurs = diesDates(ev).filter(d => d >= hui);
+    if (!futurs.length) return null;
+    const dow = new Date(futurs[0] + 'T12:00:00').getDay();
+    dia = `${ev.data_label?.ca || DIES_LLARG[dow] + ' ' + franjaDia(ev.hora)} · propera ${ddmm(futurs[0])}`;
+    periodicitat = 'dates';
+    ordreDia = (dow + 6) % 7;
+    ordreData = futurs[0];
+  } else if (setmanal) {
     const dow = new Date(String(ev.data).slice(0, 10) + 'T12:00:00').getDay();
     dia = `${DIES_LLARG[dow]} ${franjaDia(ev.hora)}`.trim();
     periodicitat = 'setmanal';
@@ -521,7 +529,7 @@ function resumProgramacioHTML() {
   if (!files.length) return '';
   const perCentre = {};
   files.forEach(f => (perCentre[f.centre] ||= []).push(f));
-  const PER = { setmanal: 'Setmanal', mensual: 'Mensual', trimestral: 'Trimestral', puntual: 'Puntual' };
+  const PER = { setmanal: 'Setmanal', dates: 'Dates concretes', mensual: 'Mensual', trimestral: 'Trimestral', puntual: 'Puntual' };
   const ESTAT_CURT = { proximament: 'Pròximament', esgotat: 'Ple' };
   const centres = Object.keys(perCentre);
 
@@ -568,7 +576,8 @@ function ocupacio() {
 }
 
 function targetaEvent(ev, ocup) {
-  const passat = ev.recurrencia !== 'setmanal' && (ev.data || '') < avui();
+  const passat = esDates(ev) ? !diesDates(ev).some(d => d >= avui())
+    : ev.recurrencia !== 'setmanal' && (ev.data || '') < avui();
   const e = ESTAT_EVENT[ev.estat] || { nom: ev.estat, color: 'var(--text-muted)' };
   const ocupades = ocup[ev.id] || 0;
   const restants = Math.max(0, (ev.cupo || 0) - ocupades);
@@ -597,7 +606,7 @@ function targetaEvent(ev, ocup) {
       </div>
 
       <h3 class="ev-titol">${esc(ev.titol?.ca || ev.id)}</h3>
-      <p class="ev-sub">${ev.recurrencia === 'setmanal' && ev.data ? '<strong>' + esc(window.NX.quanText(ev)) + ' · ' + esc(window.NX.franjaHoraria(ev)) + '</strong> · ' : ''}${esc(ev.ubicacio?.ca || '')} · ${esc(window.NXC.preuResum(ev))} · ${esc(MODEL_NOM[ev.model] || MODEL_NOM.puntual)}${ev.pagament && ev.pagament !== 'reserva' ? ' · ' + esc(PAGAMENT_NOM[ev.pagament]) : ''}</p>
+      <p class="ev-sub">${esDates(ev) ? '<strong>' + esc(quanDates(ev)) + ' · ' + esc(window.NX.franjaHoraria(ev)) + '</strong> · ' : ''}${ev.recurrencia === 'setmanal' && ev.data ? '<strong>' + esc(window.NX.quanText(ev)) + ' · ' + esc(window.NX.franjaHoraria(ev)) + '</strong> · ' : ''}${esc(ev.ubicacio?.ca || '')} · ${esc(window.NXC.preuResum(ev))} · ${esc(MODEL_NOM[ev.model] || MODEL_NOM.puntual)}${ev.pagament && ev.pagament !== 'reserva' ? ' · ' + esc(PAGAMENT_NOM[ev.pagament]) : ''}</p>
 
       <div class="ev-rapid">
         <label>Data
@@ -686,8 +695,8 @@ function renderEvents() {
   const ocup = ocupacio();
 
   const filtres = {
-    properes: e => (e.recurrencia === 'setmanal' || (e.data || '') >= hui) && e.estat !== 'arxivat',
-    passades: e => e.recurrencia !== 'setmanal' && (e.data || '') < hui && e.estat !== 'arxivat',
+    properes: e => (e.recurrencia === 'setmanal' || (esDates(e) ? diesDates(e).some(d => d >= hui) : (e.data || '') >= hui)) && e.estat !== 'arxivat',
+    passades: e => e.recurrencia !== 'setmanal' && (esDates(e) ? !diesDates(e).some(d => d >= hui) : (e.data || '') < hui) && e.estat !== 'arxivat',
     arxivades: e => e.estat === 'arxivat',
     totes: () => true
   };
@@ -816,6 +825,7 @@ window.editEvent = function(id) {
       <select class="form-select" name="recurrencia" id="camp-recurrencia">
         <option value="cap" ${ev.recurrencia !== 'setmanal' ? 'selected' : ''}>No: una data</option>
         <option value="setmanal" ${ev.recurrencia === 'setmanal' ? 'selected' : ''}>Cada setmana</option>
+        <option value="dates" ${ev.recurrencia === 'dates' ? 'selected' : ''}>Dates concretes (ex. quinzenal)</option>
       </select>
       <div class="form-help" id="ajuda-recurrencia"></div>
     </div>
@@ -874,7 +884,9 @@ window.editEvent = function(id) {
     const f = qs('#ev-form');
     const prova = { data: f.data.value, hora: f.hora.value, durada: parseInt(f.durada.value, 10) || 0,
                     recurrencia: f.recurrencia.value, data_label: null };
-    const txt = prova.recurrencia === 'setmanal' && prova.data
+    const txt = prova.recurrencia === 'dates'
+      ? `Els dies es posen i es treuen al <strong>Seguiment</strong> (Afegir sessió / ×)${ev.id && esDates(ev) ? `: ara ${diesDates(ev).length} dies, propera ${esc(quanDates(ev))}` : ''}. La web diu l'<strong>Etiqueta</strong> (ex. "1r i 3r dijous de mes") i la propera sessió. Data = primer dia.`
+      : prova.recurrencia === 'setmanal' && prova.data
       ? `La web dirà: <strong>${esc(window.NX.quanText(prova))} · ${esc(window.NX.franjaHoraria(prova))}</strong>. Es veu fins que l'arxivis.`
       : prova.data ? `La web dirà la data. Deixa de sortir l'endemà.` : '';
     qs('#ajuda-recurrencia').innerHTML = txt;
@@ -907,7 +919,7 @@ window.editEvent = function(id) {
       tipo_iva: fd.tipo_iva,
       imatge: fd.imatge,
       cartell: fd.cartell || null,
-      recurrencia: fd.recurrencia === 'setmanal' ? 'setmanal' : 'cap',
+      recurrencia: ['setmanal', 'dates'].includes(fd.recurrencia) ? fd.recurrencia : 'cap',
       imatge_lloc: fd.imatge_lloc || null,
       data_label: (fd.datalabel_ca || fd.datalabel_es)
         ? { ca: fd.datalabel_ca, es: fd.datalabel_es } : null,
@@ -1885,10 +1897,23 @@ const AVIS_GUIO = '<p class="form-help no-print sg-avis-guio">En marcar <strong>
 
 const pad2 = n => String(n).padStart(2, '0');
 const isoDia = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-const esPuntual = ev => (ev?.model || 'puntual') === 'puntual' && ev?.recurrencia !== 'setmanal';
+const esPuntual = ev => (ev?.model || 'puntual') === 'puntual' && !['setmanal', 'dates'].includes(ev?.recurrencia);
+/* Dates concretes (ex. 1r i 3r dijous de mes): els dies són les sessions
+   afegides al Seguiment (− les tretes); la data és el primer dia */
+const esDates = ev => ev?.recurrencia === 'dates';
+function diesDates(ev) {
+  const tretes = new Set(Array.isArray(ev?.sessions_tretes) ? ev.sessions_tretes : []);
+  return [...new Set((Array.isArray(ev?.sessions_afegides) ? ev.sessions_afegides : []).map(d => String(d).slice(0, 10)))]
+    .filter(d => !tretes.has(d)).sort();
+}
+function quanDates(ev) {
+  const seg = diesDates(ev).find(d => d >= avui());
+  return `${ev.data_label?.ca || 'Dates concretes'}${seg ? ` (propera ${seg.slice(8, 10)}/${seg.slice(5, 7)})` : ' (sense dies pendents)'}`;
+}
 
 function sessionsDe(ev, mes) {
   if (!ev) return [];
+  if (esDates(ev)) return diesDates(ev).filter(d => !mes || d.startsWith(mes));
   const afegides = Array.isArray(ev.sessions_afegides) ? ev.sessions_afegides : [];
   const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
   const auto = [];
@@ -2655,7 +2680,7 @@ function renderCerca() {
   <ul class="cerca-llista">
     ${rs.map(r => {
       const ev = evPer.get(r.event_id);
-      const quan = ev ? (window.NX.esSetmanal(ev) ? `${window.NX.quanText(ev)} · ${window.NX.franjaHoraria(ev)}` : `${ev.data || ''}${ev.hora ? ' · ' + ev.hora : ''}`) : '';
+      const quan = ev ? esDates(ev) ? `${quanDates(ev)} · ${ev.hora || ''}` : (window.NX.esSetmanal(ev) ? `${window.NX.quanText(ev)} · ${window.NX.franjaHoraria(ev)}` : `${ev.data || ''}${ev.hora ? ' · ' + ev.hora : ''}`) : '';
       return `
     <li>
       <div>

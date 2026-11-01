@@ -4,6 +4,36 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v45 · "Dates concretes" (quinzenal) + Una cadira més (AVV Canyadó) + anglès bàsic/intermedi
+
+**Tipus de repetició nou: "Dates concretes"** (panell → Es repeteix). Per a activitats quinzenals o
+amb dies irregulars (ex. 1r i 3r dijous de mes, amb excepcions).
+- Els dies són les sessions del **Seguiment** (Afegir sessió / ×). La **Data** és el primer dia i
+  l'**Etiqueta** diu el text de la web ("1r i 3r dijous de mes").
+- Web: surt com una activitat d'un dia amb la **propera sessió** (targeta, agenda, carret); la fitxa
+  diu "1r i 3r dijous de mes · propera sessió: dijous, 12 de novembre"; el calendari marca tots els
+  dies. Deixa de sortir l'endemà del darrer dia. Es pot reservar mentre li quedi algun dia.
+- Panell: resum de la programació ("Dates concretes"), targetes, filtres properes/passades, Seguiment
+  (2 dies per mes, amb navegador de mesos), Passar llista (només els dies fets) i Cercar.
+- `api/events.js` (propera sessió), `api/reserva.js` (oberta mentre quedi un dia), `js/main.js`,
+  `js/agenda.js`, `js/admin.js`. Versions: `main.js`/`agenda.js?v=65` a totes les pàgines, `admin.js?v=71`.
+
+**Una cadira més · Tardeos veïnals** (`una-cadira-mes-canyado`) — AVV Canyadó (c/ Eduard Marquina,
+25-27), dinamització a càrrec de NexSocial. 17:30–19:30, gratuïta, 25 places, **Pròximament**.
+Dies: 12/11, 26/11, 3/12, 17/12 i, del gener al juny de 2027, 1r i 3r dijous (16 dies).
+Imatge `assets/taller-cadira-mes.jpg/.webp` (il·lustracions del cartell, 1200×800).
+
+**Anglès a Can Pepus** (Nidhi Nagdev), dimarts, Sala Polivalent, 15 € intern ("a consultar" a la web):
+- `taller-angles-canpepus` → **Conversa en anglès bàsic**, 16:30–17:30.
+- **Conversa en anglès intermedi**, 18:00–19:00: si ja s'havia creat amb "Duplicar" (id
+  `taller-angles-canpepus-xxxx`), s'arregla aquella; si no, es crea `taller-angles-intermedi-canpepus`
+  (des del dimarts 3/11, mateix estat que el bàsic).
+
+Dades: **executar `sql/23-dates-concretes-cadira-angles.sql`** a Supabase (sense ell, el panell no
+pot desar "Dates concretes"). Provat contra Postgres 16 local (amb i sense el grup intermedi duplicat,
+dues execucions), al navegador (agenda, calendari setmana a setmana, fitxa CA/ES, sense errors JS) i
+amb proves de les funcions del panell i de la reserva.
+
 ## v44 · Sant Roc, dijous: Conversa en castellà + Conéctate · Vida comunitaria (Pròximament)
 
 Dos tallers nous, gratuïts, setmanals i en estat **Pròximament** (banda + preinscripció). Tallerista: Ilham.

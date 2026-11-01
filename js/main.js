@@ -67,6 +67,7 @@ const i18n = {
     'lletra.estat2':   'Lletra molt gran',
     'ev.mapa_extern':  "S'obre a Google Maps, fora d'aquesta web.",
     'ev.des_de':       'des del',
+    'ev.propera':      'propera sessió',
     'ev.cada_setmana': 'cada setmana',
     'filtre.centre':   'Centre',
     'filtre.tots':     'Tots',
@@ -290,6 +291,7 @@ const i18n = {
     'lletra.estat2':   'Letra muy grande',
     'ev.mapa_extern':  'Se abre en Google Maps, fuera de esta web.',
     'ev.des_de':       'desde el',
+    'ev.propera':      'próxima sesión',
     'ev.cada_setmana': 'cada semana',
     'filtre.centre':   'Centro',
     'filtre.tots':     'Todos',
@@ -681,6 +683,12 @@ function quanText(ev, opts = {}) {
   if (esSetmanal(ev)) {
     const dia = D.llarg[dataLocal(ev.data).getDay()];
     return `${D.cada} ${dia}`;
+  }
+  /* Dates concretes: "1r i 3r dijous de mes" (i a la fitxa, la propera sessió) */
+  if (ev?.etiqueta_dates && L(ev.etiqueta_dates)) {
+    return opts.llarg && ev.data
+      ? `${L(ev.etiqueta_dates)} · ${T('ev.propera')}: ${formatDate(ev.data, { weekday: 'long', day: 'numeric', month: 'long', year: undefined })}`
+      : L(ev.etiqueta_dates);
   }
   if (ev?.data_label && L(ev.data_label)) return L(ev.data_label);
   return formatDate(ev?.data, opts.llarg ? { weekday: 'long' } : {});

@@ -3,6 +3,31 @@ import { json, methodNotAllowed } from './_lib/http.js';
 import { hasSupabase, supabase } from './_lib/supabase.js';
 import { cobramentEvent } from './_lib/stripe.js';
 
+/* Dates concretes (ex. 1r i 3r dijous de mes): la llista de dies és
+   sessions_afegides − sessions_tretes. A la web surt com una activitat d'un
+   sol dia amb la data de la PROPERA sessió (targetes, agenda i carret no
+   canvien); `sessions` porta els dies que queden per al calendari i
+   `etiqueta_dates` el text "1r i 3r dijous de mes". */
+const avuiISO = () => new Date().toISOString().slice(0, 10);
+export function diesDates(ev) {
+  const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
+  return [...new Set((Array.isArray(ev.sessions_afegides) ? ev.sessions_afegides : []).map(d => String(d).slice(0, 10)))]
+    .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && !tretes.has(d)).sort();
+}
+function datesConcretes(ev) {
+  if (ev.recurrencia !== 'dates') return {};
+  const dies = diesDates(ev);
+  if (!dies.length) return {};
+  const hui = avuiISO();
+  const futurs = dies.filter(d => d >= hui);
+  return {
+    data: futurs[0] || dies[dies.length - 1],
+    sessions: futurs,
+    etiqueta_dates: ev.data_label || null,
+    data_label: null
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
 
@@ -37,6 +62,7 @@ export default async function handler(req, res) {
 
     const enriched = (events || []).map(ev => ({
       ...ev,
+      ...datesConcretes(ev),
       tarifes: senseIntern(ev.tarifes),
       extres: senseIntern(ev.extres),
       reservades: ocupMap.get(ev.id) || 0,

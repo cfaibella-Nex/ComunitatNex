@@ -29,7 +29,14 @@ const validaTelefon = t => /^(\+?\d{9,15})$/.test(netejaTelefon(t));
 const validaEmail   = e => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const avui = () => new Date().toISOString().slice(0, 10);
 /* Puntuals: tanquen el dia. Setmanals: mentre no s'arxivin (com a la web) */
-const passat = ev => ev.recurrencia !== 'setmanal' && Boolean(ev.data) && String(ev.data) < avui();
+const passat = ev => {
+  if (ev.recurrencia === 'setmanal') return false;
+  if (ev.recurrencia === 'dates') {          // dates concretes: oberta mentre quedi algun dia
+    const tretes = new Set(ev.sessions_tretes || []);
+    return !(ev.sessions_afegides || []).some(d => !tretes.has(d) && String(d).slice(0, 10) >= avui());
+  }
+  return Boolean(ev.data) && String(ev.data) < avui();
+};
 
 function urlBase(req) {
   const env = (process.env.SITE_URL || '').trim().replace(/\/$/, '');
@@ -110,7 +117,7 @@ export default async function handler(req, res) {
     // Les sessions vinculades han d'existir i no haver passat
     if (calc.sessions.length) {
       const ids = calc.sessions.map(s => s.event_id);
-      const { data: sev, error } = await sb.from('events').select('id, data, estat, recurrencia').in('id', ids);
+      const { data: sev, error } = await sb.from('events').select('id, data, estat, recurrencia, sessions_afegides, sessions_tretes').in('id', ids);
       if (error) throw error;
       const ok = ids.every(id => {
         const s = (sev || []).find(x => x.id === id);
