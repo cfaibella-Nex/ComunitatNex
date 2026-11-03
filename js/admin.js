@@ -2604,6 +2604,19 @@ window.sgObrirAfegir = function() {
   actualitzaRgpd();
   qs('#sg-af-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    /* La mateixa persona (nom sense accents + telèfon) ja és en aquesta activitat: no es deixa duplicar */
+    try {
+      const clau = clauPersona({ nom: qs('#af-nom').value, telefon: qs('#af-tel').value });
+      const ja = (await totesReserves()).find(x => x.event_id === ev.id && !x.esborrat_at && clauPersona(x) === clau);
+      if (ja && viva(ja)) {
+        qs('#sg-af-msg').innerHTML = `<div class="alert alert-danger"><strong>${esc(ja.nom)}</strong> ja està inscrita en aquesta activitat. No s'ha afegit.</div>`;
+        qs('#sg-af-msg').scrollIntoView({ block: 'center' }); return;
+      }
+      if (ja) {
+        qs('#sg-af-msg').innerHTML = `<div class="alert alert-warning"><strong>${esc(ja.nom)}</strong> ja hi és, però de baixa. <button type="button" class="btn btn-secondary btn-mini" onclick="reactivar('${esc(ja.id)}')">Reactivar</button></div>`;
+        qs('#sg-af-msg').scrollIntoView({ block: 'center' }); return;
+      }
+    } catch { /* si no es poden llegir, el servidor encara atura el duplicat exacte */ }
     if (qs('#af-origen').value !== 'llista_centre' && !refInfo && !qs('#af-informada').checked) {
       qs('#sg-af-msg').innerHTML = '<div class="alert alert-danger">Marca que li has llegit la clàusula de protecció de dades.</div>';
       qs('#af-informada').focus();

@@ -13,7 +13,8 @@ germanes): mai s'ajunten soles.
    telèfon, contacte i correu; només cal triar el taller (els que ja fa surten desactivats) i el nivell.
 2. **Avís de duplicat a l'alta manual**: en escriure el telèfon o el nom, "Ja tenim aquesta persona?"
    amb les seves activitats i "Fer servir aquestes dades". Si ja és a l'activitat, ho diu; si hi està
-   de baixa amb dades, ofereix "Reactivar".
+   de baixa amb dades, ofereix "Reactivar". En prémer "Afegir", **no deixa** tornar a afegir la mateixa
+   persona (nom sense accents + telèfon) a la mateixa activitat; si hi és de baixa, ofereix "Reactivar".
 3. **"Unificar nom…"** a Cercar quan el nom està escrit de maneres diferents o hi ha un altre nom amb
    el mateix telèfon: tries el nom bo i les inscripcions que són de la persona. Avisa si en queden dues
    a la mateixa activitat.
