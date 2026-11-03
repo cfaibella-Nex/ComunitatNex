@@ -1866,7 +1866,7 @@ function blocNoApunten(llista, evPer, titol = "✗ No s'hi apunten") {
   const quan = r => r.trucada_at ? formatDate(r.trucada_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', year: undefined }) : '';
   return `
 <h3 class="sg-noapunten-titol">${titol} (${llista.length})</h3>
-<p class="form-help no-print">No ocupen plaça. Si canvien d'opinió, canvia'ls l'estat. "Baixa" esborra les seves dades.</p>
+<p class="form-help no-print">No ocupen plaça. Si canvien d'opinió, prem <strong>Reactivar</strong>. "Baixa" esborra les seves dades (no es pot desfer).</p>
 <div class="sg-taula-wrap sg-noapunten">
 <table class="admin-table sg-taula">
   <thead><tr><th>Nom</th><th>Telèfon</th><th>Contacte</th>${evPer ? '<th>Activitat</th>' : ''}<th>Trucada</th><th>Qui i quan</th><th>Observacions</th><th class="no-print"></th></tr></thead>
@@ -1879,7 +1879,8 @@ function blocNoApunten(llista, evPer, titol = "✗ No s'hi apunten") {
     <td class="sg-truc">${celTrucada(r)}</td>
     <td class="muted">${esc((r.trucada_per || '').replace(/\s*<.*>$/, ''))}${r.trucada_at ? ' · ' + esc(quan(r)) : ''}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
-    <td class="no-print"><button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
+    <td class="no-print sg-accions"><button class="btn btn-secondary btn-mini" onclick="reactivar('${esc(r.id)}')" title="Tornar a inscriure ${esc(r.nom)} en aquesta activitat">Reactivar</button>
+      <button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
   </tr>`).join('')}</tbody>
 </table>
 </div>`;
@@ -2187,7 +2188,9 @@ function renderSeguimentTotes() {
   const pctMitja = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : null;
 
   const celPagat = r => celPagatSg(r, cobraBase);
-
+  /* Persones diferents (mateix nom i telèfon = mateixa persona) i quantes activitats fa cadascuna */
+  const nAct = new Map();
+  persones.forEach(r => nAct.set(clauPersona(r), (nAct.get(clauPersona(r)) || 0) + 1));
 
   const fila = (r, i) => {
     const ev = evPer.get(r.event_id);
@@ -2198,14 +2201,15 @@ function renderSeguimentTotes() {
     <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom"></td>
     <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
     <td><input class="sg-in sg-contacte" value="${esc(r.contacte || '')}" placeholder="—" onchange="sgEditar('${esc(r.id)}','contacte',this.value)" aria-label="De qui és el telèfon de ${esc(r.nom)}"></td>
-    <td class="sg-act"><button class="btn-link" onclick="sgEvent('${esc(r.event_id)}')" title="Obrir el seguiment d'aquesta activitat">${esc(ev?.titol?.ca || r.event_id)}</button>
+    <td class="sg-act"><button class="btn-link" onclick="sgEvent('${esc(r.event_id)}')" title="Obrir el seguiment d'aquesta activitat">${esc(ev?.titol?.ca || r.event_id)}</button>${(nAct.get(clauPersona(r)) || 0) > 1 ? ` <span class="sg-multi" title="Inscrita a ${nAct.get(clauPersona(r))} activitats">×${nAct.get(clauPersona(r))}</span>` : ''}
       ${state.filtreCentre ? '' : `<small class="muted">${esc(centreDe(ev))}</small>`}</td>
     <td class="sg-nivell">${esc(nivell(r))}</td>
     <td class="sg-truc">${celTrucada(r)}</td>
     <td class="sg-pag">${celPagat(r)}</td>
     <td class="sg-pct">${p === null ? '—' : p + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
-    <td class="no-print"><button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
+    <td class="no-print sg-accions"><button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button>
+      <button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
   </tr>`;
   };
 
@@ -2233,11 +2237,11 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
 
 <div class="sg-print-cap">
   <h2>Seguiment · ${state.filtreCentre ? esc(state.filtreCentre) : 'totes les activitats'}</h2>
-  <p>${esc(nomMesLlarg(S.mes))} · ${persones.length} inscripcions a ${activitats} activitats</p>
+  <p>${esc(nomMesLlarg(S.mes))} · ${persones.length} inscripcions · ${nAct.size} persones diferents · ${activitats} activitats</p>
 </div>
 
 <div class="res-xifres no-print">
-  <div><span>Inscripcions</span><strong>${persones.length}</strong><small>${activitats} activitats</small></div>
+  <div><span>Inscripcions</span><strong>${persones.length}</strong><small>${nAct.size} persones diferents · ${activitats} activitats</small></div>
   <div><span>Inscrits</span><strong>${dt.persones.filter(r => trucadaDe(r) === 'inscrit').length} / ${dt.persones.length}</strong></div>
   <div${pendentsTr ? ' class="xifra-avis"' : ''}><span>Per trucar</span><strong>${pendentsTr}</strong>
     <small>${dt.persones.filter(r => trucadaDe(r) === 'no_contesta').length} no contesten</small>
@@ -2298,7 +2302,8 @@ function renderSeguiment() {
     ${sessions.map(d => celSessio(r, d)).join('')}
     <td class="sg-pct">${pctPersona(r) === null ? '—' : pctPersona(r) + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
-    <td class="no-print"><button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
+    <td class="no-print sg-accions"><button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button>
+      <button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
   </tr>`;
 
   app.innerHTML = `
@@ -2531,6 +2536,7 @@ window.sgObrirAfegir = function() {
   <div class="cob-cap"><h2>Afegir persona</h2>
     <button class="btn btn-ghost" onclick="qs('#sg-afegir').innerHTML=''">Tancar</button></div>
   <div id="sg-af-msg"></div>
+  <div id="af-dup" aria-live="polite"></div>
   <form id="sg-af-form" class="cob-grid" style="align-items:end">
     <label class="ins-camp"><span>Nom i cognoms *</span><input class="form-input" id="af-nom" required minlength="2"></label>
     <label class="ins-camp"><span>Telèfon</span><input class="form-input" id="af-tel" inputmode="tel"></label>
@@ -2545,11 +2551,11 @@ window.sgObrirAfegir = function() {
     <label class="ins-camp"><span>Observacions</span><input class="form-input" id="af-obs"></label>
     <label class="ins-camp sg-alta-check"><span>Ja ha dit que s'hi apunta</span><input type="checkbox" id="af-alta" checked></label>
     <div class="af-rgpd" id="af-rgpd" style="grid-column: 1 / -1">
-      <label><input type="checkbox" id="af-informada">
+      <p class="form-help af-ja-informada" id="af-ja-informada" hidden></p>
+      <label id="af-informada-lbl"><input type="checkbox" id="af-informada">
         <span><strong>Li he llegit la clàusula de protecció de dades</strong> (i al familiar, si el telèfon és seu). Obligatori.</span></label>
       <details><summary>Veure la clàusula</summary>
-        <p>«Les teves dades les farem servir només per gestionar la inscripció a aquesta activitat, trucar-te si hi ha canvis i portar el control d'assistència. Les tracta NexSocial i no les donem a ningú. Pots demanar veure-les, corregir-les o esborrar-les quan vulguis a infonex@nexsocial.org o al 660 435 871. Tens tota la informació a comunitat.nexsocial.org, a l'apartat Privacitat.»</p>
-        <p>«Tus datos los usaremos solo para gestionar la inscripción en esta actividad, llamarte si hay cambios y llevar el control de asistencia. Los trata NexSocial y no los damos a nadie. Puedes pedir verlos, corregirlos o borrarlos cuando quieras en infonex@nexsocial.org o en el 660 435 871. Tienes toda la información en comunitat.nexsocial.org, en el apartado Privacidad.»</p>
+        ${CLAUSULA_HTML}
       </details>
       <p class="form-help" id="af-rgpd-llista" hidden>Ve d'una llista del centre: quedarà <strong>pendent d'informar</strong>. Marca-ho al Seguiment (columna "Dades") quan li llegeixis la clàusula, per telèfon o el primer dia.</p>
     </div>
@@ -2557,16 +2563,48 @@ window.sgObrirAfegir = function() {
   </form>
 </section>`;
   qs('#af-nom').focus();
+  /* Persona que ja tenim (una altra inscripció): dades i clàusula ja llegida */
+  let refInfo = null;
   const actualitzaRgpd = () => {
     const llista = qs('#af-origen').value === 'llista_centre';
-    qs('#af-informada').closest('label').hidden = llista;
+    qs('#af-informada-lbl').hidden = llista || !!refInfo;
     qs('#af-rgpd-llista').hidden = !llista;
+    const ja = qs('#af-ja-informada');
+    ja.hidden = llista || !refInfo;
+    if (refInfo) ja.innerHTML = `✓ <strong>Ja informada</strong> amb la clàusula general el ${esc(new Date(refInfo.informada_at).toLocaleDateString('ca-ES'))}${refInfo.informada_per ? ' per ' + esc(String(refInfo.informada_per).replace(/\s*<.*>$/, '')) : ''}. No cal tornar-la a llegir.`;
   };
+  const omplir = (grup) => {
+    const p = grup[0];
+    qs('#af-nom').value = p.nom || ''; qs('#af-tel').value = p.telefon || '';
+    qs('#af-contacte').value = p.contacte || ''; qs('#af-email').value = p.email || '';
+    refInfo = informadaVigent(grup) || null;
+    qs('#af-dup').innerHTML = `<div class="alert alert-info">Dades de <strong>${esc(p.nom)}</strong> copiades. Tria el nivell i afegeix.</div>`;
+    actualitzaRgpd();
+  };
+  let tDup;
+  const buscaDup = async () => {
+    refInfo = null; actualitzaRgpd();
+    const nom = qs('#af-nom').value, tel = qs('#af-tel').value;
+    if (normal(nom).length < 5 && digits(tel).length < 9) { qs('#af-dup').innerHTML = ''; return; }
+    let rs; try { rs = await totesReserves(); } catch { return; }
+    const grups = coincidencies(rs, nom, tel).slice(0, 4);
+    qs('#af-dup').innerHTML = grups.length ? `<div class="dup-box"><strong>Ja tenim aquesta persona?</strong>${grups.map((g, k) => {
+      const aqui = g.find(x => x.event_id === ev.id && viva(x));
+      const baixaAqui = !aqui && g.find(x => x.event_id === ev.id && x.status === 'cancelled' && !x.esborrat_at);
+      return `<div class="dup-fila"><div><strong>${esc(g[0].nom)}</strong> · ${esc(g[0].telefon || 'sense telèfon')}${g[0].contacte ? ` <span class="muted">(de ${esc(g[0].contacte)})</span>` : ''}
+        <div class="muted">${esc(llistaActivitats(g))}</div></div>
+        ${aqui ? '<span class="pag pag--pendent">Ja està inscrita en aquesta activitat</span>'
+          : baixaAqui ? `<button type="button" class="btn btn-secondary btn-mini" onclick="reactivar('${esc(baixaAqui.id)}')">Està de baixa aquí: reactivar</button>`
+          : `<button type="button" class="btn btn-secondary btn-mini" data-dup="${k}">Fer servir aquestes dades</button>`}</div>`;
+    }).join('')}</div>` : '';
+    qs('#af-dup').querySelectorAll('[data-dup]').forEach(b => b.addEventListener('click', () => omplir(grups[Number(b.dataset.dup)])));
+  };
+  ['#af-nom', '#af-tel'].forEach(sel => qs(sel).addEventListener('input', () => { clearTimeout(tDup); tDup = setTimeout(buscaDup, 300); }));
   qs('#af-origen').addEventListener('change', actualitzaRgpd);
   actualitzaRgpd();
   qs('#sg-af-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (qs('#af-origen').value !== 'llista_centre' && !qs('#af-informada').checked) {
+    if (qs('#af-origen').value !== 'llista_centre' && !refInfo && !qs('#af-informada').checked) {
       qs('#sg-af-msg').innerHTML = '<div class="alert alert-danger">Marca que li has llegit la clàusula de protecció de dades.</div>';
       qs('#af-informada').focus();
       return;
@@ -2578,8 +2616,10 @@ window.sgObrirAfegir = function() {
         tarifa_id: qs('#af-tarifa')?.value || tarifes[0].id, places: parseInt(qs('#af-places').value, 10) || 1,
         origen: qs('#af-origen').value, alta: qs('#af-alta').checked, observacions: qs('#af-obs').value.trim(),
         contacte: qs('#af-contacte').value.trim(),
-        informada: qs('#af-informada').checked
+        informada: qs('#af-informada').checked,
+        ...(refInfo && qs('#af-origen').value !== 'llista_centre' ? { informada_ref: refInfo.id } : {})
       });
+      cacheTotes.at = 0;
       state.reserves.push(out.reserva);
       renderSeguiment();
       if (out.espera) alert(`${out.reserva.nom} ha quedat a la llista d'espera: l'activitat no té places lliures.`);
@@ -2608,7 +2648,12 @@ window.sgExcel = function() {
     const esperaFiles = espera.map((r, i) => [i + 1, r.nom, r.telefon || '', r.contacte || '', evPer.get(r.event_id)?.titol?.ca || '', centreDe(evPer.get(r.event_id)), r.id]);
     window.NXXLSX.descarregar(`seguiment-${state.filtreCentre ? state.filtreCentre.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'totes'}-${S.mes}.xlsx`, [
       { nom: 'Inscripcions', capcaleres: 1, amplades: [4, 28, 13, 22, 26, 26, 20, 16, 7, 11, 6, 8, 8, 13, 14, 34, 12], files: [cap, ...files] },
-      { nom: "Llista d'espera", capcaleres: 1, amplades: [4, 28, 13, 22, 26, 20, 12], files: [['#', 'Nom', 'Telèfon', 'Contacte', 'Activitat', 'Centre', 'Referència'], ...esperaFiles] }
+      { nom: "Llista d'espera", capcaleres: 1, amplades: [4, 28, 13, 22, 26, 20, 12], files: [['#', 'Nom', 'Telèfon', 'Contacte', 'Activitat', 'Centre', 'Referència'], ...esperaFiles] },
+      { nom: 'Resum', capcaleres: 0, amplades: [24, 30], files: [
+        ['Mes', nomMesLlarg(S.mes)], ['Centre', state.filtreCentre || 'Tots'],
+        ['Inscripcions', persones.length], ['Persones diferents', new Set(persones.map(clauPersona)).size],
+        ['Activitats', new Set(persones.map(r => r.event_id)).size], ["Llista d'espera", espera.length],
+        ['Exportat', new Date().toLocaleString('ca-ES')], ['Per', state.usuari?.nom || '']] }
     ]);
     return;
   }
@@ -2635,7 +2680,7 @@ window.sgExcel = function() {
   }, {
     nom: 'Resum', capcaleres: 0, amplades: [22, 40],
     files: [['Activitat', titol], ['Període', periode], ['Aforament', `${persones.reduce((t, r) => t + r.places, 0)} / ${ev.cupo || ''}`],
-            ['Persones inscrites', persones.length], ["Llista d'espera", espera.length],
+            ['Inscripcions', persones.length], ['Persones diferents', new Set(persones.map(clauPersona)).size], ["Llista d'espera", espera.length],
             ['Exportat', new Date().toLocaleString('ca-ES')], ['Per', state.usuari?.nom || '']]
   }];
   const nomFitxer = `seguiment-${ev.id}-${esPuntual(ev) ? (ev.data || '') : S.mes}.xlsx`;
@@ -2663,6 +2708,182 @@ window.sgImprimir = function(blanc) {
    les activitats. Accents i espais no compten; el telèfon es busca pels
    dígits (n'hi ha prou amb 3 o més). */
 const normal = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/* ── PERSONES A DIVERSES ACTIVITATS ───────────────────────────
+   No hi ha fitxa de persona: cada inscripció porta nom i telèfon. Mateix
+   nom (sense accents ni majúscules) i mateix telèfon = mateixa persona.
+   Un mateix telèfon pot ser de dues persones (parelles, germanes): mai
+   s'ajunten soles, només amb "Unificar nom". */
+const CLAUSULA_VIGENT = 'clausula-v3-2026-11';
+const CLAUSULA_HTML = `<p>${esc(`«Les teves dades les farem servir només per gestionar les teves inscripcions a les activitats de NexSocial, trucar-te si hi ha canvis i portar el control d'assistència. Les tracta NexSocial i no les donem a ningú. Pots demanar veure-les, corregir-les o esborrar-les quan vulguis a infonex@nexsocial.org o al 660 435 871. Tens tota la informació a comunitat.nexsocial.org, a l'apartat Privacitat.»`)}</p><p>${esc(`«Tus datos los usaremos solo para gestionar tus inscripciones en las actividades de NexSocial, llamarte si hay cambios y llevar el control de asistencia. Los trata NexSocial y no los damos a nadie. Puedes pedir verlos, corregirlos o borrarlos cuando quieras en infonex@nexsocial.org o en el 660 435 871. Tienes toda la información en comunitat.nexsocial.org, en el apartado Privacidad.»`)}</p>`;
+const REACTIVABLES = ['no_inscriu', 'no_assisteix', 'baixa_voluntaria'];
+const digits = t => String(t || '').replace(/\D/g, '');
+const clauPersona = r => normal(r.nom) + '|' + digits(r.telefon);
+const viva = r => reservaViva(r) || r.status === 'waitlist';
+const informadaVigent = rs => rs.find(r => r.informada_at && r.info_versio === CLAUSULA_VIGENT && !r.esborrat_at);
+const llistaActivitats = rs => rs.filter(r => !r.esborrat_at).map(r => {
+  const e = state.events.find(x => x.id === r.event_id);
+  return (e?.titol?.ca || r.event_id) + (viva(r) ? '' : ' (baixa)');
+}).join(' · ');
+let cacheTotes = { at: 0, rs: null };
+async function totesReserves(forca) {
+  if (!forca && cacheTotes.rs && Date.now() - cacheTotes.at < 30000) return cacheTotes.rs;
+  const d = await apiGet('/api/admin/orders');
+  cacheTotes = { at: Date.now(), rs: d?.reserves || [] };
+  return cacheTotes.rs;
+}
+function coincidencies(rs, nom, tel) {
+  const t = digits(tel), n = normal(nom);
+  const hits = rs.filter(r => !r.esborrat_at && r.nom && (
+    (t.length >= 9 && digits(r.telefon) === t) ||
+    (n.length >= 5 && (normal(r.nom) === n || (n.length >= 8 && normal(r.nom).startsWith(n))))));
+  const g = new Map();
+  hits.forEach(r => { const k = clauPersona(r); if (!g.has(k)) g.set(k, []); g.get(k).push(r); });
+  return [...g.values()];
+}
+
+/* Diàleg comú (natiu: focus, Esc i lector de pantalla ja resolts) */
+function obrirDialeg(html) {
+  let d = qs('#dlg-persona');
+  if (!d) { d = document.createElement('dialog'); d.id = 'dlg-persona'; d.className = 'dlg'; document.body.appendChild(d); }
+  d.innerHTML = html;
+  d.showModal();
+  d.querySelector('[data-tancar]')?.addEventListener('click', () => d.close());
+  return d;
+}
+
+/* 1 · Inscriure una persona que ja tenim a un altre taller */
+window.inscriureAltre = async function(id) {
+  let rs;
+  try { rs = await totesReserves(true); } catch (e) { alert('No s\'han pogut llegir les inscripcions: ' + errText(e)); return; }
+  const r = rs.find(x => x.id === id) || state.reserves.find(x => x.id === id);
+  if (!r || r.esborrat_at) return;
+  const seves = rs.filter(x => clauPersona(x) === clauPersona(r) && !x.esborrat_at);
+  const ja = new Set(seves.filter(viva).map(x => x.event_id));
+  const info = informadaVigent(seves);
+  const contacte = seves.find(x => x.contacte)?.contacte || '', email = seves.find(x => x.email)?.email || '';
+  const evs = state.events.filter(e => e.estat !== 'arxivat')
+    .sort((a, b) => centreDe(a).localeCompare(centreDe(b), 'ca') || String(a.titol?.ca).localeCompare(String(b.titol?.ca), 'ca'));
+  const centres = [...new Set(evs.map(centreDe))];
+  const d = obrirDialeg(`
+<form method="dialog" id="ia-form" class="dlg-form">
+  <h2>Inscriure a un altre taller</h2>
+  <p><strong>${esc(r.nom)}</strong> · ${esc(r.telefon || 'sense telèfon')}${contacte ? ` <span class="muted">(de ${esc(contacte)})</span>` : ''}</p>
+  <p class="muted">Ara fa: ${esc(llistaActivitats(seves) || '—')}</p>
+  <div id="ia-msg"></div>
+  <label class="ins-camp"><span>Taller o activitat *</span>
+    <select class="form-select" id="ia-ev" required><option value="">Tria'n un</option>
+      ${centres.map(c => `<optgroup label="${esc(c)}">${evs.filter(e => centreDe(e) === c).map(e =>
+        `<option value="${esc(e.id)}" ${ja.has(e.id) ? 'disabled' : ''}>${esc(e.titol?.ca || e.id)}${ja.has(e.id) ? ' (ja hi és)' : ''}</option>`).join('')}</optgroup>`).join('')}
+    </select></label>
+  <label class="ins-camp" id="ia-niv-lbl" hidden><span>Nivell</span><select class="form-select" id="ia-tarifa"></select></label>
+  <label class="ins-camp"><span>Com ha arribat</span><select class="form-select" id="ia-origen">
+    <option value="telefon">Trucada</option><option value="presencial">Presencial al centre</option><option value="altres">Altres</option></select></label>
+  <label class="ins-camp"><span>Observacions</span><input class="form-input" id="ia-obs"></label>
+  <label class="dlg-check"><input type="checkbox" id="ia-alta" checked> Ja ha dit que s'hi apunta</label>
+  ${info ? `<p class="form-help af-ja-informada">✓ <strong>Ja informada</strong> amb la clàusula general el ${esc(new Date(info.informada_at).toLocaleDateString('ca-ES'))}. No cal tornar-la a llegir.</p>`
+    : `<label class="dlg-check"><input type="checkbox" id="ia-informada"> <span><strong>Li he llegit la clàusula de protecció de dades</strong> (només aquesta vegada: és general i servirà per a tots els tallers).</span></label>
+       <details><summary>Veure la clàusula</summary>${CLAUSULA_HTML}</details>`}
+  <div class="dlg-botons"><button type="button" class="btn btn-ghost" data-tancar>Cancel·lar</button><button class="btn btn-primary" type="submit">Inscriure</button></div>
+</form>`);
+  const sel = d.querySelector('#ia-ev');
+  sel.addEventListener('change', () => {
+    const e = state.events.find(x => x.id === sel.value);
+    const ts = e ? window.NXC.tarifesEvent(e) : [];
+    d.querySelector('#ia-tarifa').innerHTML = ts.map(t => `<option value="${esc(t.id)}">${esc(t.nom?.ca || t.id)}</option>`).join('');
+    d.querySelector('#ia-niv-lbl').hidden = ts.length < 2;
+  });
+  sel.focus();
+  d.querySelector('#ia-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = d.querySelector('#ia-msg');
+    const ev = state.events.find(x => x.id === sel.value);
+    if (!ev) { msg.innerHTML = '<div class="alert alert-danger">Tria un taller.</div>'; sel.focus(); return; }
+    if (!info && !d.querySelector('#ia-informada').checked) {
+      msg.innerHTML = '<div class="alert alert-danger">Marca que li has llegit la clàusula de protecció de dades.</div>'; return;
+    }
+    try {
+      const out = await apiSend('/api/admin/orders', 'PATCH', {
+        accio: 'afegir_persona', event_id: ev.id, nom: r.nom, telefon: r.telefon || '', email, contacte,
+        tarifa_id: d.querySelector('#ia-tarifa').value || window.NXC.tarifesEvent(ev)[0].id, places: 1,
+        origen: d.querySelector('#ia-origen').value, alta: d.querySelector('#ia-alta').checked,
+        observacions: d.querySelector('#ia-obs').value.trim(),
+        ...(info ? { informada_ref: info.id } : { informada: true })
+      });
+      cacheTotes.at = 0;
+      d.close();
+      alert(`Fet: ${r.nom} inscrita a ${ev.titol?.ca || ev.id}${out.espera ? " (a la llista d'espera: no hi havia places)" : ''}.`);
+      await render();
+    } catch (err) { msg.innerHTML = `<div class="alert alert-danger">${esc(errText(err))}</div>`; }
+  });
+};
+
+/* 3 · Unificar nom: mateixa persona escrita de maneres diferents, o mateix telèfon */
+function avisVariants(rs) {
+  const vives = rs.filter(x => !x.esborrat_at);
+  if (!vives.length) return '';
+  const noms = [...new Set(vives.map(x => x.nom.trim()))];
+  const t = digits(vives[0].telefon);
+  const altres = t.length >= 9 ? state.reserves.filter(x => !x.esborrat_at && digits(x.telefon) === t && clauPersona(x) !== clauPersona(vives[0])) : [];
+  if (noms.length < 2 && !altres.length) return '';
+  return `<div class="dup-box">${noms.length > 1 ? `<div>Nom escrit de maneres diferents: ${noms.map(n => `«${esc(n)}»`).join(', ')}.</div>` : ''}
+    ${altres.length ? `<div>Mateix telèfon que: ${[...new Set(altres.map(x => x.nom))].map(esc).join(', ')} <span class="muted">(pot ser una altra persona: parella, familiar)</span>.</div>` : ''}
+    <button class="btn btn-secondary btn-mini" onclick="unificarNom('${esc(vives[0].id)}')">Unificar nom…</button></div>`;
+}
+window.unificarNom = function(id) {
+  const r = state.reserves.find(x => x.id === id);
+  if (!r) return;
+  const t = digits(r.telefon);
+  const cand = state.reserves.filter(x => !x.esborrat_at && (clauPersona(x) === clauPersona(r) || (t.length >= 9 && digits(x.telefon) === t)));
+  const noms = [...new Set(cand.map(x => x.nom.trim()))];
+  const titol = x => state.events.find(e => e.id === x.event_id)?.titol?.ca || x.event_id;
+  const d = obrirDialeg(`
+<form method="dialog" id="un-form" class="dlg-form">
+  <h2>Unificar nom</h2>
+  <p class="form-help">Tria el nom correcte i marca les inscripcions que són <strong>de la mateixa persona</strong>. Si un telèfon és d'una parella o d'una família, deixa sense marcar les de l'altra persona.</p>
+  <fieldset><legend>Nom correcte</legend>
+    ${noms.map((n, i) => `<label class="dlg-check"><input type="radio" name="un-nom" value="${esc(n)}" ${i === 0 ? 'checked' : ''}> ${esc(n)}</label>`).join('')}
+    <label class="dlg-check"><input type="radio" name="un-nom" value="__altre"> Un altre: <input class="form-input" id="un-altre" aria-label="Nom correcte"></label>
+  </fieldset>
+  <fieldset><legend>Inscripcions d'aquesta persona</legend>
+    ${cand.map(x => `<label class="dlg-check"><input type="checkbox" name="un-r" value="${esc(x.id)}" ${clauPersona(x) === clauPersona(r) ? 'checked' : ''}>
+      ${esc(x.nom)} · ${esc(titol(x))} <span class="muted">${esc(viva(x) ? '' : '(baixa)')}</span></label>`).join('')}
+  </fieldset>
+  <div id="un-msg"></div>
+  <div class="dlg-botons"><button type="button" class="btn btn-ghost" data-tancar>Cancel·lar</button><button class="btn btn-primary" type="submit">Unificar</button></div>
+</form>`);
+  d.querySelector('#un-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const tria = d.querySelector('input[name="un-nom"]:checked')?.value;
+    const nom = (tria === '__altre' ? d.querySelector('#un-altre').value : tria || '').trim();
+    const ids = [...d.querySelectorAll('input[name="un-r"]:checked')].map(x => x.value);
+    if (nom.length < 2 || !ids.length) { d.querySelector('#un-msg').innerHTML = '<div class="alert alert-danger">Tria el nom i almenys una inscripció.</div>'; return; }
+    try {
+      for (const rid of ids) {
+        const x = state.reserves.find(y => y.id === rid);
+        if (x && x.nom !== nom) await accioReserva({ accio: 'editar', id: rid, camps: { nom } });
+      }
+      cacheTotes.at = 0;
+      /* Totes les inscripcions de la persona resultant: si n'hi ha dues de vives a la mateixa activitat, sobra una */
+      const clau = clauPersona({ nom, telefon: r.telefon });
+      const sel = state.reserves.filter(y => !y.esborrat_at && viva(y) && clauPersona(y) === clau);
+      const repetides = sel.filter((x, i) => sel.findIndex(y => y.event_id === x.event_id) !== i);
+      d.close();
+      if (repetides.length) alert(`Fet. Atenció: ara ${nom} surt dues vegades a ${repetides.map(titol).join(', ')}. Dona de baixa la inscripció sobrant.`);
+      renderCerca();
+    } catch (err) { d.querySelector('#un-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(err))}</div>`; }
+  });
+};
+
+/* 4 · Reactivar una baixa que conserva les dades */
+window.reactivar = async function(id) {
+  try {
+    await accioReserva({ accio: 'trucada', id, estat: 'inscrit' });
+    cacheTotes.at = 0;
+    if (qs('#dlg-persona')?.open) qs('#dlg-persona').close();
+    await render();
+  } catch (e) { alert('No s\'ha pogut reactivar: ' + errText(e)); }
+};
 
 function resultatsCerca(q) {
   const n = normal(q);
@@ -2698,8 +2919,12 @@ function renderCerca() {
       <h2>${esc(p.nom)}</h2>
       <p><a href="tel:${esc(p.telefon)}" class="cerca-tel">📞 ${esc(p.telefon || '—')}</a>${p.contacte ? ` <span class="muted">(de ${esc(p.contacte)})</span>` : ''}${p.email ? ` · ${esc(p.email)}` : ''}</p>
     </div>
-    <span class="muted">${rs.length} ${rs.length === 1 ? 'inscripció' : 'inscripcions'}</span>
+    <div class="cerca-cap-dreta">
+      <span class="muted">${rs.length} ${rs.length === 1 ? 'inscripció' : 'inscripcions'}</span>
+      ${rs.some(x => !x.esborrat_at) ? `<button class="btn btn-primary btn-mini" onclick="inscriureAltre('${esc((rs.find(x => !x.esborrat_at) || rs[0]).id)}')">+ Inscriure a un altre taller</button>` : ''}
+    </div>
   </div>
+  ${avisVariants(rs)}
   <ul class="cerca-llista">
     ${rs.map(r => {
       const ev = evPer.get(r.event_id);
@@ -2719,6 +2944,7 @@ function renderCerca() {
       <div class="cerca-accions">
         <button class="btn btn-secondary btn-mini" onclick="obrirSeguiment('${esc(r.event_id)}')">Seguiment</button>
         ${!r.pare_id && reservaViva(r) ? `<button class="btn btn-ghost btn-mini" onclick="state.tab='reserves'; obrirCobrament('${esc(r.id)}')">Cobrar</button>` : ''}
+        ${r.status === 'cancelled' && !r.esborrat_at && REACTIVABLES.includes(r.trucada_estat) ? `<button class="btn btn-secondary btn-mini" onclick="reactivar('${esc(r.id)}')">Reactivar</button>` : ''}
         ${r.status !== 'cancelled' ? `<button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')">Baixa</button>` : ''}
       </div>
     </li>`;

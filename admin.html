@@ -372,6 +372,24 @@
     .cerca-cancel { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; }
     .cerca-cancel input { width: 22px; height: 22px; }
     .admin-body small { font-size: var(--fs-xs); }
+    /* Persones a diverses activitats: avís de duplicats, diàlegs i accions */
+    .dup-box { background: #FFF9E8; border: 1px solid var(--warning); border-radius: var(--radius); padding: var(--sp-2); margin: var(--sp-1) 0 var(--sp-2); display: flex; flex-direction: column; gap: var(--sp-1); }
+    .dup-fila { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); flex-wrap: wrap; border-top: 1px solid rgba(15,45,30,0.1); padding-top: var(--sp-1); }
+    .af-ja-informada { color: var(--forest); }
+    .sg-multi { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--forest-hero); color: var(--forest); font-weight: 700; font-size: var(--fs-xs); }
+    .sg-accions { white-space: nowrap; }
+    .sg-accions > * + * { margin-left: 8px; }
+    .cerca-cap-dreta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .dlg { border: none; border-radius: var(--radius-lg); padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 32px); box-shadow: 0 20px 60px rgba(15,45,30,0.3); }
+    .dlg::backdrop { background: rgba(15,45,30,0.45); }
+    .dlg-form { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3); }
+    .dlg-form h2 { margin: 0; }
+    .dlg-form p { margin: 0; }
+    .dlg-form fieldset { border: 1px solid rgba(15,45,30,0.15); border-radius: var(--radius); padding: var(--sp-2); display: flex; flex-direction: column; gap: 6px; }
+    .dlg-check { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+    .dlg-check input[type=checkbox], .dlg-check input[type=radio] { width: 20px; height: 20px; flex: none; }
+    .dlg-botons { display: flex; justify-content: flex-end; gap: var(--sp-1); flex-wrap: wrap; }
+    @media (max-width: 620px) { .cerca-cap-dreta { align-items: stretch; width: 100%; } .dlg-botons .btn { flex: 1; } }
     .admin-body a[href^="tel:"] { display: inline-block; min-height: 24px; padding: 3px 0; }
     .mes-xip { font-size: var(--fs-xs) !important; }
     /* Taules normals (Cobraments, Usuaris, Auditoria) al mòbil: una fitxa per fila, "Columna: valor".
@@ -412,6 +430,6 @@
   <script src="/js/main.js?v=66"></script>
   <script src="/js/carret.js?v=64"></script>
   <script src="/js/xlsx-mini.js?v=64"></script>
-  <script src="/js/admin.js?v=72"></script>
+  <script src="/js/admin.js?v=73"></script>
 </body>
 </html>

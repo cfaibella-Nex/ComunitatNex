@@ -4,6 +4,36 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v47 · Persones a diverses activitats: inscriure a un altre taller, duplicats, unificar, reactivar i comptatge
+
+No hi ha fitxa de persona: cada inscripció porta nom i telèfon. Mateix nom (sense accents ni
+majúscules) i mateix telèfon = mateixa persona. Un mateix telèfon pot ser de dues persones (parelles,
+germanes): mai s'ajunten soles.
+1. **"+ Inscriure a un altre taller"** (Cercar i files del Seguiment, botó "+ Taller"): copia nom,
+   telèfon, contacte i correu; només cal triar el taller (els que ja fa surten desactivats) i el nivell.
+2. **Avís de duplicat a l'alta manual**: en escriure el telèfon o el nom, "Ja tenim aquesta persona?"
+   amb les seves activitats i "Fer servir aquestes dades". Si ja és a l'activitat, ho diu; si hi està
+   de baixa amb dades, ofereix "Reactivar".
+3. **"Unificar nom…"** a Cercar quan el nom està escrit de maneres diferents o hi ha un altre nom amb
+   el mateix telèfon: tries el nom bo i les inscripcions que són de la persona. Avisa si en queden dues
+   a la mateixa activitat.
+4. **"Reactivar"** a "No s'hi apunten", "Baixa per no assistència" i "Baixes voluntàries" (Seguiment) i
+   a Cercar amb "Incloure cancel·lades". "Baixa" (esborrat de dades) continua sent irreversible.
+5. **Comptatge**: Seguiment (totes) mostra inscripcions i **persones diferents**; marca "×N" al costat
+   de l'activitat de qui en fa més d'una. Excel: full "Resum" amb totes dues xifres. L'Excel d'una
+   activitat deia "Persones inscrites" però comptava inscripcions: ara "Inscripcions" i "Persones diferents".
+
+**Clàusula de protecció de dades v3 (general)**: "les teves inscripcions a les activitats de NexSocial".
+Un cop llegida, no cal tornar-la a llegir en un altre taller. Les inscripcions noves copien la prova de
+l'original (data, qui i versió), no la d'avui, i el servidor comprova que sigui la v3 i la mateixa persona.
+Qui només té la v2 ("aquesta activitat") l'ha de sentir una vegada més. L'API desa la v3 a les altes,
+"Inscrit/a" i "Informada".
+
+Dades: **executar `sql/24-clausula-general-v3.sql`** abans de publicar (afegeix la v3 a `textos_legals`;
+la v2 es conserva). Fitxers: `api/admin/orders.js`, `js/admin.js`, `admin.html` (`admin.js?v=73`).
+Provat contra Postgres 16 local (SQL) i al navegador a 390 px amb casos reals (variants de nom, mateix
+telèfon de parella, baixa voluntària).
+
 ## v46 · Revisió mòbil i accessibilitat (web pública i panell)
 
 Auditoria a 375 px (iPhone) de 14 pantalles públiques i 10 del panell, amb axe-core (WCAG 2.2 AA),

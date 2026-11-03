@@ -27,6 +27,11 @@ import { modeStripe, stripeActiu, crearLinkPagament, HORES_LINK } from '../_lib/
 import { calcularInscripcio, tarifesEvent } from '../_lib/tarifes.js';
 
 const VALID = ['pending','confirmed','waitlist','cancelled','attended','no-show'];
+/* Clàusula verbal vigent (sql/24): general per a totes les activitats de NexSocial.
+   Es desa a cada inscripció com a prova de quin text se li va llegir. */
+const CLAUSULA = 'clausula-v3-2026-11';
+const digits = t => String(t || '').replace(/\D/g, '');
+const normalNom = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const METODES = ['efectiu','bizum','transferencia','targeta','altres'];
 const DATA_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -183,9 +188,24 @@ export default async function handler(req, res) {
         const deLlista = body.origen === 'llista_centre';
         const origen = deLlista ? 'presencial'
           : ['telefon', 'presencial', 'web', 'altres'].includes(body.origen) ? body.origen : 'telefon';
+        /* Persona que ja té la clàusula general (v3) llegida en una altra
+           inscripció: no cal tornar-la a llegir. La prova és la de l'original
+           (mateixa data, persona i versió), no la d'avui. */
+        let infoRef = null;
+        if (body.informada_ref && !deLlista) {
+          const { data: src, error: e2 } = await sb.from('reserves')
+            .select('id, nom, telefon, informada_at, informada_per, info_canal, info_versio, esborrat_at')
+            .eq('id', String(body.informada_ref)).maybeSingle();
+          if (e2) throw e2;
+          const mateixa = src && (digits(src.telefon) ? digits(src.telefon) === digits(telefon) : normalNom(src.nom) === normalNom(nom));
+          if (!src || src.esborrat_at || !src.informada_at || src.info_versio !== CLAUSULA || !mateixa) {
+            return json(res, 400, { error: "No consta que aquesta persona tingui llegida la clàusula vigent. Llegeix-la-hi i marca la casella." });
+          }
+          infoRef = src;
+        }
         /* Art. 13 RGPD: si ens dona les dades directament (telèfon, en
            persona), se li ha d'haver llegit la clàusula. Obligatori. */
-        if (!deLlista && body.informada !== true) {
+        if (!deLlista && body.informada !== true && !infoRef) {
           return json(res, 400, { error: "Marca que li has llegit la clàusula de protecció de dades (és obligatori quan s'apunta per telèfon o en persona)." });
         }
         const tarifa = String(body.tarifa_id || tarifesEvent(ev)[0].id);
@@ -203,14 +223,23 @@ export default async function handler(req, res) {
             p_origen: origen, p_alta: body.alta !== false,
             p_observacions: body.observacions ? String(body.observacions).slice(0, 500) : null, p_actor: actor,
             p_contacte: body.contacte ? String(body.contacte).trim().slice(0, 120) : null,
-            p_informada: !deLlista && body.informada === true,
-            p_info_canal: deLlista ? 'llista_centre' : origen
+            p_informada: !deLlista && (body.informada === true || !!infoRef),
+            p_info_canal: deLlista ? 'llista_centre' : origen,
+            p_info_versio: CLAUSULA
           });
           if (out?.error !== 'ref_collision') break;
         }
         if (!out?.ok) {
           const m = { duplicate: 'Aquesta persona (mateix nom i telèfon) ja està apuntada a aquesta activitat', event_unavailable: 'Activitat no disponible' };
           return json(res, 409, { error: m[out?.error] || 'No s\'ha pogut afegir' });
+        }
+        if (infoRef) {
+          const { data: r2, error: e3 } = await sb.from('reserves').update({
+            informada_at: infoRef.informada_at, informada_per: infoRef.informada_per,
+            info_canal: infoRef.info_canal, info_versio: infoRef.info_versio
+          }).eq('id', out.reserva.id).select('*').maybeSingle();
+          if (e3) throw e3;
+          if (r2) out.reserva = r2;
         }
         return json(res, 201, { reserva: out.reserva, espera: out.reserva?.status === 'waitlist' });
       }
@@ -219,7 +248,7 @@ export default async function handler(req, res) {
         /* Llistes dels centres i altes antigues: l'equip marca que ja li
            ha llegit la clàusula (art. 14 RGPD). Queda qui i quan. No es desfà. */
         const canal = ['telefon', 'presencial'].includes(body.canal) ? body.canal : null;
-        const out = await rpc('admin_marcar_informada', { p_id: id, p_actor: actor, p_canal: canal });
+        const out = await rpc('admin_marcar_informada', { p_id: id, p_actor: actor, p_canal: canal, p_versio: CLAUSULA });
         if (!out?.ok) return json(res, 409, { error: 'Ja constava com a informada' });
         return json(res, 200, { reserva: out.reserva });
       }
@@ -247,7 +276,7 @@ export default async function handler(req, res) {
 
       case 'trucada': {
         /* Seguiment de trucades: pendent · no_contesta · inscrit */
-        const out = await rpc('admin_trucada', { p_id: id, p_estat: String(body.estat || ''), p_actor: actor });
+        const out = await rpc('admin_trucada', { p_id: id, p_estat: String(body.estat || ''), p_actor: actor, p_versio: CLAUSULA });
         if (!out?.ok) return json(res, 409, { error: out?.error === 'estat_no_valid' ? 'Estat no vàlid' : 'Reserva no trobada o cancel·lada' });
         return json(res, 200, { reserva: out.reserva });
       }
