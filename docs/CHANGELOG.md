@@ -4,6 +4,23 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v49 · Seguiment compacte · columna "Alta" automàtica · "+ Taller" al final
+
+- **Columna "Alta"** (en lloc de "Nivell"): data d'inscripció, automàtica i **no editable** des de la taula.
+  El nivell només surt (petit, a sota) si l'activitat en té més d'un. Les noves: avui (o la data triada a
+  l'alta manual). L'Excel afegeix la columna "Alta".
+- **`sql/26-data-inscripcio-existents.sql`** (una vegada): a les que ja hi havia, el primer dia amb marca
+  d'assistència real (ha vingut, falta o justificada; "— no inscrit/a" no compta); si no en tenen, el dia
+  que es van donar d'alta. Només omple les buides.
+- **Taula compacta**: files de 66 → 39 px, amplada a l'ordinador 1.470 → 1.332 px (hi cap sense
+  desplaçar-se a 1.366 px). Capçaleres de sessió en dues línies, desplegables d'amplada fixa, l'import
+  dins de "⏳ Pendent oct · 15 €" (fora la línia de sota), caselles d'assistència de 30 px.
+- **"+ Taller"** al final de la fila, com a botó petit. Sense "Baixa" a la taula (v48).
+- **Mòbil**: sense la columna del número i amb el **nom fix a l'esquerra** mentre es desplaça la taula.
+- Fora el diàleg per canviar la data (ja no s'edita). `admin.js?v=75`.
+
+Dades: **executar `sql/26-data-inscripcio-existents.sql`** (després del 25). Provat contra Postgres 16 local.
+
 ## v48 · Data d'inscripció: abans d'inscriure's "No correspon" i "—" automàtics · "+ Taller" al costat del nom · "Baixa" només per a qui ja no hi és
 
 - **Data d'inscripció** per persona i activitat (`data_inscripcio`, sql/25). Les noves la reben sola

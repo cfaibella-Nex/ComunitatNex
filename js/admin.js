@@ -1318,6 +1318,13 @@ const abansAltaMes = (r, mes) => !!r.data_inscripcio && mes < String(r.data_insc
 const abansAltaDia = (r, dia) => !!r.data_inscripcio && dia < String(r.data_inscripcio).slice(0, 10);
 const marcaAuto = (r, dia, explicita) => explicita !== undefined ? explicita : abansAltaDia(r, dia) ? 'no_inscrit' : undefined;
 const noCorresponMes = (r, mes) => { const p = pagatMes(r, mes); return p ? esNoCorrespon(p) : abansAltaMes(r, mes); };
+/* Columna "Alta": data d'inscripció (automàtica, no s'edita) i, si l'activitat té més d'un nivell, el nivell */
+function celAlta(r) {
+  const ev = evDe(r);
+  const ts = ev ? window.NXC.tarifesEvent(ev) : [];
+  const niv = ts.length > 1 ? (Array.isArray(r.linies) ? r.linies : []).filter(l => l.tipus === 'tarifa').map(l => l.nom?.ca || l.id).join(', ') : '';
+  return `${r.data_inscripcio ? esc(ddmmaa(r.data_inscripcio)) : '<span class="muted">—</span>'}${niv ? `<small>${esc(niv)}</small>` : ''}`;
+}
 const ddmmaa = iso => iso ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}/${String(iso).slice(2, 4)}` : '';
 const mesCurt = mes => { const [y, m] = mes.split('-').map(Number); return new Intl.DateTimeFormat('ca-ES', { month: 'short' }).format(new Date(y, m - 1, 1, 12)).replace('.', ''); };
 /* Mesos que toca pagar d'una inscripció mensual: de l'inici de l'activitat fins a `fins` */
@@ -2207,18 +2214,17 @@ function renderSeguimentTotes() {
     return `
   <tr>
     <td class="sg-num">${i + 1}</td>
-    <td class="sg-nomcel"><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom">
-      <div class="sg-sub no-print"><button class="btn-link" onclick="sgDataAlta('${esc(r.id)}')" title="Data d'inscripció: canviar">${r.data_inscripcio ? 'Alta ' + ddmmaa(r.data_inscripcio) : "Data d'alta?"}</button>
-        <button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button></div></td>
+    <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom"></td>
     <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
     <td><input class="sg-in sg-contacte" value="${esc(r.contacte || '')}" placeholder="—" onchange="sgEditar('${esc(r.id)}','contacte',this.value)" aria-label="De qui és el telèfon de ${esc(r.nom)}"></td>
     <td class="sg-act"><button class="btn-link" onclick="sgEvent('${esc(r.event_id)}')" title="Obrir el seguiment d'aquesta activitat">${esc(ev?.titol?.ca || r.event_id)}</button>${(nAct.get(clauPersona(r)) || 0) > 1 ? ` <span class="sg-multi" title="Inscrita a ${nAct.get(clauPersona(r))} activitats">×${nAct.get(clauPersona(r))}</span>` : ''}
       ${state.filtreCentre ? '' : `<small class="muted">${esc(centreDe(ev))}</small>`}</td>
-    <td class="sg-nivell">${esc(nivell(r))}</td>
+    <td class="sg-alta">${celAlta(r)}</td>
     <td class="sg-truc">${celTrucada(r)}</td>
     <td class="sg-pag">${celPagat(r)}</td>
     <td class="sg-pct">${p === null ? '—' : p + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
+    <td class="no-print sg-mes-act"><button class="sg-taller" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure a un altre taller" aria-label="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button></td>
   </tr>`;
   };
 
@@ -2264,7 +2270,7 @@ ${AVIS_GUIO}
 
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
-  <thead><tr><th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th>Contacte</th>${thOrd('activitat', 'Activitat')}<th>Nivell</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${thOrd('assist', 'Assist.')}<th>Observacions</th></tr></thead>
+  <thead><tr><th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th>Contacte</th>${thOrd('activitat', 'Activitat')}<th title="Data d'inscripció">Alta</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"><span class="sr-only">Accions</span></th></tr></thead>
   <tbody>${vistes.map(fila).join('') || `<tr><td colspan="11" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap inscripció.'}</td></tr>`}</tbody>
 </table>
 </div>
@@ -2302,17 +2308,16 @@ function renderSeguiment() {
   const fila = (r, i) => `
   <tr>
     <td class="sg-num">${i + 1}</td>
-    <td class="sg-nomcel"><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom">
-      <div class="sg-sub no-print"><button class="btn-link" onclick="sgDataAlta('${esc(r.id)}')" title="Data d'inscripció: canviar">${r.data_inscripcio ? 'Alta ' + ddmmaa(r.data_inscripcio) : "Data d'alta?"}</button>
-        <button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button></div></td>
+    <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom"></td>
     <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
     <td><input class="sg-in sg-contacte" value="${esc(r.contacte || '')}" placeholder="—" onchange="sgEditar('${esc(r.id)}','contacte',this.value)" aria-label="De qui és el telèfon de ${esc(r.nom)}" title="Si el telèfon és d'un familiar: de qui és"></td>
-    <td class="sg-nivell">${esc(nivell(r))}</td>
+    <td class="sg-alta">${celAlta(r)}</td>
     <td class="sg-truc">${celTrucada(r)}</td>
     <td class="sg-pag">${celPagat(r)}</td>
     ${sessions.map(d => celSessio(r, d)).join('')}
     <td class="sg-pct">${pctPersona(r) === null ? '—' : pctPersona(r) + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
+    <td class="no-print sg-mes-act"><button class="sg-taller" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure a un altre taller" aria-label="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button></td>
   </tr>`;
 
   app.innerHTML = `
@@ -2364,9 +2369,9 @@ ${sessions.length ? LLEGENDA_ASSIST : ''}
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
   <thead><tr>
-    <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th>Nivell</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}
+    <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th title="Data d'inscripció">Alta</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}
     ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
-    ${thOrd('assist', 'Assist.')}<th>Observacions</th>
+    ${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"><span class="sr-only">Accions</span></th>
   </tr></thead>
   <tbody>${vistes.map(fila).join('') || `<tr><td colspan="${10 + sessions.length}" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap persona apuntada. Fes servir “+ Afegir persona”.'}</td></tr>`}</tbody>
 </table>
@@ -2446,14 +2451,15 @@ function celPagatSg(r, cobra) {
   const p = mensual && !nc ? pagatMes(r, mes) : null;
   const pagat = mensual ? !!p : r.payment_status === 'paid';
   const metode = mensual ? p?.metode : r.metode_pagament;
-  const pendentTxt = mensual ? `⏳ Pendent ${mesCurt(mes)}` : r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar';
+  const impPend = mensual ? aCobrar(r) : r.payment_status === 'paid' ? 0 : aCobrar(r);
+  const pendentTxt = (mensual ? `⏳ Pendent ${mesCurt(mes)}` : r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent') + (impPend ? ` · ${(impPend / 100).toLocaleString('ca-ES', { maximumFractionDigits: 2 })} €` : '');
   const imp = mensual ? (p?.import_cents ?? aCobrar(r)) : pagat ? r.import_pagat_cents : aCobrar(r);
   const notaNc = nc ? (pagatMes(r, mes)?.nota || `Abans de la inscripció (${ddmmaa(r.data_inscripcio)})`) : '';
   return `<select class="sg-sel${nc ? ' sg-nocorrespon' : pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}${mensual ? ' (' + esc(nomMesLlarg(mes)) + ')' : ''}"${notaNc ? ` title="${esc(notaNc)}"` : ''}>
       <option value="">${pendentTxt}</option>
       ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && metode === k ? 'selected' : ''}>✓ ${v}${mensual ? ' · ' + mesCurt(mes) : ''}</option>`).join('')}
       ${mensual ? `<option value="${NO_CORRESPON}" ${nc ? 'selected' : ''}>— No correspon · ${mesCurt(mes)}</option>` : ''}
-    </select>${imp && !nc ? `<small class="sg-import">${eur(imp)}${mensual ? '/mes' : ''}</small>` : ''}`;
+    </select>`;
 }
 
 window.sgPagat = async function(id, metode, sel) {
@@ -2657,12 +2663,12 @@ window.sgExcel = function() {
     const dtx = dadesTotes();
     const { S, evPer, espera, pct, cobra, nivell } = dtx;
     const persones = filtraSg(dtx.persones, { cobra, pct, evPer });
-    const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Activitat', 'Centre', 'Nivell', 'Places',
+    const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Activitat', 'Centre', 'Nivell', 'Alta', 'Places',
                  'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode', `Assistència ${nomMesLlarg(S.mes)} %`, 'Observacions', 'Referència',
                  'Dades: canal', 'Dades: informada el', 'Dades: per'];
     const files = persones.map((r, i) => {
       const e = evPer.get(r.event_id);
-      return [i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', e?.titol?.ca || r.event_id, centreDe(e), nivell(r), r.places,
+      return [i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', e?.titol?.ca || r.event_id, centreDe(e), nivell(r), ddmmaa(r.data_inscripcio), r.places,
         ORIGEN_NOM[r.origen] || '', TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
         noCorresponAra(r) ? 'No correspon' : !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
         r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
@@ -2671,7 +2677,7 @@ window.sgExcel = function() {
     });
     const esperaFiles = espera.map((r, i) => [i + 1, r.nom, r.telefon || '', r.contacte || '', evPer.get(r.event_id)?.titol?.ca || '', centreDe(evPer.get(r.event_id)), r.id]);
     window.NXXLSX.descarregar(`seguiment-${state.filtreCentre ? state.filtreCentre.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'totes'}-${S.mes}.xlsx`, [
-      { nom: 'Inscripcions', capcaleres: 1, amplades: [4, 28, 13, 22, 26, 26, 20, 16, 7, 11, 6, 8, 8, 13, 14, 34, 12], files: [cap, ...files] },
+      { nom: 'Inscripcions', capcaleres: 1, amplades: [4, 28, 13, 22, 26, 26, 20, 16, 10, 7, 11, 6, 8, 8, 13, 14, 34, 12], files: [cap, ...files] },
       { nom: "Llista d'espera", capcaleres: 1, amplades: [4, 28, 13, 22, 26, 20, 12], files: [['#', 'Nom', 'Telèfon', 'Contacte', 'Activitat', 'Centre', 'Referència'], ...esperaFiles] },
       { nom: 'Resum', capcaleres: 0, amplades: [24, 30], files: [
         ['Mes', nomMesLlarg(S.mes)], ['Centre', state.filtreCentre || 'Tots'],
@@ -2684,10 +2690,10 @@ window.sgExcel = function() {
   const dsx = dadesSeguiment();
   const { S, ev, sessions, espera, marca, cobra, nivell, pctPersona } = dsx;
   const persones = filtraSg(dsx.persones, { cobra, pct: pctPersona, evPer: null });
-  const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Nivell', 'Places', 'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode',
+  const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Nivell', 'Alta', 'Places', 'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode',
                ...sessions.map(capSessio), 'Assistència %', 'Observacions', 'Referència'];
   const files = persones.map((r, i) => [
-    i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', nivell(r), r.places, ORIGEN_NOM[r.origen] || '',
+    i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', nivell(r), ddmmaa(r.data_inscripcio), r.places, ORIGEN_NOM[r.origen] || '',
     TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
     noCorresponAra(r) ? 'No correspon' : !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
     r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
@@ -2699,7 +2705,7 @@ window.sgExcel = function() {
   const periode = esPuntual(ev) ? String(ev.data || '') : nomMesLlarg(S.mes);
   const fulls = [{
     nom: 'Seguiment', capcaleres: 1,
-    amplades: [4, 28, 13, 22, 26, 16, 7, 11, 6, 8, 8, 13, ...sessions.map(() => 9), 12, 34, 12],
+    amplades: [4, 28, 13, 22, 26, 16, 10, 7, 11, 6, 8, 8, 13, ...sessions.map(() => 9), 12, 34, 12],
     files: [cap, ...files]
   }, {
     nom: 'Resum', capcaleres: 0, amplades: [22, 40],
@@ -2898,30 +2904,6 @@ window.unificarNom = function(id) {
       if (repetides.length) alert(`Fet. Atenció: ara ${nom} surt dues vegades a ${repetides.map(titol).join(', ')}. Dona de baixa la inscripció sobrant.`);
       renderCerca();
     } catch (err) { d.querySelector('#un-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(err))}</div>`; }
-  });
-};
-
-/* Data d'inscripció: abans d'aquesta data no es cobra ni es passa llista */
-window.sgDataAlta = function(id) {
-  const r = state.reserves.find(x => x.id === id);
-  if (!r) return;
-  const d = obrirDialeg(`
-<form method="dialog" id="da-form" class="dlg-form">
-  <h2>Data d'inscripció</h2>
-  <p><strong>${esc(r.nom)}</strong></p>
-  <p class="form-help">Abans d'aquesta data, els mesos surten com <strong>No correspon</strong> i les sessions com <strong>—</strong> (no compten al %). Si ja hi ha un pagament o una marca, es manté.</p>
-  <label class="ins-camp"><span>Data</span><input class="form-input" id="da-data" type="date" value="${esc(String(r.data_inscripcio || '').slice(0, 10))}" max="${avui()}"></label>
-  <div id="da-msg"></div>
-  <div class="dlg-botons"><button type="button" class="btn btn-ghost" data-tancar>Cancel·lar</button><button class="btn btn-primary" type="submit">Desar</button></div>
-</form>`);
-  d.querySelector('#da-data').focus();
-  d.querySelector('#da-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    try {
-      await accioReserva({ accio: 'data_inscripcio', id, data: d.querySelector('#da-data').value || null });
-      d.close();
-      renderSeguiment();
-    } catch (err) { d.querySelector('#da-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(err))}</div>`; }
   });
 };
 

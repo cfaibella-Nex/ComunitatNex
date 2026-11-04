@@ -378,9 +378,38 @@
     .af-ja-informada { color: var(--forest); }
     .sg-multi { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--forest-hero); color: var(--forest); font-weight: 700; font-size: var(--fs-xs); }
     .sg-accions { white-space: nowrap; }
-    .sg-nomcel { min-width: 170px; }
-    .sg-sub { display: flex; gap: 10px; margin-top: 2px; font-size: var(--fs-xs); white-space: nowrap; }
-    .sg-sub .btn-link { min-height: 24px; color: var(--forest); }
+    /* Seguiment compacte (v49): files d'uns 40 px, columnes més estretes */
+    .sg-taula th, .sg-taula td { padding: 3px 5px !important; }
+    .sg-taula td { border-bottom-color: rgba(15,45,30,0.07); }
+    .sg-in { padding: 3px 5px; }
+    .sg-nom { min-width: 150px; }
+    .sg-tel { min-width: 92px; width: 98px; }
+    .sg-contacte { min-width: 100px; }
+    .sg-obs { min-width: 150px; }
+    .sg-trucada { min-width: 0; max-width: 150px; }
+    .sg-sel { max-width: 175px; }
+    .sg-ses { min-width: 38px; }
+    .sg-marca { width: 30px; height: 30px; font-size: 15px; border-radius: 7px; }
+    .sg-alta { white-space: nowrap; font-size: var(--fs-xs); color: var(--ink); }
+    .sg-alta small { display: block; color: var(--text-muted); white-space: normal; max-width: 110px; line-height: 1.15; }
+    .sg-mes-act { white-space: nowrap; }
+    .sg-taller { min-height: 26px; padding: 2px 8px; border: 1px solid rgba(15,45,30,0.25); border-radius: 999px; background: var(--white);
+                 color: var(--forest); font: inherit; font-size: var(--fs-xs); font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .sg-taller:hover, .sg-taller:focus-visible { background: var(--forest-hero); border-color: var(--forest); }
+    th.sg-ses { font-size: 11px; line-height: 1.15; white-space: normal !important; width: 46px; min-width: 46px; text-align: center; }
+    th.sg-ses .sg-treure { display: flex; margin: 1px auto 0; min-height: 24px; min-width: 24px; line-height: 1; }
+    .sg-taula .sg-sel { width: 150px; }
+    .sg-taula .sg-trucada { width: 132px; }
+    /* Mòbil: sense el número, el nom queda fix a l'esquerra mentre es desplaça la taula */
+    @media (max-width: 620px) {
+      .sg-taula-wrap:not(.sg-noapunten) .sg-taula th:first-child, .sg-taula-wrap:not(.sg-noapunten) .sg-taula td:first-child { display: none; }
+      .sg-taula-wrap:not(.sg-noapunten) .sg-taula td:nth-child(2), .sg-taula-wrap:not(.sg-noapunten) .sg-taula th:nth-child(2) {
+        position: sticky; left: 0; z-index: 1; background: var(--white); box-shadow: 2px 0 0 rgba(15,45,30,0.08); }
+      .sg-taula-wrap:not(.sg-noapunten) .sg-taula th:nth-child(2) { z-index: 2; background: var(--cream-green); }
+      .sg-nom { min-width: 0; width: 132px; }
+      .sg-taula .sg-in, .sg-taula .sg-sel { padding: 2px 4px; }
+      .sg-sel { max-width: 160px; }
+    }
     .sg-accions > * + * { margin-left: 8px; }
     .cerca-cap-dreta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
     .dlg { border: none; border-radius: var(--radius-lg); padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 32px); box-shadow: 0 20px 60px rgba(15,45,30,0.3); }
@@ -433,6 +462,6 @@
   <script src="/js/main.js?v=66"></script>
   <script src="/js/carret.js?v=64"></script>
   <script src="/js/xlsx-mini.js?v=64"></script>
-  <script src="/js/admin.js?v=74"></script>
+  <script src="/js/admin.js?v=75"></script>
 </body>
 </html>
