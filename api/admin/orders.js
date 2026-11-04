@@ -15,6 +15,7 @@
 //   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }  (metode 'no_correspon' = aquell mes no es cobra, 0 €)
 //   PATCH { accio: 'anular_pagament_mes', id, mes, motiu }
 //   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' | 'no_inscriu' | 'no_assisteix' | 'baixa_voluntaria' }
+//   PATCH { accio: 'data_inscripcio', id, data: 'AAAA-MM-DD' | null }   (sql/25)
 //   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
 //   PATCH { accio: 'esborrar_activitat', event_id } → esborrat de totes les inscripcions d'una activitat acabada
 //
@@ -233,6 +234,11 @@ export default async function handler(req, res) {
           const m = { duplicate: 'Aquesta persona (mateix nom i telèfon) ja està apuntada a aquesta activitat', event_unavailable: 'Activitat no disponible' };
           return json(res, 409, { error: m[out?.error] || 'No s\'ha pogut afegir' });
         }
+        /* Data d'inscripció triada a l'alta (si no, la base de dades hi posa avui) */
+        if (DATA_RE.test(String(body.data_inscripcio || ''))) {
+          const d = await rpc('admin_data_inscripcio', { p_id: out.reserva.id, p_data: body.data_inscripcio, p_actor: actor });
+          if (d?.reserva) out.reserva = d.reserva;
+        }
         if (infoRef) {
           const { data: r2, error: e3 } = await sb.from('reserves').update({
             informada_at: infoRef.informada_at, informada_per: infoRef.informada_per,
@@ -278,6 +284,14 @@ export default async function handler(req, res) {
         /* Seguiment de trucades: pendent · no_contesta · inscrit */
         const out = await rpc('admin_trucada', { p_id: id, p_estat: String(body.estat || ''), p_actor: actor, p_versio: CLAUSULA });
         if (!out?.ok) return json(res, 409, { error: out?.error === 'estat_no_valid' ? 'Estat no vàlid' : 'Reserva no trobada o cancel·lada' });
+        return json(res, 200, { reserva: out.reserva });
+      }
+
+      case 'data_inscripcio': {
+        const d = body.data == null || body.data === '' ? null : String(body.data);
+        if (d !== null && !DATA_RE.test(d)) return json(res, 400, { error: 'Data no vàlida' });
+        const out = await rpc('admin_data_inscripcio', { p_id: id, p_data: d, p_actor: actor });
+        if (!out?.ok) return json(res, 404, { error: 'Inscripció no trobada' });
         return json(res, 200, { reserva: out.reserva });
       }
 

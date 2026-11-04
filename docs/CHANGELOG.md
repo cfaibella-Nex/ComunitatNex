@@ -4,6 +4,24 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v48 · Data d'inscripció: abans d'inscriure's "No correspon" i "—" automàtics · "+ Taller" al costat del nom · "Baixa" només per a qui ja no hi és
+
+- **Data d'inscripció** per persona i activitat (`data_inscripcio`, sql/25). Les noves la reben sola
+  (avui, hora de Madrid), també les de la web. A l'alta manual i a "Inscriure a un altre taller" es pot
+  triar (per defecte avui). Les antigues queden en blanc: es posen amb "Data d'alta?" sota el nom.
+- **Automàtic, sense desar res**: els mesos anteriors al mes d'inscripció surten "— No correspon" i no
+  compten com a pendents (Seguiment, Cobraments, Excel); les sessions anteriors a la data surten "—" i no
+  compten al %. A Passar llista, igual. Si hi ha un pagament o una marca registrats, mana el registre.
+- **Sota el nom**: "Alta dd/mm/aa · + Taller" (clic a la data per canviar-la, amb diàleg). Fora la
+  columna de la dreta, que no es veia sense desplaçar-se.
+- **"Baixa" (esborrar dades)** només a qui ja no està inscrit: blocs "No s'hi apunten / Baixa per no
+  assistència / Baixes voluntàries" (amb "Reactivar"), Cercar (cancel·lades, "Esborrar dades") i el
+  cobrament d'una inscripció cancel·lada. Per donar de baixa algú inscrit: Trucada → "Baixa voluntària".
+
+Dades: **executar `sql/25-data-inscripcio.sql`** abans de publicar. Fitxers: `api/admin/orders.js`,
+`js/admin.js`, `admin.html` (`admin.js?v=74`). Provat contra Postgres 16 local (activador, funció i
+auditoria) i al navegador (persona nova vista a octubre, canvi de data, Cobraments).
+
 ## v47 · Persones a diverses activitats: inscriure a un altre taller, duplicats, unificar, reactivar i comptatge
 
 No hi ha fitxa de persona: cada inscripció porta nom i telèfon. Mateix nom (sense accents ni

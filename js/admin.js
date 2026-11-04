@@ -1312,12 +1312,20 @@ const pagatMes = (r, mes) => state.pagamentsMes.get(`${r.id}|${mes}`);
 const NO_CORRESPON = 'no_correspon';
 const esNoCorrespon = p => p?.metode === NO_CORRESPON;
 const cobratMes = (r, mes) => { const p = pagatMes(r, mes); return p && !esNoCorrespon(p) ? p : null; };
-const noCorresponMes = (r, mes) => esNoCorrespon(pagatMes(r, mes));
+/* Abans de la data d'inscripció: no correspon pagar ni passar llista (automàtic,
+   no es desa res). Si s'hi ha registrat un pagament o una marca, mana el registre. */
+const abansAltaMes = (r, mes) => !!r.data_inscripcio && mes < String(r.data_inscripcio).slice(0, 7);
+const abansAltaDia = (r, dia) => !!r.data_inscripcio && dia < String(r.data_inscripcio).slice(0, 10);
+const marcaAuto = (r, dia, explicita) => explicita !== undefined ? explicita : abansAltaDia(r, dia) ? 'no_inscrit' : undefined;
+const noCorresponMes = (r, mes) => { const p = pagatMes(r, mes); return p ? esNoCorrespon(p) : abansAltaMes(r, mes); };
+const ddmmaa = iso => iso ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}/${String(iso).slice(2, 4)}` : '';
 const mesCurt = mes => { const [y, m] = mes.split('-').map(Number); return new Intl.DateTimeFormat('ca-ES', { month: 'short' }).format(new Date(y, m - 1, 1, 12)).replace('.', ''); };
 /* Mesos que toca pagar d'una inscripció mensual: de l'inici de l'activitat fins a `fins` */
 function mesosDe(r, fins) {
   const ev = evDe(r);
-  const inici = String(ev?.data || r.created_at || '').slice(0, 7);
+  const iniciAct = String(ev?.data || r.created_at || '').slice(0, 7);
+  const alta = String(r.data_inscripcio || '').slice(0, 7);
+  const inici = alta && alta > iniciAct ? alta : iniciAct;   // no es cobra abans d'inscriure's
   if (!inici || inici > fins) return [];
   const out = [];
   let [y, m] = inici.split('-').map(Number);
@@ -1437,7 +1445,7 @@ function renderReserves() {
     if (!esMensual(ev)) return pagamentHTML(r);
     const p = cobratMes(r, M);
     const historial = mesosDe(r, M).slice(-6).map(m => {
-      if (noCorresponMes(r, m)) return `<span class="mes-xip mes-nc" title="${esc(nomMesLlarg(m))}: no correspon${pagatMes(r, m).nota ? ' · ' + esc(pagatMes(r, m).nota) : ''}">${esc(mesCurt(m))} —</span>`;
+      if (noCorresponMes(r, m)) return `<span class="mes-xip mes-nc" title="${esc(nomMesLlarg(m))}: no correspon${pagatMes(r, m)?.nota ? ' · ' + esc(pagatMes(r, m).nota) : ''}">${esc(mesCurt(m))} —</span>`;
       const ok = cobratMes(r, m);
       return `<span class="mes-xip ${ok ? 'mes-ok' : 'mes-no'}" title="${esc(nomMesLlarg(m))}: ${ok ? 'pagat (' + (METODE_NOM[ok.metode] || '') + ')' : 'pendent'}">${esc(mesCurt(m))} ${ok ? '✓' : '⏳'}</span>`;
     }).join('');
@@ -1584,7 +1592,7 @@ function renderCobrament() {
       <p class="muted">${esc(resumLinies(r))} · Total ${eur(r.total_cents)}${r.consultar ? ' + a consultar' : ''}</p>
     </div>
     <div style="display:flex; gap: var(--sp-1); flex-wrap: wrap;">
-      <button class="btn btn-ghost ev-arxivar" onclick="baixaPersona('${esc(r.id)}')">Baixa i esborrar dades</button>
+      ${reservaViva(r) ? '' : `<button class="btn btn-ghost ev-arxivar" onclick="baixaPersona('${esc(r.id)}')">Baixa i esborrar dades</button>`}
       <button class="btn btn-ghost" onclick="obrirCobrament('${esc(r.id)}')">Tancar</button>
     </div>
   </div>
@@ -1652,7 +1660,7 @@ function renderCobramentMes(r, box) {
       <p class="muted">Quota mensual: ${quota ? eur(quota) : 'sense preu (posa el preu intern a l\'activitat)'}</p>
     </div>
     <div style="display:flex; gap: var(--sp-1); flex-wrap: wrap;">
-      <button class="btn btn-ghost ev-arxivar" onclick="baixaPersona('${esc(r.id)}')">Baixa i esborrar dades</button>
+      ${reservaViva(r) ? '' : `<button class="btn btn-ghost ev-arxivar" onclick="baixaPersona('${esc(r.id)}')">Baixa i esborrar dades</button>`}
       <button class="btn btn-ghost" onclick="obrirCobrament('${esc(r.id)}')">Tancar</button>
     </div>
   </div>
@@ -2015,7 +2023,7 @@ function dadesSeguiment() {
   const persones = state.reserves.filter(reservaViva).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
   const espera = state.reserves.filter(r => r.status === 'waitlist');
   const passades = sessions.filter(d => d <= avui());
-  const marca = (r, d) => S.assistencia[r.id]?.[d];
+  const marca = (r, d) => marcaAuto(r, d, S.assistencia[r.id]?.[d]);
   const gratuita = ev && window.NXC.tarifesEvent(ev).every(t => t.preu_mode === 'gratuit') && !(ev.extres || []).some(x => x.preu_mode !== 'gratuit');
   const cobraBase = r => !r.pare_id && !gratuita && (aCobrar(r) > 0 || r.consultar);
   const cobra = r => cobraBase(r) && !noCorresponAra(r);
@@ -2069,9 +2077,10 @@ function dadesTotes() {
   const foraLlista = r => { const e = evPer.get(r.event_id); return e && e.estat !== 'arxivat' && (!state.filtreCentre || centreDe(e) === state.filtreCentre); };
   const passadesDe = r => sessionsDe(evPer.get(r.event_id), S.mes).filter(d => d <= avui());
   const pct = r => {
-    const ps = passadesDe(r).filter(d => !noCompta(S.assistencia[r.id]?.[d]));
+    const m = d => marcaAuto(r, d, S.assistencia[r.id]?.[d]);
+    const ps = passadesDe(r).filter(d => !noCompta(m(d)));
     if (!ps.length) return null;
-    return Math.round(ps.filter(d => S.assistencia[r.id]?.[d] === true).length * 100 / ps.length);
+    return Math.round(ps.filter(d => m(d) === true).length * 100 / ps.length);
   };
   const gratuitaEv = ev => window.NXC.tarifesEvent(ev).every(t => t.preu_mode === 'gratuit') && !(ev.extres || []).some(x => x.preu_mode !== 'gratuit');
   const cobraBase = r => { const e = evPer.get(r.event_id); return !r.pare_id && e && !gratuitaEv(e) && (aCobrar(r) > 0 || r.consultar); };
@@ -2198,7 +2207,9 @@ function renderSeguimentTotes() {
     return `
   <tr>
     <td class="sg-num">${i + 1}</td>
-    <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom"></td>
+    <td class="sg-nomcel"><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom">
+      <div class="sg-sub no-print"><button class="btn-link" onclick="sgDataAlta('${esc(r.id)}')" title="Data d'inscripció: canviar">${r.data_inscripcio ? 'Alta ' + ddmmaa(r.data_inscripcio) : "Data d'alta?"}</button>
+        <button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button></div></td>
     <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
     <td><input class="sg-in sg-contacte" value="${esc(r.contacte || '')}" placeholder="—" onchange="sgEditar('${esc(r.id)}','contacte',this.value)" aria-label="De qui és el telèfon de ${esc(r.nom)}"></td>
     <td class="sg-act"><button class="btn-link" onclick="sgEvent('${esc(r.event_id)}')" title="Obrir el seguiment d'aquesta activitat">${esc(ev?.titol?.ca || r.event_id)}</button>${(nAct.get(clauPersona(r)) || 0) > 1 ? ` <span class="sg-multi" title="Inscrita a ${nAct.get(clauPersona(r))} activitats">×${nAct.get(clauPersona(r))}</span>` : ''}
@@ -2208,8 +2219,6 @@ function renderSeguimentTotes() {
     <td class="sg-pag">${celPagat(r)}</td>
     <td class="sg-pct">${p === null ? '—' : p + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
-    <td class="no-print sg-accions"><button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button>
-      <button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
   </tr>`;
   };
 
@@ -2255,7 +2264,7 @@ ${AVIS_GUIO}
 
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
-  <thead><tr><th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th>Contacte</th>${thOrd('activitat', 'Activitat')}<th>Nivell</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"></th></tr></thead>
+  <thead><tr><th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th>Contacte</th>${thOrd('activitat', 'Activitat')}<th>Nivell</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${thOrd('assist', 'Assist.')}<th>Observacions</th></tr></thead>
   <tbody>${vistes.map(fila).join('') || `<tr><td colspan="11" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap inscripció.'}</td></tr>`}</tbody>
 </table>
 </div>
@@ -2293,7 +2302,9 @@ function renderSeguiment() {
   const fila = (r, i) => `
   <tr>
     <td class="sg-num">${i + 1}</td>
-    <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom"></td>
+    <td class="sg-nomcel"><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom">
+      <div class="sg-sub no-print"><button class="btn-link" onclick="sgDataAlta('${esc(r.id)}')" title="Data d'inscripció: canviar">${r.data_inscripcio ? 'Alta ' + ddmmaa(r.data_inscripcio) : "Data d'alta?"}</button>
+        <button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button></div></td>
     <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
     <td><input class="sg-in sg-contacte" value="${esc(r.contacte || '')}" placeholder="—" onchange="sgEditar('${esc(r.id)}','contacte',this.value)" aria-label="De qui és el telèfon de ${esc(r.nom)}" title="Si el telèfon és d'un familiar: de qui és"></td>
     <td class="sg-nivell">${esc(nivell(r))}</td>
@@ -2302,8 +2313,6 @@ function renderSeguiment() {
     ${sessions.map(d => celSessio(r, d)).join('')}
     <td class="sg-pct">${pctPersona(r) === null ? '—' : pctPersona(r) + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
-    <td class="no-print sg-accions"><button class="btn-link" onclick="inscriureAltre('${esc(r.id)}')" title="Inscriure ${esc(r.nom)} a un altre taller">+ Taller</button>
-      <button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Baixa i esborrar dades">Baixa</button></td>
   </tr>`;
 
   app.innerHTML = `
@@ -2357,7 +2366,7 @@ ${sessions.length ? LLEGENDA_ASSIST : ''}
   <thead><tr>
     <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th>Nivell</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}
     ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
-    ${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"></th>
+    ${thOrd('assist', 'Assist.')}<th>Observacions</th>
   </tr></thead>
   <tbody>${vistes.map(fila).join('') || `<tr><td colspan="${10 + sessions.length}" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap persona apuntada. Fes servir “+ Afegir persona”.'}</td></tr>`}</tbody>
 </table>
@@ -2439,7 +2448,7 @@ function celPagatSg(r, cobra) {
   const metode = mensual ? p?.metode : r.metode_pagament;
   const pendentTxt = mensual ? `⏳ Pendent ${mesCurt(mes)}` : r.payment_status === 'pending' ? '🔗 Link enviat' : '⏳ Pendent de pagar';
   const imp = mensual ? (p?.import_cents ?? aCobrar(r)) : pagat ? r.import_pagat_cents : aCobrar(r);
-  const notaNc = nc ? pagatMes(r, mes).nota || '' : '';
+  const notaNc = nc ? (pagatMes(r, mes)?.nota || `Abans de la inscripció (${ddmmaa(r.data_inscripcio)})`) : '';
   return `<select class="sg-sel${nc ? ' sg-nocorrespon' : pagat ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgPagat('${esc(r.id)}', this.value, this)" aria-label="Pagament de ${esc(r.nom)}${mensual ? ' (' + esc(nomMesLlarg(mes)) + ')' : ''}"${notaNc ? ` title="${esc(notaNc)}"` : ''}>
       <option value="">${pendentTxt}</option>
       ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${pagat && metode === k ? 'selected' : ''}>✓ ${v}${mensual ? ' · ' + mesCurt(mes) : ''}</option>`).join('')}
@@ -2544,6 +2553,7 @@ window.sgObrirAfegir = function() {
     <label class="ins-camp"><span>Correu</span><input class="form-input" id="af-email" type="email"></label>
     ${tarifes.length > 1 ? `<label class="ins-camp"><span>Nivell</span><select class="form-select" id="af-tarifa">
       ${tarifes.map(t => `<option value="${esc(t.id)}">${esc(t.nom?.ca || t.id)}</option>`).join('')}</select></label>` : ''}
+    <label class="ins-camp"><span>Data d'inscripció</span><input class="form-input" id="af-data" type="date" value="${avui()}" max="${avui()}"></label>
     <label class="ins-camp"><span>Places</span><input class="form-input" id="af-places" type="number" min="1" max="10" value="1"></label>
     <label class="ins-camp"><span>Com ha arribat</span><select class="form-select" id="af-origen">
       <option value="telefon">Trucada</option><option value="presencial">Presencial al centre</option>
@@ -2629,6 +2639,7 @@ window.sgObrirAfegir = function() {
         tarifa_id: qs('#af-tarifa')?.value || tarifes[0].id, places: parseInt(qs('#af-places').value, 10) || 1,
         origen: qs('#af-origen').value, alta: qs('#af-alta').checked, observacions: qs('#af-obs').value.trim(),
         contacte: qs('#af-contacte').value.trim(),
+        data_inscripcio: qs('#af-data').value || undefined,
         informada: qs('#af-informada').checked,
         ...(refInfo && qs('#af-origen').value !== 'llista_centre' ? { informada_ref: refInfo.id } : {})
       });
@@ -2792,6 +2803,7 @@ window.inscriureAltre = async function(id) {
   <label class="ins-camp" id="ia-niv-lbl" hidden><span>Nivell</span><select class="form-select" id="ia-tarifa"></select></label>
   <label class="ins-camp"><span>Com ha arribat</span><select class="form-select" id="ia-origen">
     <option value="telefon">Trucada</option><option value="presencial">Presencial al centre</option><option value="altres">Altres</option></select></label>
+  <label class="ins-camp"><span>Data d'inscripció</span><input class="form-input" id="ia-data" type="date" value="${avui()}" max="${avui()}"></label>
   <label class="ins-camp"><span>Observacions</span><input class="form-input" id="ia-obs"></label>
   <label class="dlg-check"><input type="checkbox" id="ia-alta" checked> Ja ha dit que s'hi apunta</label>
   ${info ? `<p class="form-help af-ja-informada">✓ <strong>Ja informada</strong> amb la clàusula general el ${esc(new Date(info.informada_at).toLocaleDateString('ca-ES'))}. No cal tornar-la a llegir.</p>`
@@ -2821,6 +2833,7 @@ window.inscriureAltre = async function(id) {
         tarifa_id: d.querySelector('#ia-tarifa').value || window.NXC.tarifesEvent(ev)[0].id, places: 1,
         origen: d.querySelector('#ia-origen').value, alta: d.querySelector('#ia-alta').checked,
         observacions: d.querySelector('#ia-obs').value.trim(),
+        data_inscripcio: d.querySelector('#ia-data').value || undefined,
         ...(info ? { informada_ref: info.id } : { informada: true })
       });
       cacheTotes.at = 0;
@@ -2885,6 +2898,30 @@ window.unificarNom = function(id) {
       if (repetides.length) alert(`Fet. Atenció: ara ${nom} surt dues vegades a ${repetides.map(titol).join(', ')}. Dona de baixa la inscripció sobrant.`);
       renderCerca();
     } catch (err) { d.querySelector('#un-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(err))}</div>`; }
+  });
+};
+
+/* Data d'inscripció: abans d'aquesta data no es cobra ni es passa llista */
+window.sgDataAlta = function(id) {
+  const r = state.reserves.find(x => x.id === id);
+  if (!r) return;
+  const d = obrirDialeg(`
+<form method="dialog" id="da-form" class="dlg-form">
+  <h2>Data d'inscripció</h2>
+  <p><strong>${esc(r.nom)}</strong></p>
+  <p class="form-help">Abans d'aquesta data, els mesos surten com <strong>No correspon</strong> i les sessions com <strong>—</strong> (no compten al %). Si ja hi ha un pagament o una marca, es manté.</p>
+  <label class="ins-camp"><span>Data</span><input class="form-input" id="da-data" type="date" value="${esc(String(r.data_inscripcio || '').slice(0, 10))}" max="${avui()}"></label>
+  <div id="da-msg"></div>
+  <div class="dlg-botons"><button type="button" class="btn btn-ghost" data-tancar>Cancel·lar</button><button class="btn btn-primary" type="submit">Desar</button></div>
+</form>`);
+  d.querySelector('#da-data').focus();
+  d.querySelector('#da-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await accioReserva({ accio: 'data_inscripcio', id, data: d.querySelector('#da-data').value || null });
+      d.close();
+      renderSeguiment();
+    } catch (err) { d.querySelector('#da-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(err))}</div>`; }
   });
 };
 
@@ -2958,7 +2995,7 @@ function renderCerca() {
         <button class="btn btn-secondary btn-mini" onclick="obrirSeguiment('${esc(r.event_id)}')">Seguiment</button>
         ${!r.pare_id && reservaViva(r) ? `<button class="btn btn-ghost btn-mini" onclick="state.tab='reserves'; obrirCobrament('${esc(r.id)}')">Cobrar</button>` : ''}
         ${r.status === 'cancelled' && !r.esborrat_at && REACTIVABLES.includes(r.trucada_estat) ? `<button class="btn btn-secondary btn-mini" onclick="reactivar('${esc(r.id)}')">Reactivar</button>` : ''}
-        ${r.status !== 'cancelled' ? `<button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')">Baixa</button>` : ''}
+        ${r.status === 'cancelled' && !r.esborrat_at ? `<button class="btn-link sg-baixa" onclick="baixaPersona('${esc(r.id)}')" title="Esborrar les dades (no es pot desfer)">Esborrar dades</button>` : ''}
       </div>
     </li>`;
     }).join('')}
@@ -3050,7 +3087,7 @@ function renderLlista() {
   const ev = state.events.find(e => e.id === L.eventId);
   const actius = state.reserves.filter(reservaViva).sort((a, b) => a.nom.localeCompare(b.nom, 'ca'));
   const espera = state.reserves.filter(r => r.status === 'waitlist');
-  const marca = r => L.assistencia[r.id];
+  const marca = r => marcaAuto(r, L.data, L.assistencia[r.id]);
   const han = actius.filter(r => marca(r) === true);
   const no = actius.filter(r => marca(r) === false);
   const just = actius.filter(r => marca(r) === 'justificada');
