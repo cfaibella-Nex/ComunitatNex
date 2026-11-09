@@ -4,6 +4,12 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v50 · Seguiment: ordenar per data d'alta
+
+- La columna **"Alta"** s'ordena com les altres (clic: més antiga primer; segon clic: més recent
+  primer). Les inscripcions sense data van sempre al final. A la vista d'una activitat i a "Totes".
+- `admin.js?v=76`. Sense SQL.
+
 ## v49 · Seguiment compacte · columna "Alta" automàtica · "+ Taller" al final
 
 - **Columna "Alta"** (en lloc de "Nivell"): data d'inscripció, automàtica i **no editable** des de la taula.

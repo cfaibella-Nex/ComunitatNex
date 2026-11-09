@@ -2130,10 +2130,12 @@ function filtraSg(llista, { cobra, pct, evPer }) {
       activitat:r => plaSg(evPer?.get(r.event_id)?.titol?.ca) + ' ' + plaSg(r.nom),
       trucada:  r => ORDRE_TRUCADA[trucadaDe(r)] ?? 9,
       pagat:    r => !cobra(r) ? 2 : pagatAra(r) ? 1 : 0,          // pendents primer
-      assist:   r => { const p = pct(r); return p === null ? -1 : p; }
+      assist:   r => { const p = pct(r); return p === null ? -1 : p; },
+      alta:     r => r.data_inscripcio ? String(r.data_inscripcio).slice(0, 10) : null   // sense data: sempre al final
     }[f.col];
     if (val) out = [...out].sort((a, b) => {
       const x = val(a), y = val(b);
+      if (x === null || y === null) return x === y ? plaSg(a.nom).localeCompare(plaSg(b.nom), 'ca') : x === null ? 1 : -1;
       const c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'ca');
       return c * f.dir || plaSg(a.nom).localeCompare(plaSg(b.nom), 'ca');
     });
@@ -2270,7 +2272,7 @@ ${AVIS_GUIO}
 
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
-  <thead><tr><th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th>Contacte</th>${thOrd('activitat', 'Activitat')}<th title="Data d'inscripció">Alta</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"><span class="sr-only">Accions</span></th></tr></thead>
+  <thead><tr><th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th>Contacte</th>${thOrd('activitat', 'Activitat')}${thOrd('alta', 'Alta', 'title="Data d\'inscripció"')}${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"><span class="sr-only">Accions</span></th></tr></thead>
   <tbody>${vistes.map(fila).join('') || `<tr><td colspan="11" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap inscripció.'}</td></tr>`}</tbody>
 </table>
 </div>
@@ -2369,7 +2371,7 @@ ${sessions.length ? LLEGENDA_ASSIST : ''}
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
   <thead><tr>
-    <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th><th title="Data d'inscripció">Alta</th>${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}
+    <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th>${thOrd('alta', 'Alta', 'title="Data d\'inscripció"')}${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}
     ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
     ${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"><span class="sr-only">Accions</span></th>
   </tr></thead>
