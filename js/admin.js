@@ -668,6 +668,8 @@ function targetaEvent(ev, ocup) {
           ? `<button class="btn btn-ghost ev-arxivar" onclick="esborrarActivitat('${esc(ev.id)}')" title="Política de privacitat: les dades s'eliminen quan l'activitat s'acaba">Esborrar dades de les inscripcions (${ambDades(ev.id)})</button>` : ''}
         ${ev.estat !== 'arxivat' && potFer('esborrar')
           ? `<button class="btn btn-ghost ev-arxivar" onclick="deleteEvent('${esc(ev.id)}')">Arxivar</button>` : ''}
+        ${ev.estat === 'arxivat' && potFer('esborrar')
+          ? `<button class="btn btn-secondary" onclick="desarxivar('${esc(ev.id)}')">Desarxivar</button>` : ''}
       </div>
       <p class="ev-id"><code>${esc(ev.id)}</code></p>
     </div>
@@ -675,6 +677,12 @@ function targetaEvent(ev, ocup) {
 }
 
 window.setFiltreEvents = function(f) { state.eventVista = f; renderEvents(); };
+/* Desarxivar: torna a "Pròximament" (no surt a la web com a obert fins que la posis Visible) */
+window.desarxivar = async function(id) {
+  if (!confirm('Desarxivar aquesta activitat? Quedarà com a "Pròximament".')) return;
+  await canviRapid(id, 'estat', 'proximament');
+  await render();
+};
 
 /* Canvi d'un sol camp sense obrir el formulari. Envia l'activitat
    sencera perquè l'API fa un upsert complet. */
@@ -2052,6 +2060,11 @@ function selectorsSeguimentHTML() {
     .filter(e => !state.filtreCentre || centreDe(e) === state.filtreCentre)
     .sort((a, b) => String(a.titol?.ca || '').localeCompare(String(b.titol?.ca || ''), 'ca'))
     .map(e => `<option value="${esc(e.id)}" ${e.id === S.eventId ? 'selected' : ''}>${esc(e.titol?.ca || e.id)}${state.filtreCentre ? '' : ' · ' + esc(centreDe(e))}</option>`).join('');
+  /* Arxivades: al final, per consultar-les i treure'n l'Excel */
+  const arxivades = state.events.filter(e => e.estat === 'arxivat')
+    .filter(e => !state.filtreCentre || centreDe(e) === state.filtreCentre)
+    .sort((a, b) => String(a.titol?.ca || '').localeCompare(String(b.titol?.ca || ''), 'ca'))
+    .map(e => `<option value="${esc(e.id)}" ${e.id === S.eventId ? 'selected' : ''}>${esc(e.titol?.ca || e.id)} · ${esc(centreDe(e))}</option>`).join('');
   return `
   <label class="ins-camp"><span>Centre</span>
     <select class="form-select" onchange="sgCentre(this.value)">
@@ -2062,6 +2075,7 @@ function selectorsSeguimentHTML() {
     <select class="form-select" onchange="sgEvent(this.value)">
       <option value="${TOTES}" ${S.eventId === TOTES ? 'selected' : ''}>— Totes les activitats${state.filtreCentre ? ' de ' + esc(state.filtreCentre) : ''} —</option>
       ${opcions}
+      ${arxivades ? `<optgroup label="Arxivades (només consulta)">${arxivades}</optgroup>` : ''}
     </select></label>`;
 }
 window.sgCentre = function(c) {
@@ -2334,6 +2348,8 @@ ${tabsHTML()}
     <button class="btn btn-ghost" onclick="sgImprimir(true)">🖨 Full en blanc</button>
   </div>
 </div>
+${ev.estat === 'arxivat' ? `<div class="alert alert-info no-print sg-arxivada">📦 <strong>Activitat arxivada.</strong> No surt a la web ni a les llistes. Pots consultar-la i treure'n l'Excel.
+  ${potFer('esborrar') ? `<button class="btn btn-secondary btn-mini" onclick="desarxivar('${esc(ev.id)}')">Desarxivar</button>` : ''}</div>` : ''}
 <div class="sg-selectors no-print">
   ${selectorsSeguimentHTML()}
   ${esPuntual(ev) ? '' : `

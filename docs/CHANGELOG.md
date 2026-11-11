@@ -4,6 +4,25 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v52 · Activitats arxivades: consultar-les i desarxivar
+
+- Ja existia **Activitats → "Arxivades (N)"**: targetes amb Seguiment, Passar llista i Excel.
+- **Seguiment**: el desplegable "Activitat" té un grup **"Arxivades (només consulta)"** al final (abans,
+  en obrir-ne una, el desplegable deia "Totes"), i un avís "📦 Activitat arxivada" amb **Desarxivar**.
+- **Desarxivar** (targeta i avís): torna l'activitat a "Pròximament", amb confirmació.
+- `admin.js?v=77`. Sense SQL.
+
+---
+
+## v51 · Sant Roc: grup nou "Conversa en castellà" (net) · l'antic torna a ser "Taller de castellà bàsic"
+
+- `taller-castellano-santroc` (el grup que venia de castellà bàsic, amb els seus inscrits): torna a dir-se
+  **"Taller de castellà bàsic"** perquè s'arxivi des del panell sense confondre'l. Es conserven inscrits,
+  assistència i pagaments. **Abans d'arxivar-lo: Seguiment → Excel** (arxivat ja no surt al Seguiment).
+- Nou **`conversa-castella-santroc`**: "Conversa en castellà", Ilham, dijous 16:00–16:45, setmanal des del
+  12/11, gratuït, sense inscrits ni historial. Lloc, foto, places i estat copiats de l'antic.
+- `sql/27-castella-nou-grup.sql` (idempotent). Provat contra Postgres 16 local. Sense canvis de codi.
+
 ## v50 · Seguiment: ordenar per data d'alta
 
 - La columna **"Alta"** s'ordena com les altres (clic: més antiga primer; segon clic: més recent
