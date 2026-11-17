@@ -224,6 +224,7 @@ const i18n = {
     'footer.legal':    'Avís legal',
     'footer.accessibilitat': 'Accessibilitat',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
+    'footer.nx':       '<span class="nx-credit__part">Disseny i desenvolupament web per <a href="https://nexmetis.nexsocial.org/" target="_blank" rel="noopener">Nexmetis Tech</a></span> <span class="nx-credit__sep" aria-hidden="true">·</span> <span class="nx-credit__part">Divisió tecnològica de <a href="https://nexsocial.org/" target="_blank" rel="noopener">NexSocial SCCL</a></span>',
     'footer.ia':       'Fotografies generades amb IA amb finalitat il·lustrativa. No representen persones reals.',
     'footer.inscrits': 'Inscrits en',
     'footer.iniciativa': 'Una iniciativa de',
@@ -448,6 +449,7 @@ const i18n = {
     'footer.legal':    'Aviso legal',
     'footer.accessibilitat': 'Accesibilidad',
     'footer.copy':     '© 2026 NexSocial SCCL · NIF F-27641133 · Badalona',
+    'footer.nx':       '<span class="nx-credit__part">Diseño y desarrollo web por <a href="https://nexmetis.nexsocial.org/" target="_blank" rel="noopener">Nexmetis Tech</a></span> <span class="nx-credit__sep" aria-hidden="true">·</span> <span class="nx-credit__part">División tecnológica de <a href="https://nexsocial.org/" target="_blank" rel="noopener">NexSocial SCCL</a></span>',
     'footer.ia':       'Fotografías generadas con IA con finalidad ilustrativa. No representan a personas reales.',
     'footer.inscrits': 'Inscritos en',
     'footer.iniciativa': 'Una iniciativa de',
@@ -555,6 +557,7 @@ function buildFooter() {
   <div class="footer-copy">
     ${T('footer.copy')}
     <span class="footer-ia">${T('footer.ia')}</span>
+    <span class="nx-credit">${T('footer.nx')}</span>
   </div>
 </footer>`;
 }
