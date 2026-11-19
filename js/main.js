@@ -706,7 +706,8 @@ function diaCurt(ev) {
    · imatge  → la de NexSocial: es veu al final de la reserva
    Sense cartell, la imatge de NexSocial es veu a tot arreu. */
 function imatgePublica(ev) {
-  return ev?.cartell || ev?.imatge || '/assets/placeholder-taller.svg';
+  /* Primer la foto; el cartell només si no n'hi ha (el cartell es veu en reservar) */
+  return ev?.imatge || ev?.cartell || '/assets/placeholder-taller.svg';
 }
 
 /* ── Cartell ampliat ──────────────────────────────────────
@@ -736,8 +737,10 @@ function bandaProximament(ev) {
   return `<span class="banda-prox"><strong>${esc(T('ev.prox'))}</strong>${des ? `<small>${esc(des)}</small>` : ''}</span>`;
 }
 
-function botoCartell(ev) {
-  if (!ev?.cartell) return '';
+/* A les targetes, la lupa només quan el que es veu és el cartell (no hi ha foto).
+   `sempre` = mostrar-la igualment (resum de la reserva). */
+function botoCartell(ev, sempre = false) {
+  if (!ev?.cartell || (!sempre && ev.imatge)) return '';
   const alt = `${T('ev.cartell_alt')}: ${L(ev.titol)}`;
   return `<button type="button" class="cartell-lupa" data-cartell="${esc(ev.cartell)}" data-cartell-alt="${esc(alt)}"
     aria-label="${esc(T('ev.cartell_veure'))}: ${esc(L(ev.titol))}">${ICONA_LUPA}</button>`;

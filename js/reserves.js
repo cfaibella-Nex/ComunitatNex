@@ -155,7 +155,7 @@ if (typeof window.eventCardHTML !== 'function') {
 
     return `
 <article class="event-card">
-  <div class="event-card-img${ev.cartell ? ' event-card-img--cartell' : ''}">
+  <div class="event-card-img${ev.cartell && !ev.imatge ? ' event-card-img--cartell' : ''}">
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}">${esc(tipoLabel(ev.tipo))}</span>
     <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
     ${window.NX.botoCartell ? window.NX.botoCartell(ev) : ''}

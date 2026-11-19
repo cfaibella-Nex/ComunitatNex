@@ -110,7 +110,10 @@ async function renderCheckout() {
     </form>
 
     <aside class="checkout-summary">
-      ${ev.imatge ? `<div class="summary-poster"><img src="${esc(ev.imatge)}" alt="${esc(L(ev.titol))}"></div>` : ''}
+      ${ev.cartell || ev.imatge ? `<div class="summary-poster${ev.cartell ? ' summary-poster--cartell' : ''}">
+        <img src="${esc(ev.cartell || ev.imatge)}" alt="${esc(ev.cartell ? T('ev.cartell_alt') + ': ' + L(ev.titol) : L(ev.titol))}">
+        ${ev.cartell ? window.NX.botoCartell(ev, true) : ''}
+      </div>` : ''}
 
       <div class="summary-body">
         <h3 style="margin: 0 0 var(--sp-2)">${T('checkout.resum')}</h3>

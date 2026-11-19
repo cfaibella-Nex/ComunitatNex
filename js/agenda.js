@@ -49,7 +49,7 @@ function eventCardHTML(ev) {
 
   return `
 <article class="event-card">
-  <div class="event-card-img${ev.cartell ? ' event-card-img--cartell' : ''}">
+  <div class="event-card-img${ev.cartell && !ev.imatge ? ' event-card-img--cartell' : ''}">
     <span class="event-badge ${tipoBadgeClass(ev.tipo)}">${esc(tipoLabel(ev.tipo))}</span>
     <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
     ${window.NX.botoCartell(ev)}
@@ -79,7 +79,7 @@ window.eventCardHTML = eventCardHTML;
 /* ═══ Vista 1b: POSTER gran (portada · foto amb títol overlay) ═══ */
 function eventPosterHTML(ev) {
   return `
-<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster${ev.cartell ? ' event-poster--cartell' : ''}">
+<a href="/detall.html?id=${encodeURIComponent(ev.id)}" class="event-poster${ev.cartell && !ev.imatge ? ' event-poster--cartell' : ''}">
   <img src="${esc(window.NX.imatgePublica(ev))}" alt="${esc(L(ev.titol))}" loading="lazy">
   ${window.NX.botoCartell(ev)}
   ${window.NX.bandaProximament(ev)}
@@ -140,7 +140,7 @@ function eventRowHTML(ev) {
       <span class="event-row-arrow">${esgotat ? T('ev.esgotat') + ' · ' + T('ev.espera') + ' →' : (window.NX.esProximament(ev) ? T('ev.preinscriure') : T('ev.reservar')) + ' →'}</span>
     </div>
   </div>
-  <div class="event-row-img${ev.cartell ? ' event-row-img--cartell' : ''}">
+  <div class="event-row-img${ev.cartell && !ev.imatge ? ' event-row-img--cartell' : ''}">
     <img src="${esc(window.NX.imatgePublica(ev))}" alt="" loading="lazy">
     ${window.NX.botoCartell(ev)}
     ${window.NX.bandaProximament(ev)}
@@ -437,7 +437,7 @@ async function renderDetail() {
     || (L(ev.ubicacio) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(L(ev.ubicacio))}` : null);
 
   container.innerHTML = `
-${ev.cartell ? `
+${ev.cartell && !ev.imatge ? `
 <div class="detail-hero detail-hero--cartell" style="--fons:url('${esc(ev.cartell)}')">
   <button type="button" class="detail-cartell-obre" data-cartell="${esc(ev.cartell)}" data-cartell-alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">
     <img src="${esc(ev.cartell)}" alt="${esc(T('ev.cartell_alt') + ': ' + L(ev.titol))}">

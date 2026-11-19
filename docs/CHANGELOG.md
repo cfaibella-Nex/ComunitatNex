@@ -4,6 +4,15 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v57 · Primer la foto, el cartell en reservar (totes les activitats)
+
+- Targetes (inici, agenda, reserves) i capçalera del detall: sempre la **foto de NexSocial** (`imatge`).
+  El cartell només hi surt si l'activitat no té foto.
+- **Checkout** (pas de reserva): el resum mostra el **cartell** (amb lupa per veure'l sencer); si no n'hi ha, la foto.
+- `main.js?v=67` · `agenda.js?v=66` · `checkout.js?v=65` · `reserves.js?v=65` · `styles.css?v=66`. Sense SQL.
+
+---
+
 ## v56 · Comptador d'assistents per sessió (activitats obertes)
 
 - **Passar llista**, només a les activitats de tipus **"Activitat"** (no tallers): bloc "Assistents (total)"
