@@ -98,7 +98,7 @@ export default async function handler(req, res) {
 
     const body = await readBody(req);
     const { id, accio } = body || {};
-    const senseId = ['afegir_persona', 'sessio', 'esborrar_activitat'];
+    const senseId = ['afegir_persona', 'sessio', 'esborrar_activitat', 'comptador'];
     if (!id && !senseId.includes(accio)) return json(res, 400, { error: 'Falta id' });
 
     const rpc = async (nom, params) => {
