@@ -178,6 +178,11 @@
     .ll-selectors { display:grid; grid-template-columns: 1fr 2fr 1fr; gap: var(--sp-2); margin-bottom: var(--sp-3); }
     .ll-titol { margin: 0 0 4px; }
     .ll-resum { margin: 0 0 var(--sp-2); }
+    .ll-comptador { display:grid; grid-template-columns: 160px 1fr auto; gap: var(--sp-2); align-items:end;
+                    background: var(--cream); border-radius: var(--radius); padding: var(--sp-2); margin: 0 0 var(--sp-2); }
+    .ll-comptador-n input { font-size: 1.4rem; font-weight: 700; }
+    .ll-comptador-ajuda { grid-column: 1 / -1; margin: 0; }
+    @media (max-width: 600px) { .ll-comptador { grid-template-columns: 1fr 1fr; } .ll-comptador-nota { grid-column: 1 / -1; grid-row: 2; } .ll-comptador button { grid-row: 1; grid-column: 2; } }
     .ll-si { color: var(--forest); font-weight:700; }
     .ll-no { color: var(--danger); font-weight:700; }
     .ll-llista { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap: var(--sp-1); }
@@ -462,6 +467,6 @@
   <script src="/js/main.js?v=66"></script>
   <script src="/js/carret.js?v=64"></script>
   <script src="/js/xlsx-mini.js?v=64"></script>
-  <script src="/js/admin.js?v=78"></script>
+  <script src="/js/admin.js?v=79"></script>
 </body>
 </html>

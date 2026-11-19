@@ -4,6 +4,19 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v56 · Comptador d'assistents per sessió (activitats obertes)
+
+- **Passar llista**, només a les activitats de tipus **"Activitat"** (no tallers): bloc "Assistents (total)"
+  + nota opcional per a cada dia de sessió. Sense noms ni dades personals. Si algú s'inscriu amb nom
+  (alta manual de sempre), es continua passant llista com fins ara.
+- Excel del Seguiment de l'activitat → full "Resum": una fila per sessió amb el número i la nota.
+- Cada canvi queda a l'auditoria. API: `PATCH /api/admin/orders { accio: 'comptador', event_id, data, n, nota }`.
+- "Una cadira més": passa a **Visible** (ja ha començat; en "Pròximament" Passar llista no mostra sessions)
+  i queda desat **19/11 → 13 assistents**.
+- `sql/31-comptador-assistents.sql` (idempotent, provat a Postgres 16). `admin.js?v=79`.
+
+---
+
 ## v55 · "Una cadira més": un dijous al mes
 
 - Sessions: **19/11** (feta) i **17/12**. Les del 2027 s'afegiran al Seguiment quan es tanquin les dates.

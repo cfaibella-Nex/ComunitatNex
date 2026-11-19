@@ -2729,6 +2729,10 @@ window.sgExcel = function() {
     nom: 'Resum', capcaleres: 0, amplades: [22, 40],
     files: [['Activitat', titol], ['Període', periode], ['Aforament', `${persones.reduce((t, r) => t + r.places, 0)} / ${ev.cupo || ''}`],
             ['Inscripcions', persones.length], ['Persones diferents', new Set(persones.map(clauPersona)).size], ["Llista d'espera", espera.length],
+            ...(esActivitat(ev) ? sessions.filter(d => ev.assistents_sessio?.[d]).map(d => {
+              const a = ev.assistents_sessio[d];
+              return [`Assistents ${d.split('-').reverse().join('/')}`, a.nota ? `${a.n} · ${a.nota}` : a.n];
+            }) : []),
             ['Exportat', new Date().toLocaleString('ca-ES')], ['Per', state.usuari?.nom || '']]
   }];
   const nomFitxer = `seguiment-${ev.id}-${esPuntual(ev) ? (ev.data || '') : S.mes}.xlsx`;
@@ -3159,12 +3163,45 @@ ${ev && !L.data ? '<div class="alert alert-info">Aquesta activitat encara no ha 
   ${just.length ? `${just.length} justificades · ` : ''}${noins.length ? `${noins.length} no inscrits · ` : ''}
   ${actius.length - han.length - no.length - just.length - noins.length} sense marcar
 </p>
+${comptadorHTML(ev, L.data)}
 <ul class="ll-llista">${actius.map(fila).join('') || '<li class="muted">Cap reserva activa.</li>'}</ul>
 ${espera.length ? `
   <h3>Llista d'espera (${espera.length})</h3>
   <ul class="ll-espera">${espera.map(r => `<li>${esc(r.nom)} · <a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a> · ${r.places} pl.</li>`).join('')}</ul>` : ''}
 ` : '<div class="alert alert-info">Cap activitat per passar llista.</div>'}`;
 }
+
+/* Comptador d'assistents (sql/31): només activitats de tipus "Activitat" (tipo 'mensual'),
+   per a la gent que ve sense inscriure's. Un número per dia + nota opcional. */
+const esActivitat = ev => ev?.tipo === 'mensual';
+function comptadorHTML(ev, data) {
+  if (!esActivitat(ev) || !data) return '';
+  const reg = ev.assistents_sessio?.[data] || {};
+  return `
+<form class="ll-comptador" onsubmit="desaComptador(event)">
+  <label class="ins-camp ll-comptador-n"><span>Assistents (total)</span>
+    <input class="form-input" id="cmp-n" type="number" inputmode="numeric" min="0" max="9999" step="1" value="${reg.n ?? ''}" placeholder="Ex. 13"></label>
+  <label class="ins-camp ll-comptador-nota"><span>Nota (opcional)</span>
+    <input class="form-input" id="cmp-nota" type="text" maxlength="200" value="${esc(reg.nota || '')}" placeholder="Ex. 4 persones noves"></label>
+  <button class="btn btn-primary no-print" type="submit">Desar</button>
+  <p class="form-help ll-comptador-ajuda">${reg.n != null ? `✓ Desat: <strong>${reg.n}</strong> assistents.` : 'Encara no hi ha cap número desat per a aquest dia.'} Sense noms: només el total de persones que han vingut.</p>
+</form>`;
+}
+window.desaComptador = async function(e) {
+  e.preventDefault();
+  const L = state.llista;
+  const ev = state.events.find(x => x.id === L.eventId);
+  const v = qs('#cmp-n').value.trim();
+  const n = v === '' ? null : Number(v);
+  if (n !== null && (!Number.isInteger(n) || n < 0)) { alert('Posa un número enter (0 o més).'); return; }
+  try {
+    const out = await apiSend('/api/admin/orders', 'PATCH', { accio: 'comptador', event_id: ev.id, data: L.data, n, nota: qs('#cmp-nota').value.trim() });
+    ev.assistents_sessio = out.assistents_sessio;
+    renderLlista();
+  } catch (err) {
+    alert('No s\'ha pogut desar: ' + errText(err));
+  }
+};
 
 window.obrirLlista = function(eventId) {
   state.llista = { centre: '', eventId, data: null, assistencia: {} };

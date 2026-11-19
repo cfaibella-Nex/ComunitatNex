@@ -11,6 +11,7 @@
 //   PATCH { accio: 'afegir_persona', event_id, nom, telefon, email, tarifa_id, places, origen, alta, observacions }
 //   PATCH { accio: 'editar', id, camps: { nom, telefon, email, observacions, origen, contacte } }
 //   PATCH { accio: 'sessio', event_id, data, operacio: 'afegir' | 'treure' }
+//   PATCH { accio: 'comptador', event_id, data, n, nota }   → assistents d'una sessió (només tipus Activitat; n null = esborrar) (sql/31)
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
 //   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }  (metode 'no_correspon' = aquell mes no es cobra, 0 €)
 //   PATCH { accio: 'anular_pagament_mes', id, mes, motiu }
@@ -334,6 +335,18 @@ export default async function handler(req, res) {
         if (!['afegir', 'treure'].includes(body.operacio)) return json(res, 400, { error: 'Operació no vàlida' });
         const out = await rpc('admin_sessio', { p_event_id: String(body.event_id || ''), p_data: data, p_accio: body.operacio, p_actor: actor });
         if (!out?.ok) return json(res, 404, { error: 'Activitat no trobada' });
+        return json(res, 200, out);
+      }
+
+      case 'comptador': {
+        const data = String(body.data || '');
+        if (!DATA_RE.test(data)) return json(res, 400, { error: 'Data no vàlida' });
+        const n = body.n === null || body.n === '' || body.n === undefined ? null : Number(body.n);
+        if (n !== null && (!Number.isInteger(n) || n < 0 || n > 9999)) return json(res, 400, { error: 'Número no vàlid' });
+        const out = await rpc('admin_comptador', { p_event_id: String(body.event_id || ''), p_data: data, p_n: n,
+          p_nota: body.nota ? String(body.nota).slice(0, 200) : null, p_actor: actor });
+        if (!out?.ok) return json(res, out?.error === 'not_found' ? 404 : 400, { error:
+          out?.error === 'no_es_activitat' ? 'El comptador només és per a activitats (no tallers)' : 'Activitat no trobada' });
         return json(res, 200, out);
       }
 
