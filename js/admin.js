@@ -2381,6 +2381,7 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
     <small>${passades.length} de ${sessions.length} sessions fetes</small></div>
 </div>
 
+${comptadorSgHTML(ev, sessions)}
 ${filtresSgHTML(persones.length, vistes.length)}
 ${AVIS_GUIO}
 ${sessions.length ? LLEGENDA_ASSIST : ''}
@@ -3187,6 +3188,41 @@ function comptadorHTML(ev, data) {
   <p class="form-help ll-comptador-ajuda">${reg.n != null ? `✓ Desat: <strong>${reg.n}</strong> assistents.` : 'Encara no hi ha cap número desat per a aquest dia.'} Sense noms: només el total de persones que han vingut.</p>
 </form>`;
 }
+/* Seguiment: el mateix comptador, una casella per sessió del mes (es desa en sortir de la casella) */
+function comptadorSgHTML(ev, sessions) {
+  if (!esActivitat(ev) || !sessions.length) return '';
+  const fins = avui();
+  const total = sessions.reduce((t, d) => t + (ev.assistents_sessio?.[d]?.n || 0), 0);
+  return `
+<div class="sg-comptador">
+  <h3>Assistents per sessió <small class="muted">(total, sense noms) · <span id="sg-cmp-total">${total}</span> aquest mes</small></h3>
+  <div class="sg-comptador-dies">${sessions.map(d => {
+    const reg = ev.assistents_sessio?.[d] || {};
+    const futura = d > fins;
+    return `<label class="ins-camp"><span>${capSessio(d)}</span>
+      <input class="form-input" type="number" inputmode="numeric" min="0" max="9999" step="1" value="${reg.n ?? ''}"
+        ${futura ? 'disabled title="Sessió encara no feta"' : ''} placeholder="${futura ? '—' : 'Núm.'}"
+        aria-label="Assistents del ${capSessio(d)}" onchange="desaComptadorSg('${d}', this)"></label>`;
+  }).join('')}</div>
+</div>`;
+}
+window.desaComptadorSg = async function(data, el) {
+  const ev = state.events.find(x => x.id === state.seguiment.eventId);
+  if (!ev) return;
+  const v = el.value.trim();
+  const n = v === '' ? null : Number(v);
+  if (n !== null && (!Number.isInteger(n) || n < 0)) { alert('Posa un número enter (0 o més).'); return; }
+  try {
+    const out = await apiSend('/api/admin/orders', 'PATCH', { accio: 'comptador', event_id: ev.id, data, n, nota: ev.assistents_sessio?.[data]?.nota || '' });
+    ev.assistents_sessio = out.assistents_sessio;
+    el.classList.add('desat'); setTimeout(() => el.classList.remove('desat'), 1500);
+    const tot = document.getElementById('sg-cmp-total');
+    if (tot) tot.textContent = [...el.closest('.sg-comptador-dies').querySelectorAll('input')].reduce((t, i) => t + (Number(i.value) || 0), 0);
+  } catch (err) {
+    alert('No s\'ha pogut desar: ' + errText(err));
+  }
+};
+
 window.desaComptador = async function(e) {
   e.preventDefault();
   const L = state.llista;

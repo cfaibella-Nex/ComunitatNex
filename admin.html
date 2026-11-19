@@ -182,6 +182,12 @@
                     background: var(--cream); border-radius: var(--radius); padding: var(--sp-2); margin: 0 0 var(--sp-2); }
     .ll-comptador-n input { font-size: 1.4rem; font-weight: 700; }
     .ll-comptador-ajuda { grid-column: 1 / -1; margin: 0; }
+    .sg-comptador { background: var(--cream); border-radius: var(--radius); padding: var(--sp-2); margin: var(--sp-2) 0; }
+    .sg-comptador h3 { margin: 0 0 var(--sp-1); font-size: var(--fs-md); }
+    .sg-comptador-dies { display:flex; flex-wrap:wrap; gap: var(--sp-2); }
+    .sg-comptador-dies .ins-camp { width: 96px; }
+    .sg-comptador-dies input { font-weight: 700; font-size: 1.15rem; transition: box-shadow .2s; }
+    .sg-comptador-dies input.desat { box-shadow: 0 0 0 3px var(--forest); }
     @media (max-width: 600px) { .ll-comptador { grid-template-columns: 1fr 1fr; } .ll-comptador-nota { grid-column: 1 / -1; grid-row: 2; } .ll-comptador button { grid-row: 1; grid-column: 2; } }
     .ll-si { color: var(--forest); font-weight:700; }
     .ll-no { color: var(--danger); font-weight:700; }
@@ -467,6 +473,6 @@
   <script src="/js/main.js?v=67"></script>
   <script src="/js/carret.js?v=64"></script>
   <script src="/js/xlsx-mini.js?v=64"></script>
-  <script src="/js/admin.js?v=79"></script>
+  <script src="/js/admin.js?v=80"></script>
 </body>
 </html>

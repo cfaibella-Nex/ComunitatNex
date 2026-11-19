@@ -4,6 +4,14 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v58 · Comptador d'assistents també al Seguiment
+
+- Seguiment d'una activitat de tipus "Activitat": bloc **"Assistents per sessió"** sota les xifres, amb una casella
+  per sessió del mes (es desa en sortir de la casella; les sessions futures, bloquejades) i el total del mes.
+- Mateix registre que Passar llista (sql/31). `admin.js?v=80`.
+
+---
+
 ## v57 · Primer la foto, el cartell en reservar (totes les activitats)
 
 - Targetes (inici, agenda, reserves) i capçalera del detall: sempre la **foto de NexSocial** (`imatge`).
