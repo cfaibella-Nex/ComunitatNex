@@ -264,7 +264,7 @@ function estatTarifa(ev, tarifa) {
 }
 
 /* ── Sessions vinculades ─────────────────────────────────── */
-const avui = () => new Date().toISOString().slice(0, 10);
+const avui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 function sessioDisponible(target) {
   if (!target || target.estat === 'arxivat') return false;

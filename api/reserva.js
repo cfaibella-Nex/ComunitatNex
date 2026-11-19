@@ -27,7 +27,8 @@ function generarRef() {
 const netejaTelefon = t => String(t || '').replace(/[\s\-()]/g, '');
 const validaTelefon = t => /^(\+?\d{9,15})$/.test(netejaTelefon(t));
 const validaEmail   = e => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-const avui = () => new Date().toISOString().slice(0, 10);
+/* Avui a Barcelona (el servidor va en UTC) */
+const avui = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 /* Puntuals: tanquen el dia. Setmanals: mentre no s'arxivin (com a la web) */
 const passat = ev => {
   if (ev.recurrencia === 'setmanal') return false;

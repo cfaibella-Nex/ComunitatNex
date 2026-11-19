@@ -586,7 +586,8 @@ const ESTAT_EVENT = {
   arxivat:     { nom: 'Arxivat',      color: 'var(--text-muted)' }
 };
 
-function avui() { return new Date().toISOString().slice(0, 10); }
+/* Data d'avui en hora local (abans UTC: entre les 00:00 i les 01:00/02:00 encara deia ahir) */
+function avui() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 
 /* Places ocupades per activitat, a partir de les reserves vives */
 function ocupacio() {

@@ -4,6 +4,14 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v59 · "Avui" en hora de Barcelona
+
+- El panell, el carret i l'API calculaven "avui" en UTC: entre les 00:00 i la 01:00 (02:00 a l'estiu) encara era
+  ahir, i "Una cadira més" deia "propera 19/11" el dia 20. Ara: hora local al navegador i Europe/Madrid al servidor.
+- `admin.js?v=81` · `carret.js?v=65` · `api/events.js` · `api/reserva.js`. Sense SQL.
+
+---
+
 ## v58 · Comptador d'assistents també al Seguiment
 
 - Seguiment d'una activitat de tipus "Activitat": bloc **"Assistents per sessió"** sota les xifres, amb una casella

@@ -8,7 +8,8 @@ import { cobramentEvent } from './_lib/stripe.js';
    sol dia amb la data de la PROPERA sessió (targetes, agenda i carret no
    canvien); `sessions` porta els dies que queden per al calendari i
    `etiqueta_dates` el text "1r i 3r dijous de mes". */
-const avuiISO = () => new Date().toISOString().slice(0, 10);
+/* Avui a Barcelona (el servidor va en UTC) */
+const avuiISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 export function diesDates(ev) {
   const tretes = new Set(Array.isArray(ev.sessions_tretes) ? ev.sessions_tretes : []);
   return [...new Set((Array.isArray(ev.sessions_afegides) ? ev.sessions_afegides : []).map(d => String(d).slice(0, 10)))]
