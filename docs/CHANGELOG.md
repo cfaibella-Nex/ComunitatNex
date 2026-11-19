@@ -4,6 +4,18 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v53 · Centre nou: Can Canyadó · "Mòbil al teu ritme" i "Memòria lúdica"
+
+- Nou centre **Centre de Cultura Tradicional Can Canyadó** (Sala Bar). Foto del lloc: `assets/can-canyado.jpg/.webp`.
+- **`taller-mobil-cancanyado`** — "Mòbil al teu ritme", Raúl Carrillo, dimecres 10:00–11:00, setmanal, gratuït.
+- **`taller-memoria-cancanyado`** — "Memòria lúdica", Raúl Carrillo, dimecres 11:00–12:00, setmanal,
+  10 € intern (a la web "a consultar"); model de cobrament copiat de la memòria de Can Pepus.
+- Descripció, places i foto copiades dels tallers de mòbil (Sant Roc) i memòria (Can Pepus). Tots dos en
+  **Pròximament** amb data 25/11 (només fixa el dimecres): quan comencin, data real + "Visible" al panell.
+- `sql/28-can-canyado-mobil-memoria.sql` (idempotent). Provat contra Postgres 16 local. Sense canvis de codi.
+
+---
+
 ## v52 · Activitats arxivades: consultar-les i desarxivar
 
 - Ja existia **Activitats → "Arxivades (N)"**: targetes amb Seguiment, Passar llista i Excel.
