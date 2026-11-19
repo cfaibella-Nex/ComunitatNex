@@ -4,6 +4,15 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v55 · "Una cadira més": un dijous al mes
+
+- Sessions: **19/11** (feta) i **17/12**. Les del 2027 s'afegiran al Seguiment quan es tanquin les dates.
+- Etiqueta i detall de la tarifa: **"Un dijous al mes"** (abans "1r i 3r dijous de mes").
+- La còpia feta amb "Duplicar" s'esborra si no té inscrits (si en té, s'arxiva).
+- `sql/30-cadira-mes-un-dijous.sql`. Sense canvis de codi.
+
+---
+
 ## v54 · Can Canyadó: cartells propis · etiqueta "Setmanal" al panell
 
 - Cartells NexSocial: `assets/cartells/cccanyado-mobil.jpg` i `cccanyado-memoria.jpg` (A3 → JPG 1100 px).
