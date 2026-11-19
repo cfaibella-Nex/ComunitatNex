@@ -629,7 +629,7 @@ function targetaEvent(ev, ocup) {
       </div>
 
       <h3 class="ev-titol">${esc(ev.titol?.ca || ev.id)}</h3>
-      <p class="ev-sub">${esDates(ev) ? '<strong>' + esc(quanDates(ev)) + ' · ' + esc(window.NX.franjaHoraria(ev)) + '</strong> · ' : ''}${ev.recurrencia === 'setmanal' && ev.data ? '<strong>' + esc(window.NX.quanText(ev)) + ' · ' + esc(window.NX.franjaHoraria(ev)) + '</strong> · ' : ''}${esc(ev.ubicacio?.ca || '')} · ${esc(window.NXC.preuResum(ev))} · ${esc(MODEL_NOM[ev.model] || MODEL_NOM.puntual)}${ev.pagament && ev.pagament !== 'reserva' ? ' · ' + esc(PAGAMENT_NOM[ev.pagament]) : ''}</p>
+      <p class="ev-sub">${esDates(ev) ? '<strong>' + esc(quanDates(ev)) + ' · ' + esc(window.NX.franjaHoraria(ev)) + '</strong> · ' : ''}${ev.recurrencia === 'setmanal' && ev.data ? '<strong>' + esc(window.NX.quanText(ev)) + ' · ' + esc(window.NX.franjaHoraria(ev)) + '</strong> · ' : ''}${esc(ev.ubicacio?.ca || '')} · ${esc(window.NXC.preuResum(ev))} · ${esc((ev.model || 'puntual') === 'puntual' && ev.recurrencia === 'setmanal' ? 'Setmanal' : (MODEL_NOM[ev.model] || MODEL_NOM.puntual))}${ev.pagament && ev.pagament !== 'reserva' ? ' · ' + esc(PAGAMENT_NOM[ev.pagament]) : ''}</p>
 
       <div class="ev-rapid">
         <label>Data

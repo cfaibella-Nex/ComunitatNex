@@ -4,6 +4,15 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v54 · Can Canyadó: cartells propis · etiqueta "Setmanal" al panell
+
+- Cartells NexSocial: `assets/cartells/cccanyado-mobil.jpg` i `cccanyado-memoria.jpg` (A3 → JPG 1100 px).
+- Panell → targeta d'activitat: les activitats d'inscripció única que es repeteixen cada setmana mostren
+  **"Setmanal"** en lloc de "Puntual" (abans "Mòbil al teu ritme" semblava puntual). `admin.js?v=78`.
+- `sql/29-can-canyado-cartells.sql` (idempotent).
+
+---
+
 ## v53 · Centre nou: Can Canyadó · "Mòbil al teu ritme" i "Memòria lúdica"
 
 - Nou centre **Centre de Cultura Tradicional Can Canyadó** (Sala Bar). Foto del lloc: `assets/can-canyado.jpg/.webp`.
