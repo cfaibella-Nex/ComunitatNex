@@ -4,6 +4,21 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v60 · Matrícula per activitat (Repara i Reviu: 10 €)
+
+- **Editar → Inscripció i preus → Matrícula (€)**: opcional, per a qualsevol activitat. Buit = sense matrícula.
+  Un sol pagament per inscripció, a banda de la quota (mensual o única). **No es mostra a la web** (l'API pública el treu).
+- **Seguiment**: columna "Matrícula" (només si l'activitat en té): ⏳ Pendent · ✓ mètode · — Exempta (demana el motiu).
+  Les xifres diuen quantes matrícules falten per cobrar. També a l'Excel.
+- **Cobraments**: la fila surt si falta la quota o la matrícula; xip "Matrícula ✓ / ⏳ / exempta" i bloc per cobrar-la
+  o exemptar-la dins del panell. A les mensuals, la matrícula cobrada compta al mes en què es va cobrar. Columnes al CSV.
+- Cada cobrament, exempció i anul·lació queda a l'auditoria. Baixa RGPD: si la matrícula s'ha pagat es conserva el nom
+  (fiscal) i s'esborra el motiu d'exempció.
+- **Executar `sql/32-matricula.sql`** (posa els 10 € a `taller-repara-reviu-canpepus`). Provat contra Postgres 16.
+- `admin.js?v=82` · `api/admin/orders.js` · `api/admin/events.js` · `api/events.js`.
+
+---
+
 ## v59 · "Avui" en hora de Barcelona
 
 - El panell, el carret i l'API calculaven "avui" en UTC: entre les 00:00 i la 01:00 (02:00 a l'estiu) encara era

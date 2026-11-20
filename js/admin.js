@@ -787,7 +787,8 @@ window.editEvent = function(id) {
     model: ev.model || 'puntual',
     pagament: ev.pagament || 'reserva',
     tarifes: window.NXC.tarifesEvent(ev).map(x => ({ ...x })),
-    extres: window.NXC.extresEvent(ev).map(x => ({ ...x }))
+    extres: window.NXC.extresEvent(ev).map(x => ({ ...x })),
+    matricula_cents: ev.matricula_cents || null
   };
 
   app.innerHTML = `
@@ -948,6 +949,7 @@ window.editEvent = function(id) {
       pagament: cfg.pagament,
       tarifes: cfg.tarifes.map(netejaItem),
       extres: cfg.extres.map(netejaItem),
+      matricula_cents: cfg.matricula_cents || null,
       tipo_iva: fd.tipo_iva,
       imatge: fd.imatge,
       cartell: fd.cartell || null,
@@ -1091,6 +1093,8 @@ function editorInscripcio(cfg, dataActivitat) {
     ${camp('Com es cobra', `<select class="form-select" data-cfg="pagament" data-repinta>
       ${Object.entries(PAGAMENT_NOM).map(([k, v]) => `<option value="${k}" ${cfg.pagament === k ? 'selected' : ''}>${v}</option>`).join('')}
     </select>`, PAGAMENT_AJUDA[cfg.pagament])}
+    ${camp('Matrícula (€)', `<input class="form-input" type="number" min="0" step="0.01" data-cfg="matricula_eur" value="${cfg.matricula_cents ? (cfg.matricula_cents / 100).toFixed(2) : ''}" placeholder="Sense matrícula">`,
+           'Opcional. Un sol pagament per inscripció, a banda de la quota. Buit = sense matrícula. No es veu a la web; es cobra des del Seguiment o Cobraments.')}
   </div>
 
   <h3>Tarifes${cfg.tarifes.length > 1 ? ' (nivells)' : ''}</h3>
@@ -1115,6 +1119,11 @@ function editorInscripcio(cfg, dataActivitat) {
 
   function assigna(el) {
     const { k, i, llista } = el.dataset;
+    if (el.dataset.cfg === 'matricula_eur') {
+      const v = Math.round((parseFloat(String(el.value).replace(',', '.')) || 0) * 100);
+      cfg.matricula_cents = v > 0 ? v : null;
+      return;
+    }
     if (el.dataset.cfg) { cfg[el.dataset.cfg] = el.value; return; }
     const item = cfg[llista]?.[Number(i)];
     if (!item) return;
@@ -1356,6 +1365,46 @@ const reservaViva = r => ['pending', 'confirmed', 'attended', 'no-show'].include
    a part), no pagada i amb import o preu a consultar */
 const pendentCobrar = r => reservaViva(r) && !r.pare_id && r.payment_status !== 'paid' && (aCobrar(r) > 0 || r.consultar);
 
+/* ── Matrícula (sql/32) ────────────────────────────────────
+   Import únic per inscripció, configurat a l'activitat (matricula_cents).
+   Es desa a la reserva: pagada (mètode) o exempta (amb motiu). Si a una
+   activitat se li treu la matrícula, els registres fets es conserven. */
+const EXEMPTA = 'exempta';
+const teMatricula = ev => (ev?.matricula_cents || 0) > 0;
+const aplicaMatricula = r => !r.pare_id && !r.esborrat_at && (teMatricula(evDe(r)) || !!r.matricula_metode);
+const matriculaPagada = r => !!r.matricula_metode && r.matricula_metode !== EXEMPTA;
+const matriculaExempta = r => r.matricula_metode === EXEMPTA;
+const matriculaPendent = r => aplicaMatricula(r) && reservaViva(r) && !r.matricula_metode && teMatricula(evDe(r));
+const importMatricula = r => matriculaPagada(r) ? (r.matricula_cents || 0) : matriculaPendent(r) ? evDe(r).matricula_cents : 0;
+/* Xip compacte per a Cobraments: "Matrícula ✓ / ⏳ 10 € / exempta" */
+function xipMatricula(r) {
+  if (!aplicaMatricula(r)) return '';
+  if (matriculaExempta(r)) return `<span class="mes-xip mes-nc" title="Exempta: ${esc(r.matricula_nota || '')}">Matrícula exempta</span>`;
+  if (matriculaPagada(r)) return `<span class="mes-xip mes-ok" title="${esc(METODE_NOM[r.matricula_metode] || '')} · ${esc(ddmmaa(String(r.matricula_at || '').slice(0, 10)))}">Matrícula ✓ ${eur(r.matricula_cents)}</span>`;
+  return `<span class="mes-xip mes-no">Matrícula ⏳ ${eur(evDe(r).matricula_cents)}</span>`;
+}
+async function registrarMatricula(id, importCents, metode, nota) {
+  return accioReserva({ accio: 'matricula', id, import_cents: importCents, metode, nota });
+}
+const repintaMatr = () => state.tab === 'seguiment' ? renderSeguiment() : renderReserves();
+window.exemptarMatricula = async function(id) {
+  const r = state.reserves.find(x => x.id === id);
+  const motiu = prompt(`Per què ${r?.nom || ''} no paga la matrícula? (queda a l'auditoria; ex. "cas derivat a TraçaNex")`, '');
+  if (motiu === null || !motiu.trim()) { if (motiu !== null) alert("Cal escriure el motiu de l'exempció."); repintaMatr(); return; }
+  try { await registrarMatricula(id, 0, EXEMPTA, motiu.trim()); }
+  catch (e) { alert('No s\'ha pogut fer: ' + errText(e)); }
+  repintaMatr();
+};
+window.anularMatricula = async function(id) {
+  const r = state.reserves.find(x => x.id === id);
+  const txt = matriculaExempta(r) ? "Treure l'exempció" : 'Anul·lar el cobrament';
+  const motiu = prompt(`${txt} de la matrícula de ${r?.nom || ''}? Escriu el motiu (queda a l'auditoria):`, '');
+  if (motiu === null) { repintaMatr(); return; }
+  try { await accioReserva({ accio: 'anular_matricula', id, motiu: motiu.trim() || null }); }
+  catch (e) { alert('No s\'ha pogut fer: ' + errText(e)); }
+  repintaMatr();
+};
+
 /* Centre d'una activitat: l'entitat, sense el "NexSocial · " del davant */
 function centreDe(ev) {
   return String(ev?.entitat?.ca || '').replace(/^NexSocial\s*·\s*/i, '').trim() || 'NexSocial';
@@ -1432,19 +1481,35 @@ function renderReserves() {
   const evPer = new Map(state.events.map(e => [e.id, e]));
   if (!state.cobMes) state.cobMes = avui().slice(0, 7);
   const M = state.cobMes;
-  const esDePagament = r => {
-    if (r.pare_id || r.esborrat_at || ['cancelled', 'waitlist'].includes(r.status)) return false;
-    if (!(aCobrar(r) > 0 || r.consultar || r.payment_status === 'paid')) return false;
-    if (trucadaDe(r) !== 'inscrit' && r.payment_status !== 'paid') return false;
+  /* La quota (mensual o única) i la matrícula (sql/32) es miren per separat:
+     una fila surt si li toca alguna de les dues, i està "pagada" quan les
+     dues ho estan. A les mensuals, la matrícula pagada compta al mes que es va cobrar. */
+  const quotaAplica = r => {
     const ev = evPer.get(r.event_id);
+    if (!(aCobrar(r) > 0 || r.consultar || r.payment_status === 'paid')) return false;
     if (esMensual(ev)) return mesosDe(r, M).includes(M) && !noCorresponMes(r, M);
     return true;
   };
-  const pagada = r => esMensual(evPer.get(r.event_id)) ? !!cobratMes(r, M) : r.payment_status === 'paid';
-  const importFila = r => {
+  const matrVisible = r => {
+    if (!aplicaMatricula(r) || !r.matricula_metode && !matriculaPendent(r)) return false;
+    if (!esMensual(evPer.get(r.event_id))) return true;
+    if (matriculaPendent(r)) return !abansAltaMes(r, M);
+    return String(r.matricula_at || '').slice(0, 7) === M;
+  };
+  const esDePagament = r => {
+    if (r.pare_id || r.esborrat_at || ['cancelled', 'waitlist'].includes(r.status)) return false;
+    if (!quotaAplica(r) && !matrVisible(r)) return false;
+    if (trucadaDe(r) !== 'inscrit' && r.payment_status !== 'paid' && !matriculaPagada(r)) return false;
+    return true;
+  };
+  const quotaPagada = r => esMensual(evPer.get(r.event_id)) ? !!cobratMes(r, M) : r.payment_status === 'paid';
+  const pagada = r => (!quotaAplica(r) || quotaPagada(r)) && !matriculaPendent(r);
+  const importQuota = r => {
+    if (!quotaAplica(r)) return 0;
     if (esMensual(evPer.get(r.event_id))) return cobratMes(r, M)?.import_cents ?? aCobrar(r);
     return r.payment_status === 'paid' ? r.import_pagat_cents : aCobrar(r);
   };
+  const importMatrFila = r => matrVisible(r) ? importMatricula(r) : 0;
   const FILTRES = {
     cobrar:  { nom: 'Falten per pagar', f: r => !pagada(r) },
     pagades: { nom: 'Pagades',          f: r => pagada(r) },
@@ -1457,6 +1522,11 @@ function renderReserves() {
     .sort((x, y) => (evMap.get(x.event_id) || '').localeCompare(evMap.get(y.event_id) || '', 'ca') || x.nom.localeCompare(y.nom, 'ca'));
 
   const celPagamentFila = r => {
+    const xm = matrVisible(r) ? `<div class="mes-historial">${xipMatricula(r)}</div>` : '';
+    if (!quotaAplica(r)) return xm || '<span class="muted">—</span>';
+    return celQuotaFila(r) + xm;
+  };
+  const celQuotaFila = r => {
     const ev = evPer.get(r.event_id);
     if (!esMensual(ev)) return pagamentHTML(r);
     const p = cobratMes(r, M);
@@ -1469,6 +1539,9 @@ function renderReserves() {
       <div class="mes-historial">${historial}</div>`;
   };
   const botoFila = r => {
+    if (!quotaAplica(r)) {
+      return `<button class="btn ${matriculaPendent(r) ? 'btn-primary' : 'btn-ghost'} btn-mini" onclick="obrirCobrament('${esc(r.id)}')">${matriculaPendent(r) ? 'Cobrar matrícula' : 'Veure'}</button>`;
+    }
     if (esMensual(evPer.get(r.event_id))) {
       return cobratMes(r, M)
         ? `<button class="btn btn-ghost btn-mini" onclick="anularMes('${esc(r.id)}','${M}')">Anul·lar</button>`
@@ -1481,16 +1554,17 @@ function renderReserves() {
     <tr${state.cobrant === r.id ? ' class="res-oberta"' : ''}>
       <td><strong>${esc(r.nom)}</strong><br><a href="tel:${esc(r.telefon)}">${esc(r.telefon)}</a>${r.contacte ? ` <small class="muted">(de ${esc(r.contacte)})</small>` : ''}</td>
       <td>${esc(evMap.get(r.event_id) || r.event_id)}<br><small class="muted">${esc(centreDe(evPer.get(r.event_id)))} · ${esc(resumLinies(r))}${esMensual(evPer.get(r.event_id)) ? ' · mensual' : ''}</small></td>
-      <td class="res-import">${eur(importFila(r))}${!aCobrar(r) && r.consultar && !pagada(r) ? ' <small class="muted">a consultar</small>' : ''}</td>
+      <td class="res-import">${eur(quotaAplica(r) ? importQuota(r) : importMatrFila(r))}${!aCobrar(r) && r.consultar && quotaAplica(r) && !quotaPagada(r) ? ' <small class="muted">a consultar</small>' : ''}</td>
       <td class="res-pag">${celPagamentFila(r)}</td>
       <td>${botoFila(r)}</td>
     </tr>`).join('');
 
   const pendents = base.filter(r => !pagada(r));
   const pagades = base.filter(pagada);
-  const pendent = pendents.reduce((t, r) => t + aCobrar(r), 0);
-  const cobrat = pagades.reduce((t, r) => t + (importFila(r) || 0), 0);
-  const senseImport = pendents.filter(r => !aCobrar(r)).length;
+  const pendent = pendents.reduce((t, r) => t + (quotaAplica(r) && !quotaPagada(r) ? aCobrar(r) : 0) + (matriculaPendent(r) ? importMatricula(r) : 0), 0);
+  const cobrat = base.reduce((t, r) => t + (quotaAplica(r) && quotaPagada(r) ? importQuota(r) || 0 : 0) + (matrVisible(r) && matriculaPagada(r) ? r.matricula_cents || 0 : 0), 0);
+  const matrPendents = pendents.filter(matriculaPendent).length;
+  const senseImport = pendents.filter(r => quotaAplica(r) && !quotaPagada(r) && !aCobrar(r)).length;
   const buit = !base.length
     ? "Cap persona inscrita a activitats de pagament" + (hiHaMensuals ? ' aquest mes' : '') + ". Recorda: surten quan al Seguiment estan com a ✓ Inscrit/a."
     : state.filtreReserves === 'cobrar' ? 'Tothom ha pagat. 🎉' : 'Cap cobrament en aquesta vista.';
@@ -1510,7 +1584,7 @@ ${hiHaMensuals ? `
   <button class="btn btn-ghost" onclick="cobMes(1)" aria-label="Mes següent">▶</button>
 </div>` : ''}
 <div class="res-xifres">
-  <div${pendents.length ? ' class="xifra-avis"' : ''}><span>Falten per pagar</span><strong>${pendents.length}</strong><small>${eur(pendent)}${senseImport ? ` · ${senseImport} sense preu` : ''}</small></div>
+  <div${pendents.length ? ' class="xifra-avis"' : ''}><span>Falten per pagar</span><strong>${pendents.length}</strong><small>${eur(pendent)}${senseImport ? ` · ${senseImport} sense preu` : ''}${matrPendents ? ` · ${matrPendents} matrícul${matrPendents === 1 ? 'a' : 'es'}` : ''}</small></div>
   <div><span>Cobrat${hiHaMensuals ? ' (' + esc(mesCurt(M)) + ')' : ''}</span><strong>${eur(cobrat)}</strong><small>${pagades.length} pagades</small></div>
   <div><span>Pagament amb targeta</span><strong>${state.stripe === 'off' ? 'No connectat' : state.stripe === 'test' ? 'Mode prova' : 'Actiu'}</strong></div>
 </div>
@@ -1613,8 +1687,9 @@ function renderCobrament() {
     </div>
   </div>
   <div id="cob-msg"></div>
+  ${blocMatricula(r)}
 
-  ${r.payment_status === 'paid' ? `
+  ${!quotaCobrable(r) ? '' : r.payment_status === 'paid' ? `
     <div class="alert alert-success">Pagat <strong>${eur(r.import_pagat_cents)}</strong>
       · ${esc(METODE_NOM[r.metode_pagament] || '')}
       ${r.pagat_at ? ' · ' + esc(formatDate(r.pagat_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })) : ''}
@@ -1662,6 +1737,46 @@ function renderCobrament() {
 </section>`;
 }
 
+/* Té quota a cobrar (a banda de la matrícula) */
+const quotaCobrable = r => aCobrar(r) > 0 || r.consultar || r.payment_status === 'paid';
+
+/* Bloc de la matrícula dins del panell de cobrament (sql/32) */
+function blocMatricula(r) {
+  if (!aplicaMatricula(r)) return '';
+  if (r.matricula_metode) {
+    const ex = matriculaExempta(r);
+    return `<div class="alert ${ex ? 'alert-info' : 'alert-success'}">Matrícula: <strong>${ex ? 'exempta' : 'pagada ' + eur(r.matricula_cents)}</strong>
+      · ${esc(ex ? (r.matricula_nota || '') : (METODE_NOM[r.matricula_metode] || ''))}
+      ${r.matricula_at ? ' · ' + esc(formatDate(r.matricula_at, { day: '2-digit', month: '2-digit', year: 'numeric' })) : ''}${r.matricula_per ? ' · ' + esc(r.matricula_per) : ''}
+      <button class="btn btn-ghost btn-mini" onclick="anularMatricula('${esc(r.id)}')">${ex ? "Treure l'exempció" : 'Anul·lar'}</button></div>`;
+  }
+  const imp = evDe(r).matricula_cents;
+  return `
+  <div class="cob-grid">
+    <div class="cob-bloc">
+      <h3>Matrícula · ${eur(imp)}</h3>
+      <p class="form-help">Un sol pagament per inscripció, a banda de la quota.</p>
+      <label class="ins-camp"><span>Import (€)</span>
+        <input class="form-input" id="matr-import" type="number" min="0" step="0.01" value="${(imp / 100).toFixed(2)}"></label>
+      <label class="ins-camp"><span>Com</span>
+        <select class="form-select" id="matr-metode">
+          ${['efectiu', 'bizum', 'transferencia', 'targeta', 'altres'].map(m => `<option value="${m}">${METODE_NOM[m]}${m === 'targeta' ? ' (TPV)' : ''}</option>`).join('')}
+        </select></label>
+      <label class="ins-camp"><span>Nota (opcional)</span><input class="form-input" id="matr-nota" maxlength="200"></label>
+      <button class="btn btn-primary" onclick="cobrarMatriculaPanell('${esc(r.id)}')">Registrar la matrícula</button>
+      <button class="btn btn-ghost" onclick="exemptarMatricula('${esc(r.id)}')" title="No la paga (ex. cas social). Cal posar el motiu.">— Exempta</button>
+    </div>
+  </div>`;
+}
+window.cobrarMatriculaPanell = async function(id) {
+  const euros = parseFloat(String(qs('#matr-import').value).replace(',', '.'));
+  if (!(euros >= 0)) { qs('#cob-msg').innerHTML = '<div class="alert alert-danger">Posa l\'import de la matrícula.</div>'; return; }
+  try {
+    await registrarMatricula(id, Math.round(euros * 100), qs('#matr-metode').value, qs('#matr-nota').value.trim() || null);
+    renderReserves();
+  } catch (e) { qs('#cob-msg').innerHTML = `<div class="alert alert-danger">${esc(errText(e))}</div>`; }
+};
+
 /* Cobrar un mes d'una activitat mensual */
 function renderCobramentMes(r, box) {
   const M = state.cobMes || avui().slice(0, 7);
@@ -1681,8 +1796,10 @@ function renderCobramentMes(r, box) {
     </div>
   </div>
   <div id="cob-msg"></div>
-  <div class="cob-grid">
+  ${blocMatricula(r)}
+  ${!quotaCobrable(r) ? '' : `<div class="cob-grid">
     <div class="cob-bloc">
+      ${aplicaMatricula(r) ? `<h3>Quota de ${esc(nomMesLlarg(M))}</h3>` : ''}
       <label class="ins-camp"><span>Import (€)</span>
         <input class="form-input" id="cobm-import" type="number" min="0" step="0.01" value="${quota ? (quota / 100).toFixed(2) : ''}"></label>
       <label class="ins-camp"><span>Com</span>
@@ -1693,7 +1810,7 @@ function renderCobramentMes(r, box) {
       <button class="btn btn-primary" onclick="cobrarMesPanell('${esc(r.id)}','${M}')">Registrar el pagament de ${esc(nomMesLlarg(M))}</button>
       <button class="btn btn-ghost" onclick="marcarNoCorrespon('${esc(r.id)}','${M}')" title="Aquell mes no se li cobra (ex. només 1 sessió i justificada). Es desfà al Seguiment.">— No correspon ${esc(mesCurt(M))}</button>
     </div>
-  </div>
+  </div>`}
 </section>`;
 }
 window.cobrarMesPanell = async function(id, mes) {
@@ -1767,7 +1884,7 @@ window.changeStatus = async function(id, status) {
 window.exportCSV = function() {
   const evMap = new Map(state.events.map(e => [e.id, e.titol?.ca || e.id]));
   const cap = ['Ref','Activitat','Data acte','Nom','Telefon','Contacte','Email','Places','Detall','Total EUR','Pagament','Cobrat EUR','Metode','Data cobrament','Estat','Creada','Confirmada',
-               'Info RGPD canal','Info RGPD versio','Informada el','Informada per'];
+               'Info RGPD canal','Info RGPD versio','Informada el','Informada per','Matricula','Matricula EUR','Matricula data'];
   const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const files = reservesFiltrades().map(r => {
     const ev = state.events.find(e => e.id === r.event_id);
@@ -1780,7 +1897,8 @@ window.exportCSV = function() {
       METODE_NOM[r.metode_pagament] || '', r.pagat_at || '',
       ESTAT_LABEL[r.status] || r.status,
       r.created_at || '', r.confirmed_at || '',
-      CANAL_INFO[r.info_canal] || '', r.info_versio || '', r.informada_at || '', r.informada_per || ''
+      CANAL_INFO[r.info_canal] || '', r.info_versio || '', r.informada_at || '', r.informada_per || '',
+      estatMatricula(r), aplicaMatricula(r) ? (importMatricula(r) / 100).toFixed(2).replace('.', ',') : '', r.matricula_at || ''
     ].map(cell).join(';');
   });
   const csv = '\uFEFF' + [cap.map(cell).join(';'), ...files].join('\r\n');
@@ -2315,6 +2433,9 @@ function renderSeguiment() {
 
   const celPagat = r => celPagatSg(r, cobraBase);
   const vistes = filtraSg(persones, { cobra, pct: pctPersona, evPer: null });
+  /* Matrícula (sql/32): columna pròpia només si l'activitat en té (o algú ja la té registrada) */
+  const ambMatr = teMatricula(ev) || persones.some(r => r.matricula_metode);
+  const matrPend = persones.filter(matriculaPendent).length;
 
   const celSessio = (r, d) => {
     const k = MARCA[marca(r, d)];
@@ -2331,6 +2452,7 @@ function renderSeguiment() {
     <td class="sg-alta">${celAlta(r)}</td>
     <td class="sg-truc">${celTrucada(r)}</td>
     <td class="sg-pag">${celPagat(r)}</td>
+    ${ambMatr ? `<td class="sg-pag">${celMatriculaSg(r)}</td>` : ''}
     ${sessions.map(d => celSessio(r, d)).join('')}
     <td class="sg-pct">${pctPersona(r) === null ? '—' : pctPersona(r) + '%'}</td>
     <td><input class="sg-in sg-obs" value="${esc(r.observacions || '')}" onchange="sgEditar('${esc(r.id)}','observacions',this.value)" aria-label="Observacions de ${esc(r.nom)}"></td>
@@ -2377,7 +2499,7 @@ ${S.error ? `<div class="alert alert-warning">${esc(S.error)}</div>` : ''}
   <div><span>Aforament</span><strong>${places} / ${ev.cupo || '—'}</strong>${ev.cupo ? `<small>${Math.round(places * 100 / ev.cupo)}% ocupat</small>` : ''}</div>
   <div><span>Inscrits</span><strong>${persones.filter(r => trucadaDe(r) === 'inscrit').length} / ${persones.length}</strong></div>
   <div${persones.some(perTrucar) ? ' class="xifra-avis"' : ''}><span>Per trucar</span><strong>${persones.filter(perTrucar).length}</strong></div>
-  <div><span>Pendents de pagar</span><strong>${gratuita ? 'Gratuïta' : `${hanDePagar.length - pagades}`}</strong>${gratuita ? '' : `<small>${pagades} pagades</small>`}</div>
+  <div><span>Pendents de pagar</span><strong>${gratuita ? 'Gratuïta' : `${hanDePagar.length - pagades}`}</strong>${gratuita ? '' : `<small>${pagades} pagades</small>`}${matrPend ? `<small>${matrPend} matrícul${matrPend === 1 ? 'a' : 'es'} per cobrar</small>` : ''}</div>
   <div><span>Assistència ${esPuntual(ev) ? '' : 'del mes'}</span><strong>${pctMitja === null ? '—' : pctMitja + '%'}</strong>
     <small>${passades.length} de ${sessions.length} sessions fetes</small></div>
 </div>
@@ -2389,11 +2511,11 @@ ${sessions.length ? LLEGENDA_ASSIST : ''}
 <div class="sg-taula-wrap">
 <table class="admin-table sg-taula">
   <thead><tr>
-    <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th>${thOrd('alta', 'Alta', 'title="Data d\'inscripció"')}${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}
+    <th>#</th>${thOrd('nom', 'Nom')}${thOrd('telefon', 'Telèfon')}<th title="Si el telèfon és d'un familiar: de qui és">Contacte</th>${thOrd('alta', 'Alta', 'title="Data d\'inscripció"')}${thOrd('trucada', 'Trucada')}${thOrd('pagat', 'Pagat')}${ambMatr ? `<th title="Matrícula: un sol pagament per inscripció (${eur(ev.matricula_cents)})">Matrícula</th>` : ''}
     ${sessions.map(d => `<th class="sg-ses">${capSessio(d)}<button class="sg-treure no-print" onclick="sgSessio('${d}','treure')" aria-label="Treure la sessió del ${capSessio(d)}">×</button></th>`).join('')}
     ${thOrd('assist', 'Assist.')}<th>Observacions</th><th class="no-print"><span class="sr-only">Accions</span></th>
   </tr></thead>
-  <tbody>${vistes.map(fila).join('') || `<tr><td colspan="${10 + sessions.length}" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap persona apuntada. Fes servir “+ Afegir persona”.'}</td></tr>`}</tbody>
+  <tbody>${vistes.map(fila).join('') || `<tr><td colspan="${10 + (ambMatr ? 1 : 0) + sessions.length}" class="muted" style="text-align:center">${hiHaFiltres() ? 'Ningú compleix aquests filtres.' : 'Cap persona apuntada. Fes servir “+ Afegir persona”.'}</td></tr>`}</tbody>
 </table>
 </div>
 ${sessions.length ? '' : '<p class="muted no-print">Aquest mes no hi ha cap sessió. Afegeix-ne una amb la data.</p>'}
@@ -2481,6 +2603,42 @@ function celPagatSg(r, cobra) {
       ${mensual ? `<option value="${NO_CORRESPON}" ${nc ? 'selected' : ''}>— No correspon · ${mesCurt(mes)}</option>` : ''}
     </select>`;
 }
+
+/* Columna "Matrícula" del Seguiment: triar un mètode la cobra; "Exempta" demana el motiu */
+function estatMatricula(r) {
+  if (!aplicaMatricula(r)) return '';
+  return matriculaExempta(r) ? 'Exempta' : matriculaPagada(r) ? 'Pagada' : reservaViva(r) ? 'Pendent' : '';
+}
+function celMatriculaSg(r) {
+  if (!aplicaMatricula(r)) return '<span class="muted">—</span>';
+  const ex = matriculaExempta(r), ok = matriculaPagada(r);
+  const imp = ok ? r.matricula_cents : evDe(r)?.matricula_cents || 0;
+  const titol = ex ? `Exempta: ${r.matricula_nota || ''}` : ok ? `${eur(r.matricula_cents)} · ${ddmmaa(String(r.matricula_at || '').slice(0, 10))}` : '';
+  return `<select class="sg-sel${ex ? ' sg-nocorrespon' : ok ? ' sg-pagat' : ' sg-perpagar'}" onchange="sgMatricula('${esc(r.id)}', this.value)" aria-label="Matrícula de ${esc(r.nom)}"${titol ? ` title="${esc(titol)}"` : ''}>
+      <option value="">⏳ Pendent${imp ? ' · ' + (imp / 100).toLocaleString('ca-ES', { maximumFractionDigits: 2 }) + ' €' : ''}</option>
+      ${Object.entries(METODE_NOM).map(([k, v]) => `<option value="${k}" ${ok && r.matricula_metode === k ? 'selected' : ''}>✓ ${v}</option>`).join('')}
+      <option value="${EXEMPTA}" ${ex ? 'selected' : ''}>— Exempta</option>
+    </select>`;
+}
+window.sgMatricula = async function(id, metode) {
+  const r = state.reserves.find(x => x.id === id);
+  if (!r) return;
+  if (metode === (r.matricula_metode || '')) return;
+  try {
+    /* Canvi de mètode o d'estat: primer es desfà el registre actual */
+    if (r.matricula_metode) {
+      const que = matriculaExempta(r) ? "Treure l'exempció" : 'Anul·lar el cobrament';
+      if (!confirm(`${que} de la matrícula de ${r.nom}?`)) { renderSeguiment(); return; }
+      await accioReserva({ accio: 'anular_matricula', id, motiu: metode ? 'canvi al seguiment' : 'desmarcat al seguiment' });
+    }
+    if (metode === EXEMPTA) return exemptarMatricula(id);
+    if (metode) {
+      const imp = evDe(r)?.matricula_cents || 0;
+      await registrarMatricula(id, imp, metode, 'seguiment');
+    }
+  } catch (e) { alert('No s\'ha pogut desar: ' + errText(e)); }
+  renderSeguiment();
+};
 
 window.sgPagat = async function(id, metode, sel) {
   const r = state.reserves.find(x => x.id === id);
@@ -2710,14 +2868,17 @@ window.sgExcel = function() {
   const dsx = dadesSeguiment();
   const { S, ev, sessions, espera, marca, cobra, nivell, pctPersona } = dsx;
   const persones = filtraSg(dsx.persones, { cobra, pct: pctPersona, evPer: null });
+  const ambMatr = teMatricula(ev) || persones.some(r => r.matricula_metode);
   const cap = ['#', 'Nom', 'Telèfon', 'Contacte (de qui és el telèfon)', 'Correu', 'Nivell', 'Alta', 'Places', 'Origen', 'Trucada', 'Pagat', 'Import', 'Mètode',
-               ...sessions.map(capSessio), 'Assistència %', 'Observacions', 'Referència'];
+               ...(ambMatr ? ['Matrícula', 'Matrícula €'] : []), ...sessions.map(capSessio), 'Assistència %', 'Observacions', 'Referència'];
   const files = persones.map((r, i) => [
     i + 1, r.nom, r.telefon || '', r.contacte || '', r.email || '', nivell(r), ddmmaa(r.data_inscripcio), r.places, ORIGEN_NOM[r.origen] || '',
     TRUCADA[trucadaDe(r)].nom.replace(/^[^ ]+ /, ''),
     noCorresponAra(r) ? 'No correspon' : !cobra(r) ? 'No cal' : pagatAra(r) ? 'Sí' : 'No',
     r.payment_status === 'paid' ? (r.import_pagat_cents || 0) / 100 : cobra(r) ? aCobrar(r) / 100 : null,
     r.payment_status === 'paid' ? METODE_NOM[r.metode_pagament] || '' : '',
+    ...(ambMatr ? [estatMatricula(r) + (matriculaPagada(r) ? ' · ' + (METODE_NOM[r.matricula_metode] || '') : matriculaExempta(r) && r.matricula_nota ? ' · ' + r.matricula_nota : ''),
+                   aplicaMatricula(r) ? importMatricula(r) / 100 : null] : []),
     ...sessions.map(d => MARCA[marca(r, d)]?.txt || ''),
     pctPersona(r), r.observacions || '', r.id
   ]);
@@ -2725,7 +2886,7 @@ window.sgExcel = function() {
   const periode = esPuntual(ev) ? String(ev.data || '') : nomMesLlarg(S.mes);
   const fulls = [{
     nom: 'Seguiment', capcaleres: 1,
-    amplades: [4, 28, 13, 22, 26, 16, 10, 7, 11, 6, 8, 8, 13, ...sessions.map(() => 9), 12, 34, 12],
+    amplades: [4, 28, 13, 22, 26, 16, 10, 7, 11, 6, 8, 8, 13, ...(ambMatr ? [18, 10] : []), ...sessions.map(() => 9), 12, 34, 12],
     files: [cap, ...files]
   }, {
     nom: 'Resum', capcaleres: 0, amplades: [22, 40],

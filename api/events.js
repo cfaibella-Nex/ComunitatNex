@@ -61,7 +61,8 @@ export default async function handler(req, res) {
     const senseIntern = llista => Array.isArray(llista)
       ? llista.map(({ preu_intern_cents, ...x }) => x) : llista;
 
-    const enriched = (events || []).map(ev => ({
+    /* La matrícula (sql/32) és interna: no surt a la web */
+    const enriched = (events || []).map(({ matricula_cents, ...ev }) => ({
       ...ev,
       ...datesConcretes(ev),
       tarifes: senseIntern(ev.tarifes),

@@ -15,6 +15,8 @@
 //   PATCH { accio: 'informada', id, canal: 'telefon' | 'presencial' }   → prova art. 13/14 RGPD
 //   PATCH { accio: 'pagament_mes', id, mes: 'AAAA-MM', import_cents, metode, nota }  (metode 'no_correspon' = aquell mes no es cobra, 0 €)
 //   PATCH { accio: 'anular_pagament_mes', id, mes, motiu }
+//   PATCH { accio: 'matricula', id, import_cents, metode, nota }   (metode 'exempta' = no la paga, 0 €, nota = motiu obligatori) (sql/32)
+//   PATCH { accio: 'anular_matricula', id, motiu }
 //   PATCH { accio: 'trucada', id, estat: 'pendent' | 'no_contesta' | 'inscrit' | 'no_inscriu' | 'no_assisteix' | 'baixa_voluntaria' }
 //   PATCH { accio: 'data_inscripcio', id, data: 'AAAA-MM-DD' | null }   (sql/25)
 //   PATCH { accio: 'baixa', id, motiu }             → baixa + esborrat de dades (irreversible)
@@ -279,6 +281,29 @@ export default async function handler(req, res) {
           p_actor: actor, p_motiu: body.motiu ? String(body.motiu).slice(0, 200) : null });
         if (!out?.ok) return json(res, 409, { error: 'Aquest mes no constava com a pagat' });
         return json(res, 200, out);
+      }
+
+      case 'matricula': {
+        /* Un sol pagament per inscripció, a banda de la quota (sql/32) */
+        const exempta = body.metode === 'exempta';
+        if (!METODES.includes(body.metode) && !exempta) return json(res, 400, { error: 'Mètode no vàlid' });
+        const imp = exempta ? 0 : enter(body.import_cents);
+        if (!(imp >= 0) || imp > 100000) return json(res, 400, { error: 'Import no vàlid' });
+        const nota = body.nota ? String(body.nota).trim().slice(0, 200) : null;
+        if (exempta && !nota) return json(res, 400, { error: "Escriu el motiu de l'exempció" });
+        const out = await rpc('admin_matricula', { p_id: id, p_import: imp, p_metode: body.metode, p_actor: actor, p_nota: nota });
+        if (!out?.ok) {
+          const m = { ja_registrada: 'La matrícula ja consta com a pagada o exempta', reserva_no_activa: 'La inscripció no està activa', falta_motiu: "Escriu el motiu de l'exempció" };
+          return json(res, 409, { error: m[out?.error] || 'No es pot registrar la matrícula' });
+        }
+        return json(res, 200, { reserva: out.reserva });
+      }
+
+      case 'anular_matricula': {
+        const out = await rpc('admin_anular_matricula', { p_id: id, p_actor: actor,
+          p_motiu: body.motiu ? String(body.motiu).slice(0, 200) : null });
+        if (!out?.ok) return json(res, 409, { error: 'La matrícula no constava com a registrada' });
+        return json(res, 200, { reserva: out.reserva });
       }
 
       case 'trucada': {

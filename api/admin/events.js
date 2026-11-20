@@ -45,6 +45,15 @@ export default async function handler(req, res) {
           body.cartell = null;
         }
 
+        /* Matrícula (sql/32): import únic per inscripció o res. Només panell. */
+        if (body.matricula_cents == null || body.matricula_cents === '' || Number(body.matricula_cents) === 0) {
+          body.matricula_cents = null;
+        } else {
+          const m = Math.round(Number(body.matricula_cents));
+          if (!(m >= 1 && m <= 100000)) return json(res, 400, { error: 'La matrícula ha de ser entre 0,01 i 1.000 €, o cap.' });
+          body.matricula_cents = m;
+        }
+
         let config;
         try {
           config = validarConfig(body, { eventIds: (ids || []).map(e => e.id) });
