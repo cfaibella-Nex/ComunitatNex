@@ -2448,7 +2448,9 @@ function renderSeguiment() {
   }
   const celAltres = r => {
     const es = [...(altres.get(clauPersona(r))?.values() || [])];
-    return es.length ? `<div class="sg-altres">${es.map(e => `<button type="button" class="sg-altre" onclick="sgEvent('${esc(e.id)}')" title="${esc((e.titol?.ca || e.id) + ' · ' + centreDe(e))} — obrir el seguiment">${esc(e.titol?.ca || e.id)}</button>`).join('')}</div>` : '';
+    /* Una sola línia petita: "↳ Memòria · Mòbil bàsic" (sense "Taller de") */
+    const curt = e => String(e.titol?.ca || e.id).replace(/^(Taller|Grup|Curs)\s+(de\s+|d['’]\s*)?/i, '').replace(/^./, c => c.toUpperCase());
+    return es.length ? `<div class="sg-altres" title="També a: ${esc(es.map(e => (e.titol?.ca || e.id) + ' (' + centreDe(e) + ')').join(' · '))}">↳ ${es.map(e => `<button type="button" class="sg-altre" onclick="sgEvent('${esc(e.id)}')" aria-label="Obrir el seguiment de ${esc(e.titol?.ca || e.id)}">${esc(curt(e))}</button>`).join(' · ')}</div>` : '';
   };
   /* Matrícula (sql/32): columna pròpia només si l'activitat en té (o algú ja la té registrada) */
   const ambMatr = teMatricula(ev) || persones.some(r => r.matricula_metode);
