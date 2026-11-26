@@ -2139,6 +2139,9 @@ async function carregaSeguiment() {
   S.assistencia = {};
   if (!ev) { state.reserves = []; return; }
   const ss = sessionsDe(ev, S.mes);
+  /* Totes les inscripcions: per veure a quins altres tallers va cada persona */
+  totesReserves(true).then(rs => { S.totes = rs; if (state.tab === 'seguiment' && S.eventId === ev.id) renderSeguiment(); })
+    .catch(() => { S.totes = null; });
   const [, ass] = await Promise.all([
     loadReserves(ev.id),
     ss.length
@@ -2433,6 +2436,20 @@ function renderSeguiment() {
 
   const celPagat = r => celPagatSg(r, cobraBase);
   const vistes = filtraSg(persones, { cobra, pct: pctPersona, evPer: null });
+  /* Altres tallers de la mateixa persona (mateix nom i telèfon), actius i no arxivats */
+  const altres = new Map();
+  for (const x of S.totes || []) {
+    if (x.event_id === ev.id || x.pare_id || x.esborrat_at || !reservaViva(x)) continue;
+    const e = state.events.find(y => y.id === x.event_id);
+    if (!e || e.estat === 'arxivat') continue;
+    const k = clauPersona(x);
+    if (!altres.has(k)) altres.set(k, new Map());
+    altres.get(k).set(e.id, e);
+  }
+  const celAltres = r => {
+    const es = [...(altres.get(clauPersona(r))?.values() || [])];
+    return es.length ? `<div class="sg-altres">${es.map(e => `<button type="button" class="sg-altre" onclick="sgEvent('${esc(e.id)}')" title="${esc((e.titol?.ca || e.id) + ' · ' + centreDe(e))} — obrir el seguiment">${esc(e.titol?.ca || e.id)}</button>`).join('')}</div>` : '';
+  };
   /* Matrícula (sql/32): columna pròpia només si l'activitat en té (o algú ja la té registrada) */
   const ambMatr = teMatricula(ev) || persones.some(r => r.matricula_metode);
   const matrPend = persones.filter(matriculaPendent).length;
@@ -2446,7 +2463,7 @@ function renderSeguiment() {
   const fila = (r, i) => `
   <tr>
     <td class="sg-num">${i + 1}</td>
-    <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom"></td>
+    <td><input class="sg-in sg-nom" value="${esc(r.nom)}" onchange="sgEditar('${esc(r.id)}','nom',this.value)" aria-label="Nom">${celAltres(r)}</td>
     <td><input class="sg-in sg-tel" value="${esc(r.telefon || '')}" inputmode="tel" onchange="sgEditar('${esc(r.id)}','telefon',this.value)" aria-label="Telèfon de ${esc(r.nom)}"></td>
     <td><input class="sg-in sg-contacte" value="${esc(r.contacte || '')}" placeholder="—" onchange="sgEditar('${esc(r.id)}','contacte',this.value)" aria-label="De qui és el telèfon de ${esc(r.nom)}" title="Si el telèfon és d'un familiar: de qui és"></td>
     <td class="sg-alta">${celAlta(r)}</td>

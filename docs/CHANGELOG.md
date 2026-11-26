@@ -4,6 +4,14 @@ De més recent a més antic. **Cada sprint afegeix una entrada a dalt d'aquest f
 
 ---
 
+## v61 · Seguiment: a quins altres tallers va cada persona
+
+- Sota el nom, una etiqueta per cada **altre taller actiu** on està inscrita (mateix nom i telèfon, sense accents ni
+  majúscules; com a "Cercar persona"). Clic a l'etiqueta → obre el seguiment d'aquell taller.
+- No compten les baixes, la llista d'espera ni les activitats arxivades. `admin.js?v=83`. Sense SQL.
+
+---
+
 ## v60 · Matrícula per activitat (Repara i Reviu: 10 €)
 
 - **Editar → Inscripció i preus → Matrícula (€)**: opcional, per a qualsevol activitat. Buit = sense matrícula.
